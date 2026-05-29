@@ -1,0 +1,8 @@
+{
+  "name": "personal-finance",
+  "version": "0.1.0",
+  "description": "Personal portfolio intelligence: daily digest, rebalancing, tax-loss harvesting, thesis management, earnings tracking, and stock screening — all on free market data (yfinance + FRED). No paid data subscriptions required.",
+  "author": {
+    "name": "personal"
+  }
+}

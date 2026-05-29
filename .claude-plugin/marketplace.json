@@ -103,6 +103,16 @@
       "name": "claude-for-msft-365-install",
       "source": "./claude-for-msft-365-install",
       "description": "Provision direct cloud access (Vertex AI, Bedrock, or LLM gateway) for the Claude Microsoft 365 add-in. Generates the customized manifest, walks through Azure admin consent, and writes per-user config via Graph extension attributes."
+    },
+    {
+      "name": "personal-finance",
+      "source": "./plugins/vertical-plugins/personal-finance",
+      "description": "Personal portfolio intelligence: daily digest, rebalancing, TLH, thesis tracking, earnings alerts, and stock screening using free market data (yfinance + FRED). No paid data subscriptions required."
+    },
+    {
+      "name": "personal-portfolio-agent",
+      "source": "./plugins/agent-plugins/personal-portfolio-agent",
+      "description": "Personal AI investment management agent: reads Robinhood portfolio, proposes rebalancing and TLH trades, tracks investment theses, and executes trades on Robinhood after explicit human confirmation."
     }
   ]
 }

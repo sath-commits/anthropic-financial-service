@@ -1,0 +1,8 @@
+{
+  "name": "personal-portfolio-agent",
+  "version": "0.1.0",
+  "description": "Personal AI investment management: daily digest, rebalancing, tax-loss harvesting, thesis tracking, earnings alerts, and stock screening. Proposes trades for Robinhood with human confirmation before any execution.",
+  "author": {
+    "name": "personal"
+  }
+}

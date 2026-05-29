@@ -1,0 +1,9 @@
+[
+  { "event": "Morning digest", "description": "Daily portfolio health check — P&L, movers, allocation drift, upcoming earnings, macro pulse" },
+  { "event": "Rebalance my portfolio", "description": "Full drift analysis vs. target allocation with tax-aware trade recommendations" },
+  { "event": "Find tax-loss harvesting opportunities", "description": "Screen taxable positions for losses > $500, suggest replacement securities" },
+  { "event": "Research NVDA — update my thesis", "description": "Pull latest fundamentals, analyst ratings, and news for NVDA and update investment thesis" },
+  { "event": "Screen for value stocks with dividend yield > 2%", "description": "Run a screener for dividend-paying value stocks, rank by quality metrics" },
+  { "event": "What earnings are coming up for my positions?", "description": "Catalyst calendar for all held positions in the next 30 days" },
+  { "event": "Run a financial plan — I want to retire at 60", "description": "Monte Carlo retirement projection with current portfolio and savings rate" }
+]
