@@ -1,0 +1,21 @@
+# Personal target asset allocation
+# Edit these to match your investment policy statement
+targets:
+  us_large_cap: 0.40
+  us_small_mid: 0.10
+  international_developed: 0.15
+  emerging_markets: 0.05
+  bonds: 0.20
+  cash: 0.05
+  alternatives: 0.05
+
+# Trigger a rebalance recommendation when any asset class drifts ±5% from target
+rebalance_band: 0.05
+
+# Risk profile: conservative | moderate | aggressive
+risk_profile: moderate
+
+# Tax settings
+federal_tax_bracket: 0.22
+state_tax_rate: 0.05
+long_term_capital_gains_rate: 0.15

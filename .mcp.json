@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "market-data": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["mcp-servers/market-data/server.py"],
+      "env": {
+        "FRED_API_KEY": "${FRED_API_KEY}"
+      }
+    },
+    "robinhood": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["mcp-servers/robinhood/server.py"],
+      "env": {
+        "RH_USERNAME": "${RH_USERNAME}",
+        "RH_PASSWORD": "${RH_PASSWORD}",
+        "DRY_RUN": "true",
+        "MAX_POSITION_PCT": "0.10",
+        "DAILY_LOSS_LIMIT_PCT": "0.02"
+      }
+    }
+  }
+}

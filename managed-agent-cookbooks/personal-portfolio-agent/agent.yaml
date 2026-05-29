@@ -1,0 +1,45 @@
+# Personal Portfolio Agent — managed-agent cookbook
+
+name: personal-portfolio-agent
+model: claude-opus-4-8
+
+system:
+  file: ../../plugins/agent-plugins/personal-portfolio-agent/agents/personal-portfolio-agent.md
+  append: "You are running headless. Produce reports as markdown in ./out/; do not assume an open browser or document viewer."
+
+tools:
+  - type: agent_toolset_20260401
+    default_config: { enabled: false }
+    configs:
+      - { name: read,  enabled: true }
+      - { name: grep,  enabled: true }
+      - { name: glob,  enabled: true }
+  - { type: mcp_toolset, mcp_server_name: robinhood,    default_config: { enabled: true } }
+  - { type: mcp_toolset, mcp_server_name: market-data,  default_config: { enabled: true } }
+
+mcp_servers:
+  - type: stdio
+    name: robinhood
+    command: python3
+    args: ["${REPO_ROOT}/mcp-servers/robinhood/server.py"]
+    env:
+      RH_USERNAME: "${RH_USERNAME}"
+      RH_PASSWORD: "${RH_PASSWORD}"
+      DRY_RUN: "${DRY_RUN:-true}"
+      MAX_POSITION_PCT: "${MAX_POSITION_PCT:-0.10}"
+      DAILY_LOSS_LIMIT_PCT: "${DAILY_LOSS_LIMIT_PCT:-0.02}"
+
+  - type: stdio
+    name: market-data
+    command: python3
+    args: ["${REPO_ROOT}/mcp-servers/market-data/server.py"]
+    env:
+      FRED_API_KEY: "${FRED_API_KEY}"
+
+skills:
+  - { from_plugin: ../../plugins/agent-plugins/personal-portfolio-agent }
+
+callable_agents:
+  - { manifest: ./subagents/data-fetcher.yaml }
+  - { manifest: ./subagents/analyzer.yaml }
+  - { manifest: ./subagents/report-writer.yaml }   # only leaf with Write

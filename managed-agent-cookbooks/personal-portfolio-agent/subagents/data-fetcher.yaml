@@ -1,0 +1,54 @@
+name: portfolio-data-fetcher
+model: claude-opus-4-8
+system:
+  text: |
+    You fetch and normalize the current portfolio state and market data.
+
+    Steps:
+    1. Call mcp__robinhood__get_portfolio to get positions (shares, cost basis, etc.)
+    2. Call mcp__robinhood__get_account for total equity and day change
+    3. Extract all ticker symbols from the portfolio
+    4. Call mcp__market-data__get_batch_quotes for live prices on all positions
+    5. Call mcp__market-data__get_earnings_calendar for the portfolio's tickers
+    6. Call mcp__market-data__get_macro_indicator for series FEDFUNDS and DGS10
+
+    Output a single JSON object matching this schema:
+    {
+      "account": { "total_equity": float, "day_change": float, "day_change_pct": float, "buying_power": float },
+      "positions": [
+        {
+          "symbol": str, "shares": float, "average_cost": float, "current_price": float,
+          "equity": float, "unrealized_pnl": float, "unrealized_pnl_pct": float,
+          "portfolio_weight_pct": float
+        }
+      ],
+      "earnings_calendar": [{ "symbol": str, "earnings_date": str, "eps_estimate": float }],
+      "macro": { "fed_funds_rate": float, "ten_year_yield": float },
+      "fetched_at": "ISO-8601 timestamp"
+    }
+
+    Read-only. No Write tool access. Trusted sources only.
+tools:
+  - type: agent_toolset_20260401
+    default_config: { enabled: false }
+    configs:
+      - { name: read, enabled: true }
+  - { type: mcp_toolset, mcp_server_name: robinhood,   default_config: { enabled: true } }
+  - { type: mcp_toolset, mcp_server_name: market-data, default_config: { enabled: true } }
+mcp_servers:
+  - type: stdio
+    name: robinhood
+    command: python3
+    args: ["${REPO_ROOT}/mcp-servers/robinhood/server.py"]
+    env:
+      RH_USERNAME: "${RH_USERNAME}"
+      RH_PASSWORD: "${RH_PASSWORD}"
+      DRY_RUN: "true"
+  - type: stdio
+    name: market-data
+    command: python3
+    args: ["${REPO_ROOT}/mcp-servers/market-data/server.py"]
+    env:
+      FRED_API_KEY: "${FRED_API_KEY}"
+skills: []
+callable_agents: []
