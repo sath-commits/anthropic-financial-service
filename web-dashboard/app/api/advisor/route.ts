@@ -4,7 +4,11 @@ import path from 'path';
 import { NextResponse } from 'next/server';
 
 export const maxDuration = 90;
-import type { UserPosition, InvestorProfile, AdvisorRun } from '@/lib/types';
+import type {
+  UserPosition, InvestorProfile, AdvisorRun,
+  RebalancePlan, DriftItem, RebalanceTrade,
+  TLHOpportunity, RetirementProjection,
+} from '@/lib/types';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
@@ -29,6 +33,187 @@ function callPython(method: string, params: Record<string, unknown>) {
     const result = JSON.parse(output);
     return result?.error ? null : result;
   } catch { return null; }
+}
+
+// ── Portfolio Rebalance (portfolio-rebalance skill) ─────────────────────────
+
+type PositionRow = {
+  symbol: string; name: string; shares: number; avgCost: number;
+  currentPrice: number; equity: number; accountType: string; assetClass: string;
+  unrealizedPnlPct: number; isShortTerm: boolean;
+};
+
+function etfForAssetClass(cls: string): { symbol: string; name: string } {
+  const c = cls.toLowerCase();
+  if (c.includes('bond') || c.includes('fixed'))   return { symbol: 'BND',  name: 'Vanguard Total Bond Market ETF' };
+  if (c.includes('international') || c.includes('intl') || c.includes('developed'))
+                                                    return { symbol: 'VEA',  name: 'Vanguard FTSE Developed Markets ETF' };
+  if (c.includes('emerging'))                       return { symbol: 'VWO',  name: 'Vanguard Emerging Markets ETF' };
+  if (c.includes('small') || c.includes('mid'))    return { symbol: 'VB',   name: 'Vanguard Small-Cap ETF' };
+  if (c.includes('reit') || c.includes('real estate')) return { symbol: 'VNQ', name: 'Vanguard Real Estate ETF' };
+  if (c.includes('cash') || c.includes('money'))   return { symbol: 'SGOV', name: 'iShares 0-3 Month Treasury Bond ETF' };
+  if (c.includes('tips') || c.includes('inflation')) return { symbol: 'TIP', name: 'iShares TIPS Bond ETF' };
+  return { symbol: 'VTI', name: 'Vanguard Total Stock Market ETF' };
+}
+
+function computeRebalancePlan(
+  positionData: PositionRow[],
+  targetAllocation: Record<string, number>,
+  totalEquity: number
+): RebalancePlan {
+  const bandPct = 5;
+  const currentByClass: Record<string, number> = {};
+  for (const p of positionData) {
+    const k = p.assetClass.toLowerCase().trim();
+    currentByClass[k] = (currentByClass[k] ?? 0) + p.equity;
+  }
+
+  const driftItems: DriftItem[] = Object.entries(targetAllocation).map(([rawClass, targetPct]) => {
+    const k = rawClass.toLowerCase().trim();
+    const currentEquity = currentByClass[k] ?? 0;
+    const currentPct = totalEquity > 0 ? (currentEquity / totalEquity) * 100 : 0;
+    const driftPct = parseFloat((currentPct - targetPct).toFixed(1));
+    const dollarDelta = Math.round(currentEquity - (totalEquity * targetPct / 100));
+    const status = (Math.abs(driftPct) < bandPct ? 'ok' : Math.abs(driftPct) < bandPct * 2 ? 'drift' : 'major') as 'ok' | 'drift' | 'major';
+    return { assetClass: rawClass, targetPct, currentPct: parseFloat(currentPct.toFixed(1)), driftPct, dollarDelta, status };
+  });
+
+  const trades: RebalanceTrade[] = [];
+  for (const drift of driftItems.filter(d => d.status !== 'ok')) {
+    const k = drift.assetClass.toLowerCase().trim();
+
+    if (drift.dollarDelta > 0) {
+      // Overweight → sell: prefer TLH candidates first, then IRA/Roth, then taxable gains
+      const candidates = positionData
+        .filter(p => p.assetClass.toLowerCase().trim() === k)
+        .sort((a, b) => {
+          if (a.unrealizedPnlPct < 0 && b.unrealizedPnlPct >= 0) return -1;
+          if (b.unrealizedPnlPct < 0 && a.unrealizedPnlPct >= 0) return 1;
+          if (a.accountType !== 'taxable' && b.accountType === 'taxable') return -1;
+          if (b.accountType !== 'taxable' && a.accountType === 'taxable') return 1;
+          return b.equity - a.equity;
+        });
+      if (!candidates.length) continue;
+      const pos = candidates[0];
+      const shares = Math.max(1, Math.round(drift.dollarDelta / pos.currentPrice));
+      let taxImpact: string | null = null;
+      if (pos.accountType === 'taxable') {
+        if (pos.unrealizedPnlPct < 0) {
+          const lossAmt = Math.abs(Math.round(drift.dollarDelta * (Math.abs(pos.unrealizedPnlPct) / 100)));
+          taxImpact = `TLH opportunity: ~$${lossAmt.toLocaleString()} harvestable loss`;
+        } else if (pos.isShortTerm) {
+          taxImpact = 'Short-term gain — ordinary income rate. Consider rebalancing in IRA/Roth first.';
+        } else {
+          taxImpact = 'Long-term gain — 15–20% capital gains rate';
+        }
+      } else {
+        taxImpact = `No tax (${pos.accountType.toUpperCase()})`;
+      }
+      trades.push({ action: 'sell', symbol: pos.symbol, name: pos.name, shares, dollarAmount: Math.round(drift.dollarDelta), accountType: pos.accountType, reason: `${drift.assetClass} overweight by ${drift.driftPct.toFixed(1)}%`, taxImpact });
+
+    } else {
+      // Underweight → buy
+      const classPositions = positionData.filter(p => p.assetClass.toLowerCase().trim() === k);
+      const dollarToBuy = Math.abs(drift.dollarDelta);
+      if (classPositions.length > 0) {
+        const pos = classPositions.sort((a, b) => b.equity - a.equity)[0];
+        const shares = Math.max(1, Math.round(dollarToBuy / pos.currentPrice));
+        trades.push({ action: 'buy', symbol: pos.symbol, name: pos.name, shares, dollarAmount: Math.round(dollarToBuy), accountType: pos.accountType, reason: `${drift.assetClass} underweight by ${Math.abs(drift.driftPct).toFixed(1)}%`, taxImpact: null });
+      } else {
+        const etf = etfForAssetClass(drift.assetClass);
+        trades.push({ action: 'buy', symbol: etf.symbol, name: etf.name, shares: 0, dollarAmount: Math.round(dollarToBuy), accountType: 'taxable', reason: `No ${drift.assetClass} position — new allocation needed`, taxImpact: null });
+      }
+    }
+  }
+
+  const hasSTGains = trades.some(t => t.taxImpact?.includes('Short-term'));
+  const estimatedTaxNote = trades.length === 0
+    ? 'Portfolio is within ±5% rebalancing bands — no trades needed.'
+    : hasSTGains
+      ? 'Some sells trigger short-term gains. Prioritize rebalancing in IRA/Roth accounts first.'
+      : 'Rebalancing is tax-efficient (long-term gains only or tax-advantaged accounts).';
+
+  return { driftItems, trades, totalRebalanceVolume: trades.reduce((s, t) => s + t.dollarAmount, 0), estimatedTaxNote, bandPct };
+}
+
+// ── Tax-Loss Harvesting (tax-loss-harvesting skill) ─────────────────────────
+
+function replacementFor(symbol: string, assetClass: string): { symbol: string; rationale: string } {
+  const pairs: Record<string, { symbol: string; rationale: string }> = {
+    SPY:  { symbol: 'IVV',  rationale: 'iShares Core S&P 500 — same index, different fund family' },
+    IVV:  { symbol: 'SPLG', rationale: 'SPDR Portfolio S&P 500 — lowest cost S&P 500 ETF' },
+    VOO:  { symbol: 'SCHB', rationale: 'Schwab Total Market — similar large-cap exposure' },
+    QQQ:  { symbol: 'QQQM', rationale: 'Invesco Nasdaq-100 — same index, lower cost version' },
+    VTI:  { symbol: 'SCHB', rationale: 'Schwab Total Market — nearly identical total market exposure' },
+    SCHB: { symbol: 'VTI',  rationale: 'Vanguard Total Stock Market — same broad exposure' },
+    VXUS: { symbol: 'ACWX', rationale: 'iShares MSCI ACWI ex-US — similar international exposure' },
+    EFA:  { symbol: 'VEA',  rationale: 'Vanguard Developed Markets — equivalent developed market index' },
+    VEA:  { symbol: 'IEFA', rationale: 'iShares Core MSCI EAFE — same developed market exposure' },
+    BND:  { symbol: 'AGG',  rationale: 'iShares US Aggregate Bond — same broad bond exposure' },
+    AGG:  { symbol: 'BND',  rationale: 'Vanguard Total Bond Market — equivalent fixed income index' },
+    TLT:  { symbol: 'IEF',  rationale: 'iShares 7–10yr Treasury — similar duration exposure' },
+    GLD:  { symbol: 'IAU',  rationale: 'iShares Gold Trust — same gold exposure, lower fees' },
+    IAU:  { symbol: 'GLDM', rationale: 'SPDR Gold MiniShares — same exposure, lowest expense ratio' },
+  };
+  if (pairs[symbol]) return pairs[symbol];
+  const c = assetClass.toLowerCase();
+  if (c.includes('tech'))       return { symbol: 'VGT', rationale: 'Vanguard IT ETF — broad tech sector, no single-stock wash sale risk' };
+  if (c.includes('health'))     return { symbol: 'VHT', rationale: 'Vanguard Health Care ETF — same sector exposure' };
+  if (c.includes('financial'))  return { symbol: 'VFH', rationale: 'Vanguard Financials ETF — maintains sector exposure' };
+  if (c.includes('energy'))     return { symbol: 'VDE', rationale: 'Vanguard Energy ETF — same sector, diversified' };
+  if (c.includes('consumer'))   return { symbol: 'VDC', rationale: 'Vanguard Consumer Staples ETF — similar exposure' };
+  return { symbol: 'VTI', rationale: 'Vanguard Total Stock Market ETF — maintains equity exposure without wash sale risk' };
+}
+
+function computeTLH(positionData: PositionRow[]): TLHOpportunity[] {
+  const today = new Date();
+  return positionData
+    .filter(p => p.accountType === 'taxable' && p.unrealizedPnlPct < -2)
+    .map(p => {
+      const unrealizedLoss = Math.round((p.currentPrice - p.avgCost) * p.shares);
+      const holdingType: 'short-term' | 'long-term' = p.isShortTerm ? 'short-term' : 'long-term';
+      const taxRate = holdingType === 'short-term' ? 0.22 : 0.15;
+      const estimatedTaxSavings = Math.round(Math.abs(unrealizedLoss) * taxRate);
+      const rep = replacementFor(p.symbol, p.assetClass);
+      const windowEnd = new Date(today);
+      windowEnd.setDate(windowEnd.getDate() + 30);
+      return {
+        symbol: p.symbol, name: p.name, accountType: p.accountType,
+        unrealizedLoss, unrealizedLossPct: p.unrealizedPnlPct,
+        holdingType, estimatedTaxSavings,
+        suggestedReplacement: rep.symbol, replacementRationale: rep.rationale,
+        washSaleWindowEnd: windowEnd.toISOString().split('T')[0],
+      };
+    })
+    .sort((a, b) => a.unrealizedLoss - b.unrealizedLoss); // largest loss first
+}
+
+// ── Retirement Projection (financial-plan skill) ─────────────────────────────
+
+function computeRetirement(totalEquity: number, profile: InvestorProfile): RetirementProjection {
+  const years = Math.max(0, profile.retirementAge - profile.currentAge);
+  const annualContrib = profile.monthlyContribution * 12;
+
+  function fv(rate: number): number {
+    if (years === 0) return totalEquity;
+    const lump = totalEquity * Math.pow(1 + rate, years);
+    const contrib = rate > 0
+      ? annualContrib * ((Math.pow(1 + rate, years) - 1) / rate)
+      : annualContrib * years;
+    return lump + contrib;
+  }
+
+  const projectedBase = Math.round(fv(0.07));
+  return {
+    currentPortfolioValue: totalEquity,
+    projectedBase,
+    projectedBear: Math.round(fv(0.04)),
+    projectedBull: Math.round(fv(0.10)),
+    yearsToRetirement: years,
+    safeWithdrawalAnnual: Math.round(projectedBase * 0.04),
+    monthlyIncome: Math.round(projectedBase * 0.04 / 12),
+    assumedReturnPct: 7,
+  };
 }
 
 export async function POST(req: Request) {
@@ -192,6 +377,19 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
     return NextResponse.json({ error: 'Failed to parse AI response as JSON' }, { status: 502 });
   }
 
+  // ── Skill integrations (computed server-side, no GPT needed) ──────
+  // portfolio-rebalance skill: drift analysis + specific trade quantities
+  const rebalancePlan = profile?.targetAllocation && Object.keys(profile.targetAllocation).length > 0
+    ? computeRebalancePlan(positionData, profile.targetAllocation, totalEquity)
+    : undefined;
+
+  // tax-loss-harvesting skill: taxable positions with unrealized losses > 2%
+  const tlhRaw = computeTLH(positionData);
+  const tlhOpportunities = tlhRaw.length > 0 ? tlhRaw : undefined;
+
+  // financial-plan skill: retirement projection (base/bear/bull)
+  const retirementProjection = profile ? computeRetirement(totalEquity, profile) : undefined;
+
   const run: AdvisorRun = {
     id: crypto.randomUUID(),
     timestamp: today.toISOString(),
@@ -240,6 +438,9 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
       equity: p.equity,
     })),
     totalEquityAtAnalysis: totalEquity,
+    rebalancePlan,
+    tlhOpportunities,
+    retirementProjection,
   };
 
   return NextResponse.json(run);

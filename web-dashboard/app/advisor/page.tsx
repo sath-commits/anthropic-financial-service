@@ -5,20 +5,29 @@ import { useRouter } from 'next/navigation';
 import {
   TrendingUp, RefreshCw, Clock, ChevronDown, ChevronUp,
   AlertTriangle, TrendingDown, Minus, ArrowUpRight, ArrowDownRight,
-  Star, Calendar, BarChart3, Target, Zap,
+  Star, Calendar, BarChart3, Target, Zap, Scale, Scissors,
+  PiggyBank, Edit2, Check, X, BookOpen,
 } from 'lucide-react';
 import {
   saveAdvisorRun, loadAdvisorHistory, shouldAutoRun, nextRunLabel,
   getAutoRunEnabled, setAutoRunEnabled, computeTrackRecord,
 } from '@/lib/recommendations';
-import { loadPositions, loadProfile } from '@/lib/storage';
-import type { AdvisorRun, PositionRecommendation, BuyCandidate, MarketEvent } from '@/lib/types';
+import { loadPositions, loadProfile, saveThesis, loadThesis, deleteThesis } from '@/lib/storage';
+import type {
+  AdvisorRun, PositionRecommendation, BuyCandidate, MarketEvent,
+  RebalanceTrade, DriftItem, TLHOpportunity,
+} from '@/lib/types';
 
 function fmt(n: number, decimals = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 function fmtPct(n: number) {
   return `${n >= 0 ? '+' : ''}${fmt(n)}%`;
+}
+function fmtM(n: number) {
+  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(n) >= 1_000)     return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${fmt(n, 0)}`;
 }
 
 const ACTION_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -41,6 +50,83 @@ const URGENCY_COLOR: Record<string, string> = {
   low:    'border-zinc-700 bg-zinc-800/50',
 };
 
+// ── Thesis Note (thesis-tracker skill) ───────────────────────────────────────
+
+function ThesisNote({ symbol }: { symbol: string }) {
+  const [note, setNote] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  useEffect(() => {
+    const entry = loadThesis(symbol);
+    setNote(entry?.note ?? '');
+  }, [symbol]);
+
+  function startEdit() {
+    setDraft(note);
+    setEditing(true);
+  }
+
+  function save() {
+    const trimmed = draft.trim();
+    if (trimmed) {
+      saveThesis({ symbol, note: trimmed, updatedAt: new Date().toISOString() });
+      setNote(trimmed);
+    } else {
+      deleteThesis(symbol);
+      setNote('');
+    }
+    setEditing(false);
+  }
+
+  function cancel() {
+    setDraft(note);
+    setEditing(false);
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-zinc-800">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+          <BookOpen className="h-3 w-3" />
+          Your Thesis
+        </div>
+        {!editing && (
+          <button onClick={startEdit} className="flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+            <Edit2 className="h-3 w-3" />
+            {note ? 'Edit' : 'Add'}
+          </button>
+        )}
+      </div>
+      {editing ? (
+        <div className="space-y-2">
+          <textarea
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            placeholder="Why do you own this? What would make you sell?"
+            rows={3}
+            className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-500"
+          />
+          <div className="flex gap-2">
+            <button onClick={save} className="flex items-center gap-1 rounded px-2 py-1 bg-emerald-700/40 text-emerald-300 text-xs hover:bg-emerald-700/60 transition-colors">
+              <Check className="h-3 w-3" /> Save
+            </button>
+            <button onClick={cancel} className="flex items-center gap-1 rounded px-2 py-1 bg-zinc-700/40 text-zinc-400 text-xs hover:bg-zinc-700/60 transition-colors">
+              <X className="h-3 w-3" /> Cancel
+            </button>
+          </div>
+        </div>
+      ) : note ? (
+        <p className="text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap">{note}</p>
+      ) : (
+        <p className="text-xs text-zinc-600 italic">No thesis recorded — click Add to document your reasoning.</p>
+      )}
+    </div>
+  );
+}
+
+// ── Recommendation Card ───────────────────────────────────────────────────────
+
 function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
   const [expanded, setExpanded] = useState(false);
   const meta = ACTION_META[rec.action] ?? ACTION_META.hold;
@@ -50,7 +136,6 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
         className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-zinc-800/40 transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
-        {/* Symbol + action */}
         <div className="flex-shrink-0 min-w-[80px]">
           <div className="text-base font-bold text-zinc-100">{rec.symbol}</div>
           <div className={`mt-1 inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-semibold ${meta.color}`}>
@@ -58,8 +143,6 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
             {meta.label}{rec.action === 'trim' && rec.trimPct ? ` ${rec.trimPct}%` : ''}
           </div>
         </div>
-
-        {/* Summary + conviction */}
         <div className="flex-1 min-w-0">
           <div className="text-sm text-zinc-200 leading-snug">{rec.summary}</div>
           <div className="mt-1.5 flex items-center gap-2">
@@ -72,8 +155,6 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
             )}
           </div>
         </div>
-
-        {/* Expand toggle */}
         <div className="flex-shrink-0 text-zinc-600">
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
@@ -81,18 +162,13 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
 
       {expanded && (
         <div className="border-t border-zinc-800 px-5 py-4 space-y-3">
-          {/* Reasoning */}
           <p className="text-sm text-zinc-300 leading-relaxed">{rec.reasoning}</p>
-
-          {/* Tax note */}
           {rec.taxNote && (
             <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
               <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-300">{rec.taxNote}</p>
             </div>
           )}
-
-          {/* Catalysts + Risks */}
           <div className="grid grid-cols-2 gap-3">
             {rec.catalysts.length > 0 && (
               <div>
@@ -119,24 +195,24 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
               </div>
             )}
           </div>
-
-          {/* Analyst data */}
           {(rec.analystConsensus || rec.analystPriceTarget) && (
             <div className="flex gap-4 text-xs text-zinc-500">
               {rec.analystConsensus && <span>Analyst consensus: <span className="text-zinc-300">{rec.analystConsensus}</span></span>}
               {rec.analystPriceTarget && <span>Price target: <span className="text-zinc-300">${fmt(rec.analystPriceTarget)}</span></span>}
             </div>
           )}
-
-          {/* Price at analysis */}
           {rec.priceAtAnalysis > 0 && (
             <div className="text-xs text-zinc-600">Analysis price: ${fmt(rec.priceAtAnalysis)}</div>
           )}
+          {/* thesis-tracker skill integration */}
+          <ThesisNote symbol={rec.symbol} />
         </div>
       )}
     </div>
   );
 }
+
+// ── Buy Candidate Card ────────────────────────────────────────────────────────
 
 function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
   const [expanded, setExpanded] = useState(false);
@@ -164,7 +240,6 @@ function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </button>
-
       {expanded && (
         <div className="border-t border-zinc-800 px-5 py-4 space-y-3">
           <p className="text-sm text-zinc-300 leading-relaxed">{cand.reasoning}</p>
@@ -200,6 +275,8 @@ function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
     </div>
   );
 }
+
+// ── Market Event Card ─────────────────────────────────────────────────────────
 
 function MarketEventCard({ event }: { event: MarketEvent }) {
   const [expanded, setExpanded] = useState(false);
@@ -237,21 +314,311 @@ function MarketEventCard({ event }: { event: MarketEvent }) {
   );
 }
 
+// ── Rebalance Tab (portfolio-rebalance skill) ─────────────────────────────────
+
+function DriftStatusBadge({ status }: { status: DriftItem['status'] }) {
+  if (status === 'ok')    return <span className="text-xs text-emerald-400">✓ On target</span>;
+  if (status === 'drift') return <span className="text-xs text-amber-400">⚠ Drift</span>;
+  return <span className="text-xs text-red-400">⚑ Major drift</span>;
+}
+
+function RebalanceTab({ run }: { run: AdvisorRun }) {
+  const plan = run.rebalancePlan;
+
+  if (!plan) {
+    return (
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-10 text-center">
+        <Scale className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
+        <p className="text-sm text-zinc-400 mb-1">No target allocation configured</p>
+        <p className="text-xs text-zinc-600">Set a target allocation in your investor profile during onboarding to enable automated drift analysis.</p>
+      </div>
+    );
+  }
+
+  const driftCount = plan.driftItems.filter(d => d.status !== 'ok').length;
+
+  return (
+    <div className="space-y-5">
+      {/* Tax note banner */}
+      <div className={`rounded-xl border px-4 py-3 flex items-start gap-2 ${
+        plan.estimatedTaxNote.includes('short-term') || plan.estimatedTaxNote.includes('Short-term')
+          ? 'border-amber-500/30 bg-amber-500/10'
+          : plan.trades.length === 0
+            ? 'border-emerald-700/40 bg-emerald-900/20'
+            : 'border-blue-700/40 bg-blue-900/20'
+      }`}>
+        <AlertTriangle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${
+          plan.estimatedTaxNote.includes('hort-term') ? 'text-amber-400'
+          : plan.trades.length === 0 ? 'text-emerald-400' : 'text-blue-400'
+        }`} />
+        <p className="text-xs text-zinc-300">{plan.estimatedTaxNote}</p>
+      </div>
+
+      {/* Drift analysis table */}
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-zinc-300">Allocation Drift  <span className="text-zinc-600 font-normal text-xs">·  ±{plan.bandPct}% rebalancing band</span></h3>
+          {driftCount > 0 && <span className="text-xs text-amber-400">{driftCount} class{driftCount > 1 ? 'es' : ''} out of band</span>}
+        </div>
+        <div className="rounded-xl border border-zinc-800 overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-zinc-800 bg-zinc-900/60">
+                <th className="px-4 py-2.5 text-left text-zinc-500 font-medium">Asset Class</th>
+                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Target</th>
+                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Current</th>
+                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Drift</th>
+                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">$ Delta</th>
+                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plan.driftItems.map((item, i) => (
+                <tr key={i} className={`border-b border-zinc-800/50 ${item.status !== 'ok' ? 'bg-amber-900/10' : 'bg-zinc-900'}`}>
+                  <td className="px-4 py-2.5 font-medium text-zinc-200">{item.assetClass}</td>
+                  <td className="px-4 py-2.5 text-right text-zinc-400">{item.targetPct.toFixed(1)}%</td>
+                  <td className="px-4 py-2.5 text-right text-zinc-400">{item.currentPct.toFixed(1)}%</td>
+                  <td className={`px-4 py-2.5 text-right font-semibold ${
+                    item.driftPct > 0 ? 'text-amber-400' : item.driftPct < 0 ? 'text-blue-400' : 'text-zinc-500'
+                  }`}>
+                    {item.driftPct > 0 ? '+' : ''}{item.driftPct.toFixed(1)}%
+                  </td>
+                  <td className={`px-4 py-2.5 text-right ${item.dollarDelta > 0 ? 'text-amber-400' : item.dollarDelta < 0 ? 'text-blue-400' : 'text-zinc-500'}`}>
+                    {item.dollarDelta > 0 ? '+' : ''}{fmtM(item.dollarDelta)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right"><DriftStatusBadge status={item.status} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Trade plan */}
+      {plan.trades.length > 0 ? (
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-zinc-300">Rebalancing Trade Plan</h3>
+            <span className="text-xs text-zinc-500">Total volume: {fmtM(plan.totalRebalanceVolume)}</span>
+          </div>
+          <div className="space-y-2">
+            {plan.trades.map((trade, i) => <RebalanceTradeCard key={i} trade={trade} />)}
+          </div>
+          <p className="mt-3 text-xs text-zinc-600">
+            * Share counts are estimates based on current prices. Verify exact quantities before placing orders.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-emerald-700/30 bg-emerald-900/10 px-5 py-4 text-center">
+          <p className="text-sm text-emerald-400">Portfolio is within the ±{plan.bandPct}% rebalancing band — no trades needed.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RebalanceTradeCard({ trade }: { trade: RebalanceTrade }) {
+  const isBuy = trade.action === 'buy';
+  return (
+    <div className={`rounded-xl border px-4 py-3 ${isBuy ? 'border-emerald-800/40 bg-emerald-900/10' : 'border-red-800/40 bg-red-900/10'}`}>
+      <div className="flex items-start gap-3">
+        <div className={`flex-shrink-0 rounded border px-2 py-0.5 text-xs font-bold ${
+          isBuy ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-red-500/20 text-red-300 border-red-500/40'
+        }`}>
+          {isBuy ? '↑ BUY' : '↓ SELL'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2">
+            <span className="font-bold text-zinc-100">{trade.symbol}</span>
+            <span className="text-xs text-zinc-400 truncate">{trade.name}</span>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
+            {trade.shares > 0 && <span><span className="text-zinc-300 font-semibold">{trade.shares} shares</span></span>}
+            <span><span className="text-zinc-300 font-semibold">{fmtM(trade.dollarAmount)}</span></span>
+            <span className="text-zinc-600 capitalize">{trade.accountType.replace('_', ' ')}</span>
+          </div>
+          <p className="mt-1 text-xs text-zinc-500">{trade.reason}</p>
+        </div>
+      </div>
+      {trade.taxImpact && (
+        <div className={`mt-2 flex items-start gap-1.5 text-xs rounded px-2 py-1.5 ${
+          trade.taxImpact.includes('TLH') ? 'bg-emerald-900/30 text-emerald-400'
+          : trade.taxImpact.includes('Short-term') ? 'bg-amber-900/30 text-amber-400'
+          : 'bg-zinc-800/60 text-zinc-400'
+        }`}>
+          <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
+          {trade.taxImpact}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Tax & Harvest Tab (tax-loss-harvesting skill) ─────────────────────────────
+
+function TLHCard({ opp }: { opp: TLHOpportunity }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+      <button
+        className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-zinc-800/40 transition-colors"
+        onClick={() => setExpanded(e => !e)}
+      >
+        <div className="flex-shrink-0 min-w-[80px]">
+          <div className="text-base font-bold text-zinc-100">{opp.symbol}</div>
+          <div className="mt-1 inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-semibold bg-amber-500/20 text-amber-300 border-amber-500/40">
+            <Scissors className="h-3 w-3" /> Harvest
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm text-zinc-200">
+            <span className="text-red-400 font-semibold">{fmtM(opp.unrealizedLoss)}</span>
+            <span className="text-zinc-500"> unrealized loss</span>
+            <span className="text-zinc-600 text-xs ml-2">({opp.unrealizedLossPct.toFixed(1)}%)</span>
+          </div>
+          <div className="mt-1 text-xs text-zinc-400">
+            Est. tax savings: <span className="text-emerald-400 font-semibold">{fmtM(opp.estimatedTaxSavings)}</span>
+            <span className="ml-2 text-zinc-600 capitalize">· {opp.holdingType}</span>
+          </div>
+        </div>
+        <div className="flex-shrink-0 text-zinc-600">
+          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </div>
+      </button>
+      {expanded && (
+        <div className="border-t border-zinc-800 px-5 py-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <div className="text-zinc-500 mb-1">Sell</div>
+              <div className="font-semibold text-red-300">{opp.symbol} — {opp.name}</div>
+              <div className="text-zinc-400">{fmtM(opp.unrealizedLoss)} loss</div>
+            </div>
+            <div>
+              <div className="text-zinc-500 mb-1">Replace With</div>
+              <div className="font-semibold text-emerald-300">{opp.suggestedReplacement}</div>
+              <div className="text-zinc-400">{opp.replacementRationale}</div>
+            </div>
+          </div>
+          <div className="rounded-lg bg-amber-900/20 border border-amber-800/30 px-3 py-2 text-xs text-amber-300">
+            <span className="font-semibold">Wash Sale Window:</span> Do not repurchase {opp.symbol} before {opp.washSaleWindowEnd}
+          </div>
+          <div className="text-xs text-zinc-500">
+            Account: <span className="text-zinc-300">{opp.accountType.replace('_', ' ')}</span>
+            {' · '}
+            Tax rate applied: <span className="text-zinc-300">{opp.holdingType === 'short-term' ? '22% (ordinary income)' : '15% (long-term capital gains)'}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TaxHarvestTab({ run }: { run: AdvisorRun }) {
+  const opps = run.tlhOpportunities ?? [];
+  const totalSavings = opps.reduce((s, o) => s + o.estimatedTaxSavings, 0);
+  const totalLoss = opps.reduce((s, o) => s + o.unrealizedLoss, 0);
+
+  return (
+    <div className="space-y-5">
+      {opps.length === 0 ? (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-10 text-center">
+          <Scissors className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
+          <p className="text-sm text-zinc-400 mb-1">No harvesting opportunities right now</p>
+          <p className="text-xs text-zinc-600">Tax-loss harvesting candidates appear when taxable positions have unrealized losses {'>'} 2%. Check back after market moves.</p>
+        </div>
+      ) : (
+        <>
+          {/* Summary stats */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
+              <div className="text-xs text-zinc-500">Candidates</div>
+              <div className="text-xl font-bold text-zinc-100 mt-1">{opps.length}</div>
+              <div className="text-xs text-zinc-500">positions</div>
+            </div>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
+              <div className="text-xs text-zinc-500">Total Losses</div>
+              <div className="text-xl font-bold text-red-400 mt-1">{fmtM(totalLoss)}</div>
+              <div className="text-xs text-zinc-500">harvestable</div>
+            </div>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
+              <div className="text-xs text-zinc-500">Est. Tax Saved</div>
+              <div className="text-xl font-bold text-emerald-400 mt-1">{fmtM(totalSavings)}</div>
+              <div className="text-xs text-zinc-500">at marginal rate</div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-amber-800/30 bg-amber-900/10 px-4 py-3 text-xs text-amber-300">
+            <span className="font-semibold">Wash sale rule:</span> After selling to harvest, wait 30 days before repurchasing the same or substantially identical security. Coordinate across all accounts (IRA, Roth, spouse).
+          </div>
+
+          <div className="space-y-2">
+            {opps.map((opp, i) => <TLHCard key={i} opp={opp} />)}
+          </div>
+          <p className="text-xs text-zinc-600">
+            * Tax estimates use 22% for short-term losses and 15% for long-term losses. Consult a tax advisor for your actual rates. Harvesting resets cost basis — more gains when you eventually sell the replacement.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Retirement Stats Banner (financial-plan skill) ────────────────────────────
+
+function RetirementBanner({ run }: { run: AdvisorRun }) {
+  const proj = run.retirementProjection;
+  if (!proj) return null;
+
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4">
+      <div className="flex items-center gap-2 mb-3">
+        <PiggyBank className="h-4 w-4 text-purple-400" />
+        <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Retirement Projection</span>
+        <span className="ml-auto text-xs text-zinc-600">{proj.assumedReturnPct}% base return · 4% safe withdrawal</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div>
+          <div className="text-xs text-zinc-500">Years to Retire</div>
+          <div className="text-2xl font-bold text-zinc-100 mt-0.5">{proj.yearsToRetirement}</div>
+        </div>
+        <div>
+          <div className="text-xs text-zinc-500">Projected (Base)</div>
+          <div className="text-2xl font-bold text-purple-300 mt-0.5">{fmtM(proj.projectedBase)}</div>
+          <div className="text-xs text-zinc-600 mt-0.5">Bear: {fmtM(proj.projectedBear)}</div>
+        </div>
+        <div>
+          <div className="text-xs text-zinc-500">Bull Case</div>
+          <div className="text-2xl font-bold text-emerald-400 mt-0.5">{fmtM(proj.projectedBull)}</div>
+        </div>
+        <div>
+          <div className="text-xs text-zinc-500">Monthly Income</div>
+          <div className="text-2xl font-bold text-zinc-100 mt-0.5">{fmtM(proj.monthlyIncome)}</div>
+          <div className="text-xs text-zinc-600 mt-0.5">{fmtM(proj.safeWithdrawalAnnual)}/yr</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-zinc-800 ${className}`} />;
 }
 
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+type Tab = 'recommendations' | 'rebalance' | 'tax-harvest' | 'track-record';
 
 export default function AdvisorPage() {
   const router = useRouter();
   const [run, setRun] = useState<AdvisorRun | null>(null);
-  // Start loading=true to avoid a flash of empty content if auto-run will fire
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<AdvisorRun[]>([]);
   const [autoRunEnabled, setAutoRunState] = useState(true);
   const [runLabel, setRunLabel] = useState('');
-  const [activeTab, setActiveTab] = useState<'recommendations' | 'track-record'>('recommendations');
+  const [activeTab, setActiveTab] = useState<Tab>('recommendations');
   const runningRef = useRef(false);
 
   const analyze = useCallback(async () => {
@@ -295,16 +662,13 @@ export default function AdvisorPage() {
     setRunLabel(nextRunLabel());
     if (hist.length > 0) {
       setRun(hist[0]);
-      // Only show loading if we're about to auto-run
       if (!shouldAutoRun()) setLoading(false);
     } else {
-      // No history — show loading only if auto-run is about to fire
       if (!shouldAutoRun()) setLoading(false);
     }
     if (shouldAutoRun()) analyze();
   }, [analyze, router]);
 
-  // Refresh run label when history changes
   useEffect(() => {
     setRunLabel(nextRunLabel());
   }, [history]);
@@ -315,12 +679,16 @@ export default function AdvisorPage() {
     setAutoRunState(next);
   }
 
-  // Track record (compute from history with prices from latest snapshot)
   const currentPrices: Record<string, number> = {};
   if (history[0]) {
     for (const p of history[0].portfolioSnapshot) currentPrices[p.symbol] = p.price;
   }
   const trackRecord = history.length > 0 ? computeTrackRecord(history, currentPrices) : null;
+
+  // Tab badge counts
+  const rebalanceCount  = run?.rebalancePlan?.trades.length ?? 0;
+  const tlhCount        = run?.tlhOpportunities?.length ?? 0;
+  const recCount        = (run?.recommendations.length ?? 0) + (run?.buyCandidates.length ?? 0);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
@@ -338,7 +706,6 @@ export default function AdvisorPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Schedule toggle */}
           <div className="flex items-center gap-2 text-xs text-zinc-500">
             <Clock className="h-3.5 w-3.5" />
             <button
@@ -388,7 +755,7 @@ export default function AdvisorPage() {
           </div>
         )}
 
-        {/* Empty state — no analysis and not loading */}
+        {/* Empty state */}
         {!loading && !run && !error && (
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-12 text-center">
             <Zap className="h-10 w-10 text-amber-400/40 mx-auto mb-4" />
@@ -422,6 +789,9 @@ export default function AdvisorPage() {
               <p className="text-sm text-zinc-200 leading-relaxed">{run.executiveSummary}</p>
             </div>
 
+            {/* Retirement projection banner (financial-plan skill) */}
+            <RetirementBanner run={run} />
+
             {/* Market Events */}
             {run.marketEvents.length > 0 && (
               <div>
@@ -438,40 +808,15 @@ export default function AdvisorPage() {
             )}
 
             {/* Tab navigation */}
-            <div className="flex gap-1 rounded-lg bg-zinc-900 p-1 w-fit border border-zinc-800">
-              <button
-                onClick={() => setActiveTab('recommendations')}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  activeTab === 'recommendations'
-                    ? 'bg-zinc-700 text-zinc-100'
-                    : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-              >
-                <Target className="h-3.5 w-3.5" />
-                Recommendations
-                <span className="ml-1 rounded-full bg-zinc-600 px-1.5 py-0.5 text-[10px]">
-                  {run.recommendations.length + run.buyCandidates.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('track-record')}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  activeTab === 'track-record'
-                    ? 'bg-zinc-700 text-zinc-100'
-                    : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-              >
-                <BarChart3 className="h-3.5 w-3.5" />
-                Track Record
-                <span className="ml-1 rounded-full bg-zinc-600 px-1.5 py-0.5 text-[10px]">
-                  {trackRecord?.totalCalls ?? 0}
-                </span>
-              </button>
+            <div className="flex flex-wrap gap-1 rounded-lg bg-zinc-900 p-1 w-fit border border-zinc-800">
+              <TabButton id="recommendations" active={activeTab} onClick={setActiveTab} icon={<Target className="h-3.5 w-3.5" />} label="Recommendations" count={recCount} />
+              <TabButton id="rebalance"       active={activeTab} onClick={setActiveTab} icon={<Scale className="h-3.5 w-3.5" />}  label="Rebalance"       count={rebalanceCount} alert={rebalanceCount > 0} />
+              <TabButton id="tax-harvest"     active={activeTab} onClick={setActiveTab} icon={<Scissors className="h-3.5 w-3.5" />} label="Tax & Harvest" count={tlhCount} alert={tlhCount > 0} />
+              <TabButton id="track-record"    active={activeTab} onClick={setActiveTab} icon={<BarChart3 className="h-3.5 w-3.5" />} label="Track Record"  count={trackRecord?.totalCalls ?? 0} />
             </div>
 
             {activeTab === 'recommendations' && (
               <div className="space-y-5">
-                {/* Existing positions */}
                 <div>
                   <h2 className="mb-3 text-sm font-semibold text-zinc-400 uppercase tracking-wide">
                     Your Positions — {run.recommendations.length} calls
@@ -486,8 +831,6 @@ export default function AdvisorPage() {
                     }
                   </div>
                 </div>
-
-                {/* Buy candidates */}
                 {run.buyCandidates.length > 0 && (
                   <div>
                     <h2 className="mb-3 text-sm font-semibold text-zinc-400 uppercase tracking-wide">
@@ -500,6 +843,10 @@ export default function AdvisorPage() {
                 )}
               </div>
             )}
+
+            {activeTab === 'rebalance' && <RebalanceTab run={run} />}
+
+            {activeTab === 'tax-harvest' && <TaxHarvestTab run={run} />}
 
             {activeTab === 'track-record' && (
               <div className="space-y-5">
@@ -518,7 +865,6 @@ export default function AdvisorPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Stats */}
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                       <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
                         <div className="text-xs text-zinc-500">Total Calls</div>
@@ -548,7 +894,6 @@ export default function AdvisorPage() {
                       </div>
                     </div>
 
-                    {/* Top wins */}
                     {trackRecord.topWins.length > 0 && (
                       <div>
                         <div className="mb-2 text-xs font-semibold text-emerald-400 uppercase tracking-wide">Best Calls</div>
@@ -567,7 +912,6 @@ export default function AdvisorPage() {
                       </div>
                     )}
 
-                    {/* Missed / bad calls */}
                     {trackRecord.topMisses.length > 0 && (
                       <div>
                         <div className="mb-2 text-xs font-semibold text-red-400 uppercase tracking-wide">Learning Opportunities</div>
@@ -586,7 +930,6 @@ export default function AdvisorPage() {
                       </div>
                     )}
 
-                    {/* Full history */}
                     <div>
                       <div className="mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                         All {trackRecord.calls.length} Recommendations
@@ -640,5 +983,32 @@ export default function AdvisorPage() {
         )}
       </main>
     </div>
+  );
+}
+
+// ── Tab Button helper ─────────────────────────────────────────────────────────
+
+function TabButton({
+  id, active, onClick, icon, label, count, alert,
+}: {
+  id: Tab; active: Tab; onClick: (t: Tab) => void;
+  icon: React.ReactNode; label: string; count: number; alert?: boolean;
+}) {
+  const isActive = active === id;
+  return (
+    <button
+      onClick={() => onClick(id)}
+      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+        isActive ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+      }`}
+    >
+      {icon}
+      {label}
+      <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
+        alert && count > 0 ? 'bg-amber-600/60 text-amber-200' : 'bg-zinc-600 text-zinc-300'
+      }`}>
+        {count}
+      </span>
+    </button>
   );
 }

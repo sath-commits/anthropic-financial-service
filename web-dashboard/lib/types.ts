@@ -114,6 +114,72 @@ export interface MarketEvent {
   urgency: 'low' | 'medium' | 'high';
 }
 
+// ─── Portfolio Rebalance types (from portfolio-rebalance skill) ──────────────
+
+export interface DriftItem {
+  assetClass: string;
+  targetPct: number;
+  currentPct: number;
+  driftPct: number; // positive = overweight
+  dollarDelta: number; // positive = over target
+  status: 'ok' | 'drift' | 'major';
+}
+
+export interface RebalanceTrade {
+  action: 'buy' | 'sell';
+  symbol: string;
+  name: string;
+  shares: number;
+  dollarAmount: number;
+  accountType: string;
+  reason: string;
+  taxImpact: string | null;
+}
+
+export interface RebalancePlan {
+  driftItems: DriftItem[];
+  trades: RebalanceTrade[];
+  totalRebalanceVolume: number;
+  estimatedTaxNote: string;
+  bandPct: number;
+}
+
+// ─── Tax-Loss Harvesting types (from tax-loss-harvesting skill) ──────────────
+
+export interface TLHOpportunity {
+  symbol: string;
+  name: string;
+  accountType: string;
+  unrealizedLoss: number; // negative dollar amount
+  unrealizedLossPct: number;
+  holdingType: 'short-term' | 'long-term';
+  estimatedTaxSavings: number;
+  suggestedReplacement: string;
+  replacementRationale: string;
+  washSaleWindowEnd: string; // ISO YYYY-MM-DD — do not repurchase until after this date
+}
+
+// ─── Retirement Projection types (from financial-plan skill) ─────────────────
+
+export interface RetirementProjection {
+  currentPortfolioValue: number;
+  projectedBase: number;
+  projectedBear: number;
+  projectedBull: number;
+  yearsToRetirement: number;
+  safeWithdrawalAnnual: number;
+  monthlyIncome: number;
+  assumedReturnPct: number;
+}
+
+// ─── Thesis Tracker types (from thesis-tracker skill) ────────────────────────
+
+export interface ThesisEntry {
+  symbol: string;
+  note: string; // Why I own this + what would make me sell
+  updatedAt: string; // ISO timestamp
+}
+
 export interface AdvisorRun {
   id: string;
   timestamp: string; // ISO
@@ -123,5 +189,9 @@ export interface AdvisorRun {
   marketEvents: MarketEvent[];
   portfolioSnapshot: Array<{ symbol: string; shares: number; price: number; equity: number }>;
   totalEquityAtAnalysis: number;
+  // Skill integrations
+  rebalancePlan?: RebalancePlan;
+  tlhOpportunities?: TLHOpportunity[];
+  retirementProjection?: RetirementProjection;
 }
 
