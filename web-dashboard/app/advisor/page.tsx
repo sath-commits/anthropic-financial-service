@@ -3,13 +3,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  TrendingUp, RefreshCw, Clock, Settings, ChevronDown, ChevronUp,
+  TrendingUp, RefreshCw, Clock, ChevronDown, ChevronUp,
   AlertTriangle, TrendingDown, Minus, ArrowUpRight, ArrowDownRight,
   Star, Calendar, BarChart3, Target, Zap,
 } from 'lucide-react';
 import {
-  saveAdvisorRun, loadAdvisorHistory, shouldAutoRun, msUntilNextRun,
-  getScheduleHours, setScheduleHours, computeTrackRecord,
+  saveAdvisorRun, loadAdvisorHistory, shouldAutoRun, nextRunLabel,
+  getAutoRunEnabled, setAutoRunEnabled, computeTrackRecord,
 } from '@/lib/recommendations';
 import { loadPositions, loadProfile } from '@/lib/storage';
 import type { AdvisorRun, PositionRecommendation, BuyCandidate, MarketEvent } from '@/lib/types';
@@ -19,11 +19,6 @@ function fmt(n: number, decimals = 2) {
 }
 function fmtPct(n: number) {
   return `${n >= 0 ? '+' : ''}${fmt(n)}%`;
-}
-function fmtCountdown(ms: number) {
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor((ms % 3600000) / 60000);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
 const ACTION_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -246,12 +241,6 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-zinc-800 ${className}`} />;
 }
 
-const SCHEDULE_OPTIONS = [
-  { label: '6h', value: 6 },
-  { label: '12h', value: 12 },
-  { label: '24h', value: 24 },
-  { label: 'Weekly', value: 168 },
-];
 
 export default function AdvisorPage() {
   const router = useRouter();
@@ -259,8 +248,8 @@ export default function AdvisorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<AdvisorRun[]>([]);
-  const [scheduleHours, setScheduleHoursState] = useState(12);
-  const [countdown, setCountdown] = useState('');
+  const [autoRunEnabled, setAutoRunState] = useState(true);
+  const [runLabel, setRunLabel] = useState('');
   const [activeTab, setActiveTab] = useState<'recommendations' | 'track-record'>('recommendations');
   const runningRef = useRef(false);
 
@@ -297,25 +286,21 @@ export default function AdvisorPage() {
     if (!positions?.length) { router.push('/onboarding'); return; }
     const hist = loadAdvisorHistory();
     setHistory(hist);
-    setScheduleHoursState(getScheduleHours());
+    setAutoRunState(getAutoRunEnabled());
+    setRunLabel(nextRunLabel());
     if (hist.length > 0) setRun(hist[0]);
     if (shouldAutoRun()) analyze();
   }, [analyze, router]);
 
-  // Countdown ticker
+  // Refresh run label when history changes
   useEffect(() => {
-    const tick = () => {
-      const ms = msUntilNextRun();
-      setCountdown(ms > 0 ? fmtCountdown(ms) : 'Now');
-    };
-    tick();
-    const id = setInterval(tick, 60000);
-    return () => clearInterval(id);
-  }, [history, scheduleHours]);
+    setRunLabel(nextRunLabel());
+  }, [history]);
 
-  function changeSchedule(hours: number) {
-    setScheduleHours(hours);
-    setScheduleHoursState(hours);
+  function toggleAutoRun() {
+    const next = !autoRunEnabled;
+    setAutoRunEnabled(next);
+    setAutoRunState(next);
   }
 
   // Track record (compute from history with prices from latest snapshot)
@@ -341,29 +326,22 @@ export default function AdvisorPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Schedule selector */}
-          <div className="flex items-center gap-1 text-xs text-zinc-500">
+          {/* Schedule toggle */}
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
             <Clock className="h-3.5 w-3.5" />
-            <span>Auto-run:</span>
-            {SCHEDULE_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => changeSchedule(opt.value)}
-                className={`rounded px-2 py-0.5 transition-colors ${
-                  scheduleHours === opt.value
-                    ? 'bg-blue-600 text-white'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+            <button
+              onClick={toggleAutoRun}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 border transition-colors ${
+                autoRunEnabled
+                  ? 'border-emerald-700 bg-emerald-900/30 text-emerald-400'
+                  : 'border-zinc-700 bg-zinc-900 text-zinc-500'
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${autoRunEnabled ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+              {autoRunEnabled ? 'Auto-run on' : 'Auto-run off'}
+            </button>
+            {runLabel && <span className="text-zinc-600">{runLabel}</span>}
           </div>
-          {countdown && (
-            <span className="text-xs text-zinc-600">
-              Next: {countdown === 'Now' ? 'running soon' : `in ${countdown}`}
-            </span>
-          )}
           <button
             onClick={analyze}
             disabled={loading}

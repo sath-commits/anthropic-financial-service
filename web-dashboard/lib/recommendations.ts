@@ -1,8 +1,39 @@
 import type { AdvisorRun } from './types';
 
-const HISTORY_KEY = 'advisor:history';
-const SCHEDULE_KEY = 'advisor:scheduleHours';
+const HISTORY_KEY  = 'advisor:history';
+const AUTO_RUN_KEY = 'advisor:autoRun';
 const MAX_RUNS = 30;
+
+// US market holidays 2026 (YYYY-MM-DD, NYSE observed dates)
+const MARKET_HOLIDAYS_2026 = new Set([
+  '2026-01-01', // New Year's Day
+  '2026-01-19', // MLK Day
+  '2026-02-16', // Presidents Day
+  '2026-04-03', // Good Friday
+  '2026-05-25', // Memorial Day
+  '2026-06-19', // Juneteenth
+  '2026-07-03', // Independence Day (observed, Jul 4 is Saturday)
+  '2026-09-07', // Labor Day
+  '2026-11-26', // Thanksgiving
+  '2026-12-25', // Christmas
+]);
+
+function toLocalDateStr(d: Date): string {
+  return d.toLocaleDateString('en-CA'); // returns YYYY-MM-DD in local time
+}
+
+export function isMarketDay(d: Date = new Date()): boolean {
+  const dow = d.getDay(); // 0=Sun, 6=Sat
+  if (dow === 0 || dow === 6) return false;
+  return !MARKET_HOLIDAYS_2026.has(toLocalDateStr(d));
+}
+
+export function nextMarketDay(from: Date = new Date()): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() + 1);
+  while (!isMarketDay(d)) d.setDate(d.getDate() + 1);
+  return d;
+}
 
 export function saveAdvisorRun(run: AdvisorRun): void {
   const history = loadAdvisorHistory();
@@ -25,27 +56,39 @@ export function getLastRunTime(): Date | null {
   return new Date(history[0].timestamp);
 }
 
-export function getScheduleHours(): number {
-  if (typeof window === 'undefined') return 12;
-  return parseInt(localStorage.getItem(SCHEDULE_KEY) ?? '12', 10);
+export function getAutoRunEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  const val = localStorage.getItem(AUTO_RUN_KEY);
+  return val === null ? true : val === 'true';
 }
 
-export function setScheduleHours(hours: number): void {
-  localStorage.setItem(SCHEDULE_KEY, String(hours));
+export function setAutoRunEnabled(enabled: boolean): void {
+  localStorage.setItem(AUTO_RUN_KEY, String(enabled));
 }
 
 export function shouldAutoRun(): boolean {
+  if (!getAutoRunEnabled()) return false;
+  const today = new Date();
+  if (!isMarketDay(today)) return false;
   const last = getLastRunTime();
   if (!last) return true;
-  const intervalHours = getScheduleHours();
-  return (Date.now() - last.getTime()) / 3600000 >= intervalHours;
+  // Already ran today?
+  return toLocalDateStr(last) !== toLocalDateStr(today);
 }
 
-export function msUntilNextRun(): number {
+// Returns a human-readable label for the next scheduled run
+export function nextRunLabel(): string {
+  const today = new Date();
+  if (!isMarketDay(today)) {
+    const next = nextMarketDay(today);
+    const label = next.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return `Next market day: ${label}`;
+  }
   const last = getLastRunTime();
-  if (!last) return 0;
-  const intervalMs = getScheduleHours() * 3600000;
-  return Math.max(0, last.getTime() + intervalMs - Date.now());
+  if (!last || toLocalDateStr(last) !== toLocalDateStr(today)) {
+    return 'Will run today';
+  }
+  return 'Already ran today';
 }
 
 // ─── Track record ─────────────────────────────────────────────────
