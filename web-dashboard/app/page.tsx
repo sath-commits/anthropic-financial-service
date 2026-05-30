@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { RefreshCw, TrendingUp, Calendar, Bot, Settings, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { RefreshCw, TrendingUp, Calendar, Bot, Settings, Brain } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
@@ -92,6 +93,18 @@ export default function Dashboard() {
           <span className="ml-2 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500">
             Demo portfolio · DRY_RUN=true
           </span>
+          <nav className="ml-3 flex items-center gap-0.5">
+            <span className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800">
+              Dashboard
+            </span>
+            <Link
+              href="/advisor"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            >
+              <Brain className="h-3.5 w-3.5" />
+              Advisor
+            </Link>
+          </nav>
         </div>
         <div className="flex items-center gap-3 text-xs text-zinc-500">
           {lastUpdated && <span>Updated {lastUpdated}</span>}

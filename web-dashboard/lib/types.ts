@@ -71,3 +71,57 @@ export interface InvestorProfile {
   targetAllocation: Record<string, number>; // asset class → target weight
   strategy?: string; // AI-generated strategy summary
 }
+
+// ─── Advisor types ────────────────────────────────────────────────
+
+export interface PositionRecommendation {
+  symbol: string;
+  priceAtAnalysis: number;
+  action: 'buy' | 'sell' | 'trim' | 'add' | 'hold';
+  trimPct?: number | null; // % of shares to sell if action=trim
+  conviction: 'high' | 'medium' | 'low';
+  summary: string; // one-line headline
+  reasoning: string; // 2-4 sentences with specific data
+  catalysts: string[];
+  risks: string[];
+  taxNote?: string | null;
+  analystConsensus?: string | null;
+  analystPriceTarget?: number | null;
+}
+
+export interface BuyCandidate {
+  symbol: string;
+  name: string;
+  priceAtAnalysis: number;
+  conviction: 'high' | 'medium' | 'low';
+  summary: string;
+  reasoning: string;
+  catalysts: string[];
+  risks: string[];
+  suggestedPortfolioWeightPct: number;
+  analystConsensus?: string | null;
+  analystPriceTarget?: number | null;
+}
+
+export interface MarketEvent {
+  date: string; // ISO YYYY-MM-DD
+  daysUntil: number;
+  event: string;
+  category: 'fed' | 'earnings' | 'economic' | 'geopolitical';
+  marketExpectation: string;
+  portfolioImpact: string;
+  suggestedAction: string;
+  urgency: 'low' | 'medium' | 'high';
+}
+
+export interface AdvisorRun {
+  id: string;
+  timestamp: string; // ISO
+  executiveSummary: string;
+  recommendations: PositionRecommendation[];
+  buyCandidates: BuyCandidate[];
+  marketEvents: MarketEvent[];
+  portfolioSnapshot: Array<{ symbol: string; shares: number; price: number; equity: number }>;
+  totalEquityAtAnalysis: number;
+}
+
