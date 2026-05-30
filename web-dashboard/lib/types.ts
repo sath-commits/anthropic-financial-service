@@ -48,3 +48,26 @@ export interface Quote {
   price: number;
   error?: string;
 }
+
+// User-entered position from onboarding
+export interface UserPosition {
+  symbol: string;
+  name: string;
+  shares: number;
+  avgCost: number;
+  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k';
+  holdingDays: number;
+  assetClass: string;
+  purchaseDate?: string; // ISO date string
+}
+
+// User profile / investment goals from onboarding
+export interface InvestorProfile {
+  currentAge: number;
+  retirementAge: number;
+  monthlyContribution: number;
+  riskTolerance: 'conservative' | 'moderate' | 'aggressive';
+  primaryGoal: 'growth' | 'income' | 'preservation' | 'balanced';
+  targetAllocation: Record<string, number>; // asset class → target weight
+  strategy?: string; // AI-generated strategy summary
+}

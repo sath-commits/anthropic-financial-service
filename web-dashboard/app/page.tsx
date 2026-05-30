@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RefreshCw, TrendingUp, Calendar, Bot } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { RefreshCw, TrendingUp, Calendar, Bot, Settings, LogOut } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
 import PnLChart from '@/components/PnLChart';
 import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
-import type { PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
+import { loadPositions, loadProfile, clearAll } from '@/lib/storage';
+import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile } from '@/lib/types';
 
 function fmt(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -19,22 +21,31 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [allocation, setAllocation] = useState<AllocationItem[]>([]);
   const [earnings, setEarnings] = useState<EarningsEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>('');
-  const [chartSymbol, setChartSymbol] = useState('VOO');
+  const [chartSymbol, setChartSymbol] = useState('');
+  const [profile, setProfile] = useState<InvestorProfile | null>(null);
+  const [userPositions, setUserPositions] = useState<UserPosition[] | null>(null);
 
-  async function load() {
+  async function load(positions?: UserPosition[] | null) {
     setLoading(true);
     try {
-      const res = await fetch('/api/portfolio');
+      const posToSend = positions ?? userPositions;
+      const res = posToSend
+        ? await fetch('/api/portfolio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ positions: posToSend }) })
+        : await fetch('/api/portfolio');
       const data = await res.json();
       setSummary(data.summary);
       setAllocation(data.allocation);
       setEarnings(data.earnings);
       setLastUpdated(new Date().toLocaleTimeString());
+      if (!chartSymbol && data.summary?.positions?.length) {
+        setChartSymbol(data.summary.positions[0].symbol);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -42,9 +53,34 @@ export default function Dashboard() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const positions = loadPositions();
+    const prof = loadProfile();
+    // If no portfolio data, send to onboarding
+    if (!positions || positions.length === 0) {
+      router.push('/onboarding');
+      return;
+    }
+    setUserPositions(positions);
+    setProfile(prof);
+    load(positions);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const totalPnlPositive = (summary?.totalUnrealizedPnl ?? 0) >= 0;
+
+  function resetPortfolio() {
+    clearAll();
+    router.push('/onboarding');
+  }
+
+  const portfolioContext = summary
+    ? `Total equity: $${fmt(summary.totalEquity)}\nTotal P&L: ${totalPnlPositive ? '+' : '-'}$${fmt(Math.abs(summary.totalUnrealizedPnl))} (${fmt(summary.totalUnrealizedPnlPct)}%)\nBuying power: $${fmt(summary.buyingPower)}\n\nPositions:\n${summary.positions.map(p => `${p.symbol} (${p.accountType}): ${p.shares} shares @ $${fmt(p.currentPrice)}, cost $${fmt(p.avgCost)}, equity $${fmt(p.equity)}, P&L ${p.unrealizedPnl >= 0 ? '+' : ''}$${fmt(p.unrealizedPnl)} (${fmt(p.unrealizedPnlPct)}%), weight ${fmt(p.portfolioWeightPct)}%, ${p.isShortTerm ? 'short-term' : 'long-term'}`).join('\n')}`
+    : undefined;
+
+  const profileContext = profile
+    ? `Age: ${profile.currentAge}, retirement age: ${profile.retirementAge}\nMonthly contribution: $${profile.monthlyContribution}\nRisk tolerance: ${profile.riskTolerance}, primary goal: ${profile.primaryGoal}\nTarget allocation: ${Object.entries(profile.targetAllocation).map(([k, v]) => `${k} ${(v * 100).toFixed(0)}%`).join(', ')}${profile.strategy ? `\nStrategy: ${profile.strategy}` : ''}`
+    : undefined;
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
@@ -60,12 +96,19 @@ export default function Dashboard() {
         <div className="flex items-center gap-3 text-xs text-zinc-500">
           {lastUpdated && <span>Updated {lastUpdated}</span>}
           <button
-            onClick={load}
+            onClick={() => load()}
             disabled={loading}
             className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </button>
+          <button
+            onClick={resetPortfolio}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+            title="Change portfolio / re-run onboarding"
+          >
+            <Settings className="h-3.5 w-3.5" />
           </button>
         </div>
       </header>
@@ -158,7 +201,7 @@ export default function Dashboard() {
 
             {/* Claude AI chat */}
             <div className="flex-1 min-h-[420px]">
-              <ChatPanel />
+              <ChatPanel portfolioContext={portfolioContext} profileContext={profileContext} />
             </div>
           </div>
         </div>

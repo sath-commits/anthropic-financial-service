@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import { NextResponse } from 'next/server';
 import { MOCK_POSITIONS, TARGET_ALLOCATION } from '@/lib/mock-portfolio';
+import type { UserPosition } from '@/lib/types';
 import type { Position, PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 
 const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
@@ -20,8 +21,27 @@ function callPython(method: string, params: Record<string, unknown>) {
   }
 }
 
-export async function GET() {
-  const symbols = MOCK_POSITIONS.map(p => p.symbol);
+// Accept either GET (uses demo portfolio) or POST { positions: UserPosition[] }
+export async function GET() { return handler(null); }
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}));
+  return handler(body.positions ?? null);
+}
+
+async function handler(userPositions: UserPosition[] | null) {
+  // Use user-provided positions if available, otherwise fall back to demo portfolio
+  const rawPositions = userPositions ?? MOCK_POSITIONS.map(p => ({
+    symbol: p.symbol,
+    name: p.name,
+    shares: p.shares,
+    avgCost: p.avgCost,
+    fallbackPrice: p.mockCurrentPrice,
+    accountType: p.accountType,
+    holdingDays: p.holdingDays,
+    assetClass: p.assetClass,
+  }));
+
+  const symbols = rawPositions.map(p => p.symbol);
 
   // Fetch live prices
   const quotes: Array<{ symbol: string; price: number; error?: string }> =
@@ -32,9 +52,9 @@ export async function GET() {
     if (q.price) priceMap[q.symbol] = q.price;
   }
 
-  // Enrich positions with live prices (fall back to mockCurrentPrice if yfinance unavailable)
-  const positions: Position[] = MOCK_POSITIONS.map(p => {
-    const price = priceMap[p.symbol] ?? p.mockCurrentPrice;
+  // Enrich positions — live price → fallbackPrice → avgCost
+  const positions: Position[] = rawPositions.map(p => {
+    const price = priceMap[p.symbol] ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
     const equity = price * p.shares;
     const costTotal = p.avgCost * p.shares;
     const unrealizedPnl = equity - costTotal;
@@ -63,7 +83,9 @@ export async function GET() {
   for (const p of positions) {
     actualByClass[p.assetClass] = (actualByClass[p.assetClass] ?? 0) + p.equity;
   }
-  const allocation: AllocationItem[] = Object.entries(TARGET_ALLOCATION).map(([name, target]) => {
+  // Use user's custom targets if provided, otherwise fall back to defaults
+  const targets = (userPositions as Array<{ targetAllocation?: Record<string, number> } & UserPosition> | null)?.[0]?.targetAllocation ?? TARGET_ALLOCATION;
+  const allocation: AllocationItem[] = Object.entries(targets).map(([name, target]) => {
     const current = (actualByClass[name] ?? 0) / totalEquity;
     return { name, target, current, drift: current - target };
   });
@@ -83,8 +105,8 @@ export async function GET() {
     .filter(e => e.daysUntil >= 0 && e.daysUntil <= 60)
     .sort((a, b) => a.daysUntil - b.daysUntil);
 
-  // Fallback mock earnings when live data unavailable
-  if (earnings.length === 0) {
+  // Fallback mock earnings when live data unavailable (demo only)
+  if (earnings.length === 0 && !userPositions) {
     const addDays = (n: number) => {
       const d = new Date(today);
       d.setDate(d.getDate() + n);

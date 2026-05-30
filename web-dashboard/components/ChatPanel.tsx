@@ -11,7 +11,12 @@ const QUICK_PROMPTS = [
   'Screen for value stocks',
 ];
 
-export default function ChatPanel() {
+interface ChatPanelProps {
+  portfolioContext?: string;
+  profileContext?: string;
+}
+
+export default function ChatPanel({ portfolioContext, profileContext }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,7 +42,11 @@ export default function ChatPanel() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({
+          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          portfolioContext,
+          profileContext,
+        }),
       });
 
       if (!res.body) throw new Error('No response body');
@@ -88,7 +97,7 @@ export default function ChatPanel() {
       <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
         <Bot className="h-4 w-4 text-blue-400" />
         <span className="text-sm font-semibold text-zinc-200">Portfolio AI</span>
-        <span className="ml-auto text-xs text-zinc-600">claude-opus-4-8</span>
+        <span className="ml-auto text-xs text-zinc-600">gpt-4o</span>
       </div>
 
       {/* Messages */}

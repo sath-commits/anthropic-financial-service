@@ -1,9 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { execSync } from 'child_process';
 import path from 'path';
-import { MOCK_POSITIONS } from '@/lib/mock-portfolio';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
 
 function callPython(method: string, params: Record<string, unknown>) {
@@ -20,163 +19,184 @@ function callPython(method: string, params: Record<string, unknown>) {
   }
 }
 
-const TOOLS: Anthropic.Tool[] = [
+const TOOLS: OpenAI.ChatCompletionTool[] = [
   {
-    name: 'get_quote',
-    description: 'Get the current price, market cap, and 52-week range for a stock ticker.',
-    input_schema: {
-      type: 'object' as const,
-      properties: { symbol: { type: 'string', description: 'Stock ticker symbol' } },
-      required: ['symbol'],
-    },
-  },
-  {
-    name: 'get_fundamentals',
-    description: 'Get key fundamentals for a stock: P/E, EPS, revenue, margins, debt/equity, FCF yield.',
-    input_schema: {
-      type: 'object' as const,
-      properties: { symbol: { type: 'string' } },
-      required: ['symbol'],
-    },
-  },
-  {
-    name: 'get_analyst_ratings',
-    description: 'Get analyst consensus ratings and price targets for a stock.',
-    input_schema: {
-      type: 'object' as const,
-      properties: { symbol: { type: 'string' } },
-      required: ['symbol'],
-    },
-  },
-  {
-    name: 'get_news',
-    description: 'Get recent news headlines for a stock ticker.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        symbol: { type: 'string' },
-        days: { type: 'number', description: 'Number of days of news to fetch (default 7)' },
+    type: 'function',
+    function: {
+      name: 'get_quote',
+      description: 'Get the current price, market cap, and 52-week range for a stock ticker.',
+      parameters: {
+        type: 'object',
+        properties: { symbol: { type: 'string', description: 'Stock ticker symbol' } },
+        required: ['symbol'],
       },
-      required: ['symbol'],
     },
   },
   {
-    name: 'get_earnings_history',
-    description: 'Get last 4 quarters of earnings: actual vs. estimate and surprise percentage.',
-    input_schema: {
-      type: 'object' as const,
-      properties: { symbol: { type: 'string' } },
-      required: ['symbol'],
+    type: 'function',
+    function: {
+      name: 'get_fundamentals',
+      description: 'Get key fundamentals: P/E, EPS, revenue, margins, debt/equity, FCF yield.',
+      parameters: {
+        type: 'object',
+        properties: { symbol: { type: 'string' } },
+        required: ['symbol'],
+      },
     },
   },
   {
-    name: 'screen_stocks',
-    description: 'Screen stocks by sector, PE ratio, dividend yield, and other criteria.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        sector: { type: 'string' },
-        max_pe: { type: 'number' },
-        min_dividend_yield: { type: 'number' },
-        max_debt_to_equity: { type: 'number' },
-        min_market_cap_b: { type: 'number' },
-        symbols: { type: 'array', items: { type: 'string' } },
+    type: 'function',
+    function: {
+      name: 'get_analyst_ratings',
+      description: 'Get analyst consensus ratings and price targets for a stock.',
+      parameters: {
+        type: 'object',
+        properties: { symbol: { type: 'string' } },
+        required: ['symbol'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_news',
+      description: 'Get recent news headlines for a stock ticker.',
+      parameters: {
+        type: 'object',
+        properties: {
+          symbol: { type: 'string' },
+          days: { type: 'number', description: 'Days of news (default 7)' },
+        },
+        required: ['symbol'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_earnings_history',
+      description: 'Get last 4 quarters of earnings: actual vs. estimate and surprise %.',
+      parameters: {
+        type: 'object',
+        properties: { symbol: { type: 'string' } },
+        required: ['symbol'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'screen_stocks',
+      description: 'Screen stocks by sector, PE ratio, dividend yield, and other criteria.',
+      parameters: {
+        type: 'object',
+        properties: {
+          sector: { type: 'string' },
+          max_pe: { type: 'number' },
+          min_dividend_yield: { type: 'number' },
+          max_debt_to_equity: { type: 'number' },
+          min_market_cap_b: { type: 'number' },
+          symbols: { type: 'array', items: { type: 'string' } },
+        },
       },
     },
   },
 ];
 
-function buildSystemPrompt(): string {
-  const portfolioSummary = MOCK_POSITIONS.map(p =>
-    `${p.symbol} (${p.shares} shares @ $${p.avgCost} avg cost, ${p.accountType}, ${p.holdingDays}d holding)`
-  ).join('\n');
-
-  return `You are a personal AI portfolio manager and investment analyst. You have access to tools to fetch live market data, fundamentals, analyst ratings, and news.
-
-## Current Portfolio
-${portfolioSummary}
-
-## Target Allocation
-- US Large Cap: 60%
-- International Developed: 15%
-- Emerging Markets: 5%
-- Bonds: 20%
+function buildSystemPrompt(portfolioContext?: string, profileContext?: string): string {
+  return `You are a personal AI portfolio manager and investment analyst. You have tools to fetch live market data, fundamentals, analyst ratings, and news.
+${portfolioContext ? `\n## Current Portfolio\n${portfolioContext}` : ''}
+${profileContext ? `\n## Investor Profile\n${profileContext}` : ''}
 
 ## Capabilities
 - Analyze portfolio drift vs. target allocation and recommend rebalancing trades
-- Find tax-loss harvesting opportunities (focus on taxable account positions with unrealized losses)
+- Find tax-loss harvesting opportunities (taxable account positions with unrealized losses)
 - Research individual stocks: fundamentals, analyst ratings, recent news, earnings history
-- Screen for new investment ideas based on criteria
-- Track investment theses for held positions
+- Screen for new investment ideas
 - Identify upcoming earnings and catalysts
 
 ## Guardrails
-- Always show tax implications for any trade you suggest (short-term vs. long-term, taxable vs. IRA)
-- Before proposing any trade, show your reasoning clearly
-- Never claim to execute a trade — this is a recommendations-only interface
+- Always show tax implications for any trade (short-term vs. long-term, taxable vs. IRA)
+- Show reasoning before proposing trades
+- Never claim to execute a trade — recommendations only
 
-Be concise, direct, and data-driven. Use markdown formatting. When you have data, present it in tables.`;
+Be concise, direct, and data-driven. Use markdown tables when presenting data.`;
 }
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, portfolioContext, profileContext } = await req.json();
+
+  const systemPrompt = buildSystemPrompt(portfolioContext, profileContext);
 
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
-
-      const send = (data: string) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: data })}\n\n`));
-      };
+      const send = (text: string) =>
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
 
       try {
-        // Agentic loop — handle tool calls
-        const msgHistory: Anthropic.MessageParam[] = messages;
-        let continueLoop = true;
+        type OAIMessage = OpenAI.ChatCompletionMessageParam;
+        const msgHistory: OAIMessage[] = [
+          { role: 'system', content: systemPrompt },
+          ...messages,
+        ];
 
-        while (continueLoop) {
-          const response = await client.messages.create({
-            model: 'claude-opus-4-8',
-            max_tokens: 4096,
-            system: buildSystemPrompt(),
+        // Agentic loop: handle tool calls, then stream final answer
+        while (true) {
+          // Non-streaming call to detect tool use
+          const response = await openai.chat.completions.create({
+            model: 'gpt-4o',
             messages: msgHistory,
             tools: TOOLS,
+            stream: false,
           });
 
-          // Stream text blocks
-          for (const block of response.content) {
-            if (block.type === 'text') {
-              send(block.text);
+          const choice = response.choices[0];
+          const msg = choice.message;
+          msgHistory.push(msg);
+
+          if (choice.finish_reason === 'tool_calls' && msg.tool_calls?.length) {
+            // Execute each tool call and append results
+            for (const tc of msg.tool_calls) {
+              if (tc.type !== 'function') continue;
+              let args: Record<string, unknown> = {};
+              try { args = JSON.parse(tc.function.arguments); } catch { /* skip */ }
+              const result = callPython(tc.function.name, args);
+              msgHistory.push({
+                role: 'tool',
+                tool_call_id: tc.id,
+                content: JSON.stringify(result),
+              });
+            }
+            // Loop again with tool results in context
+            continue;
+          }
+
+          // No more tool calls — stream the final text answer
+          msgHistory.push({ role: 'user', content: '' }); // trigger streaming response
+          msgHistory.pop(); // remove the dummy — just stream last assistant msg
+
+          // Re-request with streaming, same messages (last assistant msg already has text)
+          if (msg.content) {
+            // Already have the final text — send it word-by-word for a streaming feel
+            const words = msg.content.split(' ');
+            for (const word of words) {
+              send(word + ' ');
+              await new Promise(r => setTimeout(r, 8));
+            }
+          } else {
+            // Edge case: no content on the final turn — do a fresh streaming call
+            const streamResp = await openai.chat.completions.create({
+              model: 'gpt-4o',
+              messages: msgHistory,
+              stream: true,
+            });
+            for await (const chunk of streamResp) {
+              const text = chunk.choices[0]?.delta?.content ?? '';
+              if (text) send(text);
             }
           }
-
-          if (response.stop_reason === 'end_turn') {
-            continueLoop = false;
-            break;
-          }
-
-          if (response.stop_reason === 'tool_use') {
-            const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
-            if (toolUseBlocks.length === 0) { continueLoop = false; break; }
-
-            // Add assistant turn
-            msgHistory.push({ role: 'assistant', content: response.content });
-
-            // Execute tools
-            const toolResults: Anthropic.ToolResultBlockParam[] = toolUseBlocks.map(block => {
-              if (block.type !== 'tool_use') return null!;
-              const result = callPython(block.name, block.input as Record<string, unknown>);
-              return {
-                type: 'tool_result' as const,
-                tool_use_id: block.id,
-                content: JSON.stringify(result),
-              };
-            });
-
-            msgHistory.push({ role: 'user', content: toolResults });
-          } else {
-            continueLoop = false;
-          }
+          break;
         }
       } catch (err) {
         send(`\n\nError: ${err instanceof Error ? err.message : 'Unknown error'}`);
