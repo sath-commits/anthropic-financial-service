@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
-import { execSync } from 'child_process';
-import path from 'path';
 import { NextResponse } from 'next/server';
+import { callDataService } from '@/lib/data-service';
 
 export const maxDuration = 90;
 import type {
@@ -11,7 +10,6 @@ import type {
 } from '@/lib/types';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
 
 // Known FOMC meeting dates (decision day = second day of 2-day meeting)
 const FOMC_DATES = [
@@ -21,19 +19,6 @@ const FOMC_DATES = [
   '2026-10-29',
   '2026-12-10',
 ];
-
-function callPython(method: string, params: Record<string, unknown>) {
-  try {
-    const output = execSync('python3 data_service.py', {
-      input: JSON.stringify({ method, params }),
-      cwd: SCRIPTS_DIR,
-      encoding: 'utf-8',
-      timeout: 15000,
-    });
-    const result = JSON.parse(output);
-    return result?.error ? null : result;
-  } catch { return null; }
-}
 
 // ── Portfolio Rebalance (portfolio-rebalance skill) ─────────────────────────
 
@@ -230,20 +215,23 @@ export async function POST(req: Request) {
   const symbols = positions.map(p => p.symbol);
   const today = new Date();
 
-  // ── Market data (best-effort; yfinance may be blocked) ──────────
-  const quotes =
-    (callPython('get_batch_quotes', { symbols }) as Array<{ symbol: string; price: number }>) ?? [];
+  // ── Market data — parallel async fetches ────────────────────────
+  const [quotesRaw, fundamentalsArr, ratingsArr] = await Promise.all([
+    callDataService('get_batch_quotes', { symbols }),
+    Promise.all(symbols.map(sym => callDataService('get_fundamentals', { symbol: sym }))),
+    Promise.all(symbols.map(sym => callDataService('get_analyst_ratings', { symbol: sym }))),
+  ]);
+
+  const quotes = (quotesRaw as Array<{ symbol: string; price: number }>) ?? [];
   const priceMap: Record<string, number> = {};
-  for (const q of quotes) if (q.price) priceMap[q.symbol] = q.price;
+  for (const q of quotes) if (q?.price) priceMap[q.symbol] = q.price;
 
   const fundamentalsMap: Record<string, unknown> = {};
   const ratingsMap: Record<string, unknown> = {};
-  for (const sym of symbols) {
-    const f = callPython('get_fundamentals', { symbol: sym });
-    if (f) fundamentalsMap[sym] = f;
-    const r = callPython('get_analyst_ratings', { symbol: sym });
-    if (r) ratingsMap[sym] = r;
-  }
+  symbols.forEach((sym, i) => {
+    if (fundamentalsArr[i]) fundamentalsMap[sym] = fundamentalsArr[i];
+    if (ratingsArr[i]) ratingsMap[sym] = ratingsArr[i];
+  });
 
   // ── Position data package ───────────────────────────────────────
   const positionData = positions.map(p => {

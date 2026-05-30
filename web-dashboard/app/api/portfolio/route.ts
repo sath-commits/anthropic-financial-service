@@ -1,25 +1,8 @@
-import { execSync } from 'child_process';
-import path from 'path';
 import { NextResponse } from 'next/server';
 import { MOCK_POSITIONS, TARGET_ALLOCATION } from '@/lib/mock-portfolio';
+import { callDataService } from '@/lib/data-service';
 import type { UserPosition } from '@/lib/types';
 import type { Position, PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
-
-const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
-
-function callPython(method: string, params: Record<string, unknown>) {
-  try {
-    const output = execSync('python3 data_service.py', {
-      input: JSON.stringify({ method, params }),
-      cwd: SCRIPTS_DIR,
-      encoding: 'utf-8',
-      timeout: 20000,
-    });
-    return JSON.parse(output);
-  } catch {
-    return null;
-  }
-}
 
 export async function GET() { return handler(null, null); }
 export async function POST(req: Request) {
@@ -45,7 +28,7 @@ async function handler(
   const symbols = rawPositions.map(p => p.symbol);
 
   const quotes: Array<{ symbol: string; price: number; error?: string }> =
-    callPython('get_batch_quotes', { symbols }) ?? [];
+    (await callDataService('get_batch_quotes', { symbols }) as Array<{ symbol: string; price: number; error?: string }>) ?? [];
 
   const priceMap: Record<string, number> = {};
   for (const q of quotes) {
@@ -89,7 +72,7 @@ async function handler(
   });
 
   const earningsRaw: Array<{ symbol: string; earnings_date: string; eps_estimate: number | null }> =
-    callPython('get_earnings_calendar', { symbols }) ?? [];
+    (await callDataService('get_earnings_calendar', { symbols }) as Array<{ symbol: string; earnings_date: string; eps_estimate: number | null }>) ?? [];
 
   const today = new Date();
   let earnings: EarningsEvent[] = earningsRaw

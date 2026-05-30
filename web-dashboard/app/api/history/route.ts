@@ -1,9 +1,6 @@
-import { execSync } from 'child_process';
-import path from 'path';
 import { NextResponse } from 'next/server';
 import { MOCK_POSITIONS } from '@/lib/mock-portfolio';
-
-const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
+import { callDataService } from '@/lib/data-service';
 
 // Seed a plausible price series ending at the mock current price
 function generateMockHistory(symbol: string, periodDays: number) {
@@ -43,13 +40,7 @@ export async function GET(req: Request) {
   const period = searchParams.get('period') ?? '6mo';
 
   try {
-    const output = execSync('python3 data_service.py', {
-      input: JSON.stringify({ method: 'get_price_history', params: { symbol, period } }),
-      cwd: SCRIPTS_DIR,
-      encoding: 'utf-8',
-      timeout: 15000,
-    });
-    const data = JSON.parse(output);
+    const data = await callDataService('get_price_history', { symbol, period });
     if (Array.isArray(data) && data.length > 0) return NextResponse.json(data);
   } catch { /* fall through to mock */ }
 

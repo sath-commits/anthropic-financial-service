@@ -1,25 +1,9 @@
 import OpenAI from 'openai';
-import { execSync } from 'child_process';
-import path from 'path';
+import { callDataService } from '@/lib/data-service';
 
 export const maxDuration = 60;
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
-
-function callPython(method: string, params: Record<string, unknown>) {
-  try {
-    const output = execSync('python3 data_service.py', {
-      input: JSON.stringify({ method, params }),
-      cwd: SCRIPTS_DIR,
-      encoding: 'utf-8',
-      timeout: 15000,
-    });
-    return JSON.parse(output);
-  } catch {
-    return { error: 'Data fetch failed' };
-  }
-}
 
 const TOOLS: OpenAI.ChatCompletionTool[] = [
   {
@@ -163,7 +147,7 @@ export async function POST(req: Request) {
               if (tc.type !== 'function') continue;
               let args: Record<string, unknown> = {};
               try { args = JSON.parse(tc.function.arguments); } catch { /* skip */ }
-              const result = callPython(tc.function.name, args);
+              const result = await callDataService(tc.function.name, args);
               msgHistory.push({
                 role: 'tool',
                 tool_call_id: tc.id,
