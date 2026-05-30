@@ -2,6 +2,8 @@ import OpenAI from 'openai';
 import { execSync } from 'child_process';
 import path from 'path';
 import { NextResponse } from 'next/server';
+
+export const maxDuration = 90;
 import type { UserPosition, InvestorProfile, AdvisorRun } from '@/lib/types';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -166,22 +168,29 @@ ${historyContext}
 
 Analyze this portfolio thoroughly and return your structured JSON recommendations.`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    response_format: { type: 'json_object' },
-    temperature: 0.3,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessage },
-    ],
-  });
+  let rawContent: string;
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+    });
+    rawContent = response.choices[0].message.content ?? '{}';
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'OpenAI API error';
+    return NextResponse.json({ error: msg }, { status: 502 });
+  }
 
-  const raw = JSON.parse(response.choices[0].message.content ?? '{}') as {
-    executiveSummary?: string;
-    recommendations?: Array<Record<string, unknown>>;
-    buyCandidates?: Array<Record<string, unknown>>;
-    marketEvents?: Array<Record<string, unknown>>;
-  };
+  let raw: { executiveSummary?: string; recommendations?: Array<Record<string, unknown>>; buyCandidates?: Array<Record<string, unknown>>; marketEvents?: Array<Record<string, unknown>> };
+  try {
+    raw = JSON.parse(rawContent);
+  } catch {
+    return NextResponse.json({ error: 'Failed to parse AI response as JSON' }, { status: 502 });
+  }
 
   const run: AdvisorRun = {
     id: crypto.randomUUID(),

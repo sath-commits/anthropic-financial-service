@@ -32,12 +32,21 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<InvestorProfile | null>(null);
   const [userPositions, setUserPositions] = useState<UserPosition[] | null>(null);
 
-  async function load(positions?: UserPosition[] | null) {
+  async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null) {
     setLoading(true);
     try {
       const posToSend = positions ?? userPositions;
+      // Use explicitly-passed profile first, then state (for refresh calls)
+      const profileToUse = prof !== undefined ? prof : profile;
       const res = posToSend
-        ? await fetch('/api/portfolio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ positions: posToSend }) })
+        ? await fetch('/api/portfolio', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              positions: posToSend,
+              targetAllocation: profileToUse?.targetAllocation ?? null,
+            }),
+          })
         : await fetch('/api/portfolio');
       const data = await res.json();
       setSummary(data.summary);
@@ -57,14 +66,14 @@ export default function Dashboard() {
   useEffect(() => {
     const positions = loadPositions();
     const prof = loadProfile();
-    // If no portfolio data, send to onboarding
     if (!positions || positions.length === 0) {
       router.push('/onboarding');
       return;
     }
     setUserPositions(positions);
     setProfile(prof);
-    load(positions);
+    // Pass prof directly — React state may not reflect yet at this point
+    load(positions, prof);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -83,6 +92,8 @@ export default function Dashboard() {
     ? `Age: ${profile.currentAge}, retirement age: ${profile.retirementAge}\nMonthly contribution: $${profile.monthlyContribution}\nRisk tolerance: ${profile.riskTolerance}, primary goal: ${profile.primaryGoal}\nTarget allocation: ${Object.entries(profile.targetAllocation).map(([k, v]) => `${k} ${(v * 100).toFixed(0)}%`).join(', ')}${profile.strategy ? `\nStrategy: ${profile.strategy}` : ''}`
     : undefined;
 
+  const isOwnPortfolio = userPositions !== null;
+
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
       {/* Top bar */}
@@ -91,7 +102,7 @@ export default function Dashboard() {
           <TrendingUp className="h-5 w-5 text-blue-400" />
           <span className="text-base font-semibold text-zinc-100">Portfolio AI</span>
           <span className="ml-2 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500">
-            Demo portfolio · DRY_RUN=true
+            {isOwnPortfolio ? 'Your portfolio' : 'Demo portfolio · DRY_RUN=true'}
           </span>
           <nav className="ml-3 flex items-center gap-0.5">
             <span className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800">
@@ -147,7 +158,7 @@ export default function Dashboard() {
               <MetricCard
                 label="Day Change"
                 value={summary.dayChange === 0 ? '—' : `${summary.dayChange >= 0 ? '+' : '-'}$${fmt(Math.abs(summary.dayChange))}`}
-                subValue={summary.dayChange === 0 ? 'Robinhood not connected' : `${fmt(summary.dayChangePct)}%`}
+                subValue={summary.dayChange === 0 ? 'Live prices not connected' : `${fmt(summary.dayChangePct)}%`}
                 positive={summary.dayChange === 0 ? null : summary.dayChange >= 0}
               />
               <MetricCard
@@ -171,9 +182,7 @@ export default function Dashboard() {
                   {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
                 </div>
               ) : summary ? (
-                <PositionsTable
-                  positions={summary.positions}
-                />
+                <PositionsTable positions={summary.positions} />
               ) : null}
             </div>
 
@@ -212,7 +221,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Claude AI chat */}
+            {/* AI chat */}
             <div className="flex-1 min-h-[420px]">
               <ChatPanel portfolioContext={portfolioContext} profileContext={profileContext} />
             </div>
@@ -241,7 +250,7 @@ export default function Dashboard() {
           <span>Market data via Yahoo Finance (unofficial). Not financial advice.</span>
           <div className="flex items-center gap-1.5">
             <Bot className="h-3 w-3" />
-            <span>AI powered by Claude</span>
+            <span>AI powered by GPT-4o</span>
           </div>
         </div>
       </footer>

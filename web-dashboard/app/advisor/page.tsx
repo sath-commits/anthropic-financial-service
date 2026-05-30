@@ -245,7 +245,8 @@ function Skeleton({ className }: { className?: string }) {
 export default function AdvisorPage() {
   const router = useRouter();
   const [run, setRun] = useState<AdvisorRun | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Start loading=true to avoid a flash of empty content if auto-run will fire
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<AdvisorRun[]>([]);
   const [autoRunEnabled, setAutoRunState] = useState(true);
@@ -268,10 +269,14 @@ export default function AdvisorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ positions, profile, history: hist.slice(0, 10) }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? `Server error ${res.status}`);
+      }
       const newRun: AdvisorRun = await res.json();
       saveAdvisorRun(newRun);
       setRun(newRun);
+      setRunLabel(nextRunLabel());
       setHistory(loadAdvisorHistory());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
@@ -288,7 +293,14 @@ export default function AdvisorPage() {
     setHistory(hist);
     setAutoRunState(getAutoRunEnabled());
     setRunLabel(nextRunLabel());
-    if (hist.length > 0) setRun(hist[0]);
+    if (hist.length > 0) {
+      setRun(hist[0]);
+      // Only show loading if we're about to auto-run
+      if (!shouldAutoRun()) setLoading(false);
+    } else {
+      // No history — show loading only if auto-run is about to fire
+      if (!shouldAutoRun()) setLoading(false);
+    }
     if (shouldAutoRun()) analyze();
   }, [analyze, router]);
 
@@ -364,11 +376,35 @@ export default function AdvisorPage() {
         {/* Loading state */}
         {loading && !run && (
           <div className="space-y-4">
-            <Skeleton className="h-24" />
+            <div className="rounded-xl border border-blue-900/40 bg-blue-950/20 px-5 py-4 flex items-center gap-3">
+              <RefreshCw className="h-4 w-4 text-blue-400 animate-spin flex-shrink-0" />
+              <span className="text-sm text-zinc-300">Analyzing your portfolio with GPT-4o…</span>
+            </div>
+            <Skeleton className="h-20" />
             <div className="grid grid-cols-3 gap-3">
               {[1,2,3].map(i => <Skeleton key={i} className="h-16" />)}
             </div>
             {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-20" />)}
+          </div>
+        )}
+
+        {/* Empty state — no analysis and not loading */}
+        {!loading && !run && !error && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-12 text-center">
+            <Zap className="h-10 w-10 text-amber-400/40 mx-auto mb-4" />
+            <p className="text-base font-semibold text-zinc-300 mb-2">No analysis yet</p>
+            <p className="text-sm text-zinc-500 mb-6">
+              {autoRunEnabled
+                ? 'Auto-run is on — the advisor will run automatically on the next market day.'
+                : 'Auto-run is off. Click Run Now to get your first portfolio analysis.'}
+            </p>
+            <button
+              onClick={analyze}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" /> Run Analysis Now
+            </button>
           </div>
         )}
 
@@ -467,9 +503,18 @@ export default function AdvisorPage() {
 
             {activeTab === 'track-record' && (
               <div className="space-y-5">
-                {!trackRecord || trackRecord.totalCalls === 0 ? (
+                {history.length < 2 ? (
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-8 text-center">
+                    <BarChart3 className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-zinc-400 mb-1">Track record starts building tomorrow</p>
+                    <p className="text-xs text-zinc-600">
+                      After the second analysis run, returns are computed by comparing recommendation prices to current prices.
+                      {history.length === 1 && ` Today's analysis is logged — check back after the next market day.`}
+                    </p>
+                  </div>
+                ) : !trackRecord || trackRecord.totalCalls === 0 ? (
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-8 text-center text-sm text-zinc-500">
-                    Track record builds after multiple advisor runs. Run the advisor again tomorrow to start tracking.
+                    No recommendations to track yet.
                   </div>
                 ) : (
                   <>

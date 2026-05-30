@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface HistoryPoint {
@@ -23,21 +23,31 @@ export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
   const [data, setData] = useState<HistoryPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('6mo');
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    if (!symbol) return;
+    // Cancel any in-flight request before starting a new one
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
-    fetch(`/api/history?symbol=${symbol}&period=${period}`)
+    fetch(`/api/history?symbol=${symbol}&period=${period}`, { signal: controller.signal })
       .then(r => r.json())
       .then((rows: HistoryPoint[]) => {
-        setData(rows.slice(-120)); // max 120 points for clarity
+        setData(rows.slice(-120));
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(err => {
+        if (err.name !== 'AbortError') setLoading(false);
+      });
+
+    return () => controller.abort();
   }, [symbol, period]);
 
   const isUp = data.length >= 2 && data[data.length - 1].close >= data[0].close;
   const strokeColor = isUp ? '#22c55e' : '#ef4444';
-  const fillColor = isUp ? '#22c55e20' : '#ef444420';
 
   const periods = ['1mo', '3mo', '6mo', '1y', '2y'];
 
@@ -69,7 +79,7 @@ export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
         <ResponsiveContainer width="100%" height={160}>
           <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
             <defs>
-              <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`grad-${symbol}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={strokeColor} stopOpacity={0.3} />
                 <stop offset="95%" stopColor={strokeColor} stopOpacity={0} />
               </linearGradient>
@@ -79,7 +89,7 @@ export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
               tick={{ fill: '#71717a', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={v => v.slice(5)} // MM-DD
+              tickFormatter={v => v.slice(5)}
               interval="preserveStartEnd"
             />
             <YAxis
@@ -95,7 +105,7 @@ export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
               dataKey="close"
               stroke={strokeColor}
               strokeWidth={1.5}
-              fill="url(#priceGradient)"
+              fill={`url(#grad-${symbol})`}
               dot={false}
             />
           </AreaChart>

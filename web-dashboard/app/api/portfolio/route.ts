@@ -21,15 +21,16 @@ function callPython(method: string, params: Record<string, unknown>) {
   }
 }
 
-// Accept either GET (uses demo portfolio) or POST { positions: UserPosition[] }
-export async function GET() { return handler(null); }
+export async function GET() { return handler(null, null); }
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
-  return handler(body.positions ?? null);
+  return handler(body.positions ?? null, body.targetAllocation ?? null);
 }
 
-async function handler(userPositions: UserPosition[] | null) {
-  // Use user-provided positions if available, otherwise fall back to demo portfolio
+async function handler(
+  userPositions: UserPosition[] | null,
+  targetAllocation: Record<string, number> | null,
+) {
   const rawPositions = userPositions ?? MOCK_POSITIONS.map(p => ({
     symbol: p.symbol,
     name: p.name,
@@ -43,7 +44,6 @@ async function handler(userPositions: UserPosition[] | null) {
 
   const symbols = rawPositions.map(p => p.symbol);
 
-  // Fetch live prices
   const quotes: Array<{ symbol: string; price: number; error?: string }> =
     callPython('get_batch_quotes', { symbols }) ?? [];
 
@@ -52,7 +52,6 @@ async function handler(userPositions: UserPosition[] | null) {
     if (q.price) priceMap[q.symbol] = q.price;
   }
 
-  // Enrich positions — live price → fallbackPrice → avgCost
   const positions: Position[] = rawPositions.map(p => {
     const price = priceMap[p.symbol] ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
     const equity = price * p.shares;
@@ -65,7 +64,7 @@ async function handler(userPositions: UserPosition[] | null) {
       equity,
       unrealizedPnl,
       unrealizedPnlPct,
-      portfolioWeightPct: 0, // calculated below
+      portfolioWeightPct: 0,
       isShortTerm: p.holdingDays < 366,
     };
   });
@@ -78,19 +77,17 @@ async function handler(userPositions: UserPosition[] | null) {
   const totalUnrealizedPnl = positions.reduce((s, p) => s + p.unrealizedPnl, 0);
   const totalCost = positions.reduce((s, p) => s + p.avgCost * p.shares, 0);
 
-  // Asset allocation vs. targets
+  // Allocation vs. targets — use user's profile targets if provided, else mock defaults
   const actualByClass: Record<string, number> = {};
   for (const p of positions) {
     actualByClass[p.assetClass] = (actualByClass[p.assetClass] ?? 0) + p.equity;
   }
-  // Use user's custom targets if provided, otherwise fall back to defaults
-  const targets = (userPositions as Array<{ targetAllocation?: Record<string, number> } & UserPosition> | null)?.[0]?.targetAllocation ?? TARGET_ALLOCATION;
+  const targets = targetAllocation ?? TARGET_ALLOCATION;
   const allocation: AllocationItem[] = Object.entries(targets).map(([name, target]) => {
-    const current = (actualByClass[name] ?? 0) / totalEquity;
+    const current = totalEquity > 0 ? (actualByClass[name] ?? 0) / totalEquity : 0;
     return { name, target, current, drift: current - target };
   });
 
-  // Upcoming earnings — try live, fall back to mock calendar
   const earningsRaw: Array<{ symbol: string; earnings_date: string; eps_estimate: number | null }> =
     callPython('get_earnings_calendar', { symbols }) ?? [];
 
@@ -105,7 +102,6 @@ async function handler(userPositions: UserPosition[] | null) {
     .filter(e => e.daysUntil >= 0 && e.daysUntil <= 60)
     .sort((a, b) => a.daysUntil - b.daysUntil);
 
-  // Fallback mock earnings when live data unavailable (demo only)
   if (earnings.length === 0 && !userPositions) {
     const addDays = (n: number) => {
       const d = new Date(today);
@@ -122,11 +118,11 @@ async function handler(userPositions: UserPosition[] | null) {
 
   const summary: PortfolioSummary = {
     totalEquity,
-    dayChange: 0, // Robinhood not connected in dev
+    dayChange: 0,
     dayChangePct: 0,
     totalUnrealizedPnl,
     totalUnrealizedPnlPct: totalCost > 0 ? (totalUnrealizedPnl / totalCost) * 100 : 0,
-    buyingPower: 2450.00, // mock
+    buyingPower: 2450.00,
     positions: positions.sort((a, b) => b.equity - a.equity),
   };
 

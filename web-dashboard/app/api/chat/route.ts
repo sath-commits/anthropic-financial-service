@@ -2,6 +2,8 @@ import OpenAI from 'openai';
 import { execSync } from 'child_process';
 import path from 'path';
 
+export const maxDuration = 60;
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
 
