@@ -9,7 +9,7 @@ import AllocationChart from '@/components/AllocationChart';
 import PnLChart from '@/components/PnLChart';
 import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
-import { loadPositions, loadProfile, savePositions } from '@/lib/storage';
+import { hydrateSettings, savePositions } from '@/lib/storage';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
 
 const ASSET_CLASSES = ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Alternatives', 'Cash'];
@@ -99,15 +99,13 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    const positions = loadPositions();
-    const prof = loadProfile();
-    const savedPositions = positions ?? [];
-    // Hydrate the browser-local portfolio after the client mounts.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUserPositions(savedPositions);
-    setProfile(prof);
-    // Pass prof directly — React state may not reflect yet at this point
-    load(savedPositions, prof);
+    void hydrateSettings().then(({ positions, profile: savedProfile }) => {
+      const savedPositions = positions ?? [];
+      setUserPositions(savedPositions);
+      setProfile(savedProfile ?? null);
+      // Pass values directly because React state may not reflect them yet.
+      load(savedPositions, savedProfile ?? null);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

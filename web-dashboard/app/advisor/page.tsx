@@ -12,7 +12,7 @@ import {
   saveAdvisorRun, loadAdvisorHistory, shouldAutoRun, nextRunLabel,
   getAutoRunEnabled, setAutoRunEnabled, computeTrackRecord,
 } from '@/lib/recommendations';
-import { loadPositions, loadProfile, saveThesis, loadThesis, deleteThesis } from '@/lib/storage';
+import { hydrateSettings, loadPositions, loadProfile, saveThesis, loadThesis, deleteThesis } from '@/lib/storage';
 import type {
   AdvisorRun, PositionRecommendation, BuyCandidate, MarketEvent,
   RebalanceTrade, DriftItem, TLHOpportunity,
@@ -631,7 +631,7 @@ export default function AdvisorPage() {
     try {
       const positions = loadPositions();
       const profile = loadProfile();
-      if (!positions?.length) { router.push('/onboarding'); return; }
+      if (!positions?.length) { router.push('/'); return; }
       const hist = loadAdvisorHistory();
       const res = await fetch('/api/advisor', {
         method: 'POST',
@@ -656,21 +656,20 @@ export default function AdvisorPage() {
   }, [router]);
 
   useEffect(() => {
-    const positions = loadPositions();
-    if (!positions?.length) { router.push('/onboarding'); return; }
-    const hist = loadAdvisorHistory();
-    // Hydrate browser-local advisor state after the client mounts.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHistory(hist);
-    setAutoRunState(getAutoRunEnabled());
-    setRunLabel(nextRunLabel());
-    if (hist.length > 0) {
-      setRun(hist[0]);
-      if (!shouldAutoRun()) setLoading(false);
-    } else {
-      if (!shouldAutoRun()) setLoading(false);
-    }
-    if (shouldAutoRun()) analyze();
+    void hydrateSettings().then(({ positions }) => {
+      if (!positions?.length) { router.push('/'); return; }
+      const hist = loadAdvisorHistory();
+      setHistory(hist);
+      setAutoRunState(getAutoRunEnabled());
+      setRunLabel(nextRunLabel());
+      if (hist.length > 0) {
+        setRun(hist[0]);
+        if (!shouldAutoRun()) setLoading(false);
+      } else {
+        if (!shouldAutoRun()) setLoading(false);
+      }
+      if (shouldAutoRun()) analyze();
+    });
   }, [analyze, router]);
 
   useEffect(() => {

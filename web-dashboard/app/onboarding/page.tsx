@@ -6,7 +6,7 @@ import {
   Plus, Trash2, ChevronRight, ChevronLeft, Loader2, TrendingUp, CheckCircle,
   Camera, ClipboardPaste, PencilLine, Upload,
 } from 'lucide-react';
-import { loadPositions, loadProfile, savePositions, saveProfile } from '@/lib/storage';
+import { hydrateSettings, savePositions, saveProfile } from '@/lib/storage';
 import type { UserPosition, InvestorProfile } from '@/lib/types';
 
 // ── Step 1: Portfolio entry ───────────────────────────────────────────────────
@@ -634,11 +634,11 @@ export default function OnboardingPage() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // Hydrate the browser-local portfolio editor after the client mounts.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInitialPositions(loadPositions() ?? []);
-    setSavedProfile(loadProfile());
-    setHydrated(true);
+    void hydrateSettings().then(({ positions: savedPositions, profile: storedProfile }) => {
+      setInitialPositions(savedPositions ?? []);
+      setSavedProfile(storedProfile ?? null);
+      setHydrated(true);
+    });
   }, []);
 
   function handlePositions(p: UserPosition[]) {

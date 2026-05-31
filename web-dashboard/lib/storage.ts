@@ -4,8 +4,24 @@ const POSITIONS_KEY = 'portfolio-ai:positions';
 const PROFILE_KEY   = 'portfolio-ai:profile';
 const THESIS_KEY    = 'portfolio-ai:theses';
 
+interface StoredSettings {
+  positions?: UserPosition[];
+  profile?: InvestorProfile;
+}
+
+function persistSettings(settings: StoredSettings) {
+  void fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  }).catch(() => {
+    // Browser storage remains available when the server store is unreachable.
+  });
+}
+
 export function savePositions(positions: UserPosition[]) {
   localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
+  persistSettings({ positions });
 }
 
 export function loadPositions(): UserPosition[] | null {
@@ -20,6 +36,7 @@ export function loadPositions(): UserPosition[] | null {
 
 export function saveProfile(profile: InvestorProfile) {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  persistSettings({ profile });
 }
 
 export function loadProfile(): InvestorProfile | null {
@@ -29,6 +46,25 @@ export function loadProfile(): InvestorProfile | null {
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
+  }
+}
+
+export async function hydrateSettings(): Promise<StoredSettings> {
+  const localPositions = loadPositions() ?? undefined;
+  const localProfile = loadProfile() ?? undefined;
+  try {
+    const res = await fetch('/api/settings', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Settings store unavailable');
+    const server = await res.json() as StoredSettings;
+    const positions = server.positions ?? localPositions;
+    const profile = server.profile ?? localProfile;
+    if (positions) localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
+    if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    if (!server.positions && localPositions) persistSettings({ positions: localPositions });
+    if (!server.profile && localProfile) persistSettings({ profile: localProfile });
+    return { positions, profile };
+  } catch {
+    return { positions: localPositions, profile: localProfile };
   }
 }
 
