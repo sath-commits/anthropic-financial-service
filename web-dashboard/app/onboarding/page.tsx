@@ -12,7 +12,7 @@ import type { UserPosition, InvestorProfile } from '@/lib/types';
 // ── Step 1: Portfolio entry ───────────────────────────────────────────────────
 
 const ASSET_CLASSES = ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Alternatives', 'Cash'];
-const ACCOUNT_TYPES: UserPosition['accountType'][] = ['taxable', 'ira', 'roth_ira', '401k'];
+const ACCOUNT_TYPES: UserPosition['accountType'][] = ['taxable', 'ira', 'roth_ira', '401k', 'hsa'];
 
 // Use strings for editing to avoid NaN in controlled inputs
 interface RowDraft {
@@ -70,6 +70,7 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
   const [pasteText, setPasteText] = useState('');
   const [importing, setImporting] = useState(false);
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
+  const [selectedScreenshotCount, setSelectedScreenshotCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function update<K extends keyof RowDraft>(i: number, field: K, value: RowDraft[K]) {
@@ -79,7 +80,7 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
   function addRow() { setRows(prev => [...prev, blankRow()]); }
   function removeRow(i: number) { setRows(prev => prev.filter((_, idx) => idx !== i)); }
 
-  async function importPortfolio(payload: { imageDataUrl?: string; text?: string }) {
+  async function importPortfolio(payload: { imageDataUrls?: string[]; text?: string }) {
     setImporting(true);
     setError('');
     setImportWarnings([]);
@@ -101,20 +102,40 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
     }
   }
 
-  function importScreenshot(file: File | undefined) {
-    if (!file) return;
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      setError('Upload a PNG, JPEG, or WEBP screenshot.');
+  async function importScreenshots(fileList: FileList | null) {
+    const files = Array.from(fileList ?? []);
+    if (!files.length) return;
+    if (files.length > 5) {
+      setError('Upload no more than 5 screenshots at a time.');
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setError('Screenshot must be smaller than 8 MB.');
+    if (files.some(file => !['image/png', 'image/jpeg', 'image/webp'].includes(file.type))) {
+      setError('Upload PNG, JPEG, or WEBP screenshots.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => importPortfolio({ imageDataUrl: String(reader.result) });
-    reader.onerror = () => setError('Could not read that screenshot.');
-    reader.readAsDataURL(file);
+    if (files.some(file => file.size > 8 * 1024 * 1024)) {
+      setError('Each screenshot must be smaller than 8 MB.');
+      return;
+    }
+    if (files.reduce((total, file) => total + file.size, 0) > 24 * 1024 * 1024) {
+      setError('Combined screenshots must be smaller than 24 MB.');
+      return;
+    }
+    setSelectedScreenshotCount(files.length);
+    setImporting(true);
+    setError('');
+    try {
+      const imageDataUrls = await Promise.all(files.map(file => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Could not read one of those screenshots.'));
+        reader.readAsDataURL(file);
+      })));
+      await importPortfolio({ imageDataUrls });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not read those screenshots.');
+      setImporting(false);
+    }
   }
 
   function validate() {
@@ -182,14 +203,14 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
 
       {importMode === 'screenshot' && (
         <div className="rounded-xl border border-dashed border-zinc-700 bg-zinc-950/30 p-5">
-          <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
-            onChange={e => importScreenshot(e.target.files?.[0])} />
+          <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden"
+            onChange={e => importScreenshots(e.target.files)} />
           <button type="button" disabled={importing} onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {importing ? 'Reading screenshot...' : 'Choose portfolio screenshot'}
+            {importing ? `Reading ${selectedScreenshotCount} screenshot${selectedScreenshotCount === 1 ? '' : 's'}...` : 'Choose portfolio screenshots'}
           </button>
-          <p className="mt-3 text-xs text-zinc-500">PNG, JPEG, or WEBP up to 8 MB. Crop out account numbers and personal details. Screenshot contents are sent securely to OpenAI for extraction and are not stored by this app.</p>
+          <p className="mt-3 text-xs text-zinc-500">Upload up to 5 PNG, JPEG, or WEBP screenshots, 8 MB each and 24 MB combined. Crop out account numbers and personal details. Screenshot contents are sent securely to OpenAI for extraction and are not stored by this app.</p>
         </div>
       )}
 

@@ -33,7 +33,7 @@ Key inputs:
 
 **Accumulation Phase:**
 - Current portfolio value
-- Annual contributions (401k, IRA, taxable)
+- Annual contributions (401k, IRA, HSA, taxable)
 - Expected return by asset class
 - Monte Carlo simulation: probability of success at various spending levels
 

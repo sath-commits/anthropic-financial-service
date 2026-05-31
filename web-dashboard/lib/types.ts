@@ -8,7 +8,7 @@ export interface Position {
   unrealizedPnl: number;
   unrealizedPnlPct: number;
   portfolioWeightPct: number;
-  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k';
+  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa';
   holdingDays: number;
   isShortTerm: boolean;
   assetClass: string;
@@ -55,7 +55,7 @@ export interface UserPosition {
   name: string;
   shares: number;
   avgCost: number;
-  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k';
+  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa';
   holdingDays: number;
   assetClass: string;
   purchaseDate?: string; // ISO date string

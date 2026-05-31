@@ -7,7 +7,7 @@ description: Analyze portfolio allocation drift and generate rebalancing trade r
 ### Step 1: Current State
 
 For each account, capture:
-- Account type (taxable, IRA, Roth, 401k)
+- Account type (taxable, IRA, Roth, 401k, HSA)
 - Holdings with current market value
 - Cost basis (for taxable accounts)
 - Unrealized gains/losses per position
@@ -50,7 +50,7 @@ Generate trades to bring allocation back to target:
 ### Step 4: Asset Location Review
 
 Optimize which assets are held in which account types:
-- **Tax-deferred (IRA/401k)**: Bonds, REITs, high-turnover funds (highest tax drag)
+- **Tax-deferred or tax-advantaged (IRA/401k/HSA)**: Bonds, REITs, high-turnover funds (highest tax drag)
 - **Roth**: Highest expected growth assets (tax-free growth)
 - **Taxable**: Tax-efficient equity (index funds, ETFs, munis), tax-loss harvesting candidates
 

@@ -7,7 +7,7 @@ export interface MockPosition {
   shares: number;
   avgCost: number;
   mockCurrentPrice: number; // fallback when live price fetch fails
-  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k';
+  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa';
   holdingDays: number;
   assetClass: string;
 }
