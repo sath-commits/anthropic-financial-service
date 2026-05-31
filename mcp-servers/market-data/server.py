@@ -1,19 +1,64 @@
 """
-Market Data MCP Server — free data via yfinance + FRED + SEC EDGAR.
+Market Data MCP Server — free data via yfinance + Alpha Vantage fallback + FRED.
 Run: python3 server.py
+
+Price provider priority:
+  1. yfinance (Yahoo Finance) — unofficial, no key needed, best coverage
+  2. Alpha Vantage — free key (25 req/day), register at alphavantage.co
+     Set ALPHA_VANTAGE_KEY env var to enable.
 """
 
 import json
 import os
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+import requests
 import yfinance as yf
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("market-data")
 
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
+ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY", "")
+_av_last_call = 0.0
+
+
+def _av_quote(symbol: str) -> dict | None:
+    """Fetch a quote from Alpha Vantage (free tier: 25 req/day, 5 req/min)."""
+    if not ALPHA_VANTAGE_KEY:
+        return None
+    global _av_last_call
+    # Enforce 12-second gap to stay within 5 req/min free limit
+    elapsed = time.time() - _av_last_call
+    if elapsed < 12:
+        time.sleep(12 - elapsed)
+    _av_last_call = time.time()
+    try:
+        url = "https://www.alphavantage.co/query"
+        r = requests.get(url, params={
+            "function": "GLOBAL_QUOTE",
+            "symbol": symbol.upper(),
+            "apikey": ALPHA_VANTAGE_KEY,
+        }, timeout=10)
+        r.raise_for_status()
+        q = r.json().get("Global Quote", {})
+        price = float(q.get("05. price", 0) or 0)
+        if not price:
+            return None
+        return {
+            "symbol": symbol.upper(),
+            "price": price,
+            "open": float(q.get("02. open", 0) or 0),
+            "day_high": float(q.get("03. high", 0) or 0),
+            "day_low": float(q.get("04. low", 0) or 0),
+            "volume": int(q.get("06. volume", 0) or 0),
+            "change_pct": q.get("10. change percent", "").replace("%", ""),
+            "source": "alphavantage",
+        }
+    except Exception:
+        return None
 
 
 def _ticker(symbol: str):
@@ -25,23 +70,34 @@ def _ticker(symbol: str):
 @mcp.tool()
 def get_quote(symbol: str) -> dict:
     """Current price, volume, day range, market cap, and 52-week range for a ticker."""
-    t = _ticker(symbol)
-    info = t.fast_info
+    # Try yfinance first
     try:
-        return {
-            "symbol": symbol.upper(),
-            "price": info.last_price,
-            "open": info.open,
-            "day_high": info.day_high,
-            "day_low": info.day_low,
-            "volume": info.three_month_average_volume,
-            "market_cap": info.market_cap,
-            "fifty_two_week_high": info.fifty_two_week_high,
-            "fifty_two_week_low": info.fifty_two_week_low,
-            "currency": info.currency,
-        }
-    except Exception as e:
-        return {"error": str(e), "symbol": symbol.upper()}
+        t = _ticker(symbol)
+        info = t.fast_info
+        price = info.last_price
+        if price:
+            return {
+                "symbol": symbol.upper(),
+                "price": price,
+                "open": info.open,
+                "day_high": info.day_high,
+                "day_low": info.day_low,
+                "volume": info.three_month_average_volume,
+                "market_cap": info.market_cap,
+                "fifty_two_week_high": info.fifty_two_week_high,
+                "fifty_two_week_low": info.fifty_two_week_low,
+                "currency": info.currency,
+                "source": "yfinance",
+            }
+    except Exception:
+        pass
+
+    # Fall back to Alpha Vantage
+    av = _av_quote(symbol)
+    if av:
+        return av
+
+    return {"error": "Price unavailable from all providers", "symbol": symbol.upper()}
 
 
 @mcp.tool()
