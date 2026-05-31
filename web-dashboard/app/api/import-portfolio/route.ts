@@ -14,6 +14,18 @@ const ASSET_CLASSES = new Set([
   'US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets',
   'Bonds', 'REITs', 'Alternatives', 'Cash',
 ]);
+const assetClassEntries = (symbols: string[], assetClass: string): Array<[string, string]> =>
+  symbols.map(symbol => [symbol, assetClass]);
+const ASSET_CLASS_BY_SYMBOL = new Map<string, string>([
+  ...assetClassEntries(['AAPL', 'AMZN', 'BRK.B', 'GOOG', 'GOOGL', 'META', 'MSFT', 'NVDA', 'QQQ', 'QQQM', 'SCHB', 'SPLG', 'SPY', 'TSLA', 'VTI', 'VOO'], 'US Large Cap'),
+  ...assetClassEntries(['IJH', 'IJR', 'IWM', 'SCHA', 'VB', 'VBR', 'VOE', 'VXF'], 'US Small/Mid Cap'),
+  ...assetClassEntries(['ACWX', 'EFA', 'IEFA', 'IXUS', 'SCHF', 'VEA', 'VEU', 'VXUS'], 'International'),
+  ...assetClassEntries(['EEM', 'IEMG', 'SCHE', 'VWO'], 'Emerging Markets'),
+  ...assetClassEntries(['AGG', 'BIV', 'BND', 'BNDX', 'BSV', 'GOVT', 'HYG', 'IEF', 'LQD', 'MUB', 'SGOV', 'SHY', 'TIP', 'TLT', 'VCIT', 'VCSH'], 'Bonds'),
+  ...assetClassEntries(['IYR', 'SCHH', 'VNQ', 'XLRE'], 'REITs'),
+  ...assetClassEntries(['FBTC', 'GLD', 'GLDM', 'IAU', 'IBIT', 'SLV'], 'Alternatives'),
+  ...assetClassEntries(['FDRXX', 'SPAXX', 'SWVXX', 'VMFXX'], 'Cash'),
+]);
 
 const portfolioSchema = {
   name: 'portfolio_import',
@@ -81,6 +93,22 @@ function validateImageDataUrl(imageDataUrl: string): { error: string | null; siz
   };
 }
 
+function inferAssetClass(symbol: string, name: string | null): string | null {
+  const mapped = ASSET_CLASS_BY_SYMBOL.get(symbol);
+  if (mapped) return mapped;
+
+  const normalizedName = name?.toLowerCase() ?? '';
+  if (/\b(cash|money market|settlement fund)\b/.test(normalizedName)) return 'Cash';
+  if (/\b(reit|real estate)\b/.test(normalizedName)) return 'REITs';
+  if (/\b(emerging market|emerging markets)\b/.test(normalizedName)) return 'Emerging Markets';
+  if (/\b(international|developed market|developed markets|ex-us|ex us|eafe)\b/.test(normalizedName)) return 'International';
+  if (/\b(bond|fixed income|treasury|municipal)\b/.test(normalizedName)) return 'Bonds';
+  if (/\b(small cap|small-cap|mid cap|mid-cap|extended market)\b/.test(normalizedName)) return 'US Small/Mid Cap';
+  if (/\b(gold|silver|bitcoin|crypto|commodity|commodities)\b/.test(normalizedName)) return 'Alternatives';
+  if (/\b(s&p 500|large cap|large-cap|total stock market|total market|nasdaq-100)\b/.test(normalizedName)) return 'US Large Cap';
+  return null;
+}
+
 function sanitizeImport(raw: PortfolioImport): PortfolioImport {
   const warnings = [...raw.warnings];
   const seen = new Set<string>();
@@ -93,6 +121,10 @@ function sanitizeImport(raw: PortfolioImport): PortfolioImport {
       if (!position.avgCost || position.avgCost <= 0) warnings.push(`${symbol}: enter the average cost basis.`);
       if (!position.accountType) warnings.push(`${symbol}: confirm the account type.`);
       if (!position.purchaseDate) warnings.push(`${symbol}: add a purchase date for accurate tax analysis.`);
+      const assetClass = position.assetClass && ASSET_CLASSES.has(position.assetClass)
+        ? position.assetClass
+        : inferAssetClass(symbol, position.name);
+      if (!assetClass) warnings.push(`${symbol}: choose an asset class.`);
 
       const sanitized = {
         symbol,
@@ -100,7 +132,7 @@ function sanitizeImport(raw: PortfolioImport): PortfolioImport {
         shares: position.shares && position.shares > 0 ? position.shares : null,
         avgCost: position.avgCost && position.avgCost > 0 ? position.avgCost : null,
         accountType: position.accountType && ACCOUNT_TYPES.has(position.accountType) ? position.accountType : null,
-        assetClass: position.assetClass && ASSET_CLASSES.has(position.assetClass) ? position.assetClass : null,
+        assetClass,
         purchaseDate: position.purchaseDate?.match(/^\d{4}-\d{2}-\d{2}$/) ? position.purchaseDate : null,
       };
       const fingerprint = [
@@ -153,7 +185,7 @@ Return JSON only using the requested schema.
 - Normalize account types to taxable, ira, roth_ira, 401k, or hsa only when explicitly supported by the input.
 - Screenshots may overlap. Consolidate rows only when they are clearly the same holding with the same values. Preserve separate tax lots and holdings in different accounts.
 - Use YYYY-MM-DD for purchaseDate only when clearly supplied.
-- Choose the closest allowed asset class only when reasonably clear.
+- Infer the closest allowed asset class from a recognized ticker or fund name when the exposure is reasonably clear.
 - Add a warning for ambiguity, missing values, or any row the user should review.`;
 
   const content: OpenAI.ChatCompletionContentPart[] = [
