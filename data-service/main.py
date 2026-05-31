@@ -93,13 +93,36 @@ def _av_quote(symbol: str) -> dict | None:
 
 # ── Market data methods ───────────────────────────────────────────────────────
 
+def _yahoo_chart_quote(symbol: str) -> dict | None:
+    try:
+        r = requests.get(
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}",
+            params={"range": "1d", "interval": "1m"},
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=8,
+        )
+        r.raise_for_status()
+        result = r.json().get("chart", {}).get("result", [])
+        meta = result[0].get("meta", {}) if result else {}
+        price = meta.get("regularMarketPrice") or meta.get("previousClose") or 0
+        if price:
+            return {"symbol": symbol, "price": price, "source": "yahoo_chart"}
+    except Exception:
+        pass
+    return None
+
+
 def get_quote(symbol: str) -> dict:
     import yfinance as yf
     try:
         t = yf.Ticker(symbol)
         info = t.info
-        price = info.get("currentPrice") or info.get("regularMarketPrice") or 0
+        fast_info = t.fast_info
+        price = info.get("currentPrice") or info.get("regularMarketPrice") or fast_info.get("last_price") or 0
         if not price:
+            yahoo = _yahoo_chart_quote(symbol)
+            if yahoo:
+                return yahoo
             av = _av_quote(symbol)
             if av:
                 return av
@@ -112,6 +135,12 @@ def get_quote(symbol: str) -> dict:
             "volume": info.get("volume"),
         }
     except Exception as e:
+        yahoo = _yahoo_chart_quote(symbol)
+        if yahoo:
+            return yahoo
+        av = _av_quote(symbol)
+        if av:
+            return av
         return {"symbol": symbol, "error": str(e)}
 
 
@@ -122,16 +151,26 @@ def get_batch_quotes(symbols: list[str]) -> list[dict]:
         tickers = yf.Tickers(" ".join(symbols))
         for sym in symbols:
             try:
-                info = tickers.tickers[sym].info
-                price = info.get("currentPrice") or info.get("regularMarketPrice") or 0
-                results.append({"symbol": sym, "price": price})
+                ticker = tickers.tickers[sym]
+                fast_info = ticker.fast_info
+                price = fast_info.get("last_price") or 0
+                if not price:
+                    info = ticker.info
+                    price = info.get("currentPrice") or info.get("regularMarketPrice") or 0
+                if price:
+                    results.append({"symbol": sym, "price": price})
+                else:
+                    q = _yahoo_chart_quote(sym)
+                    results.append(q or {"symbol": sym, "price": 0, "error": "fetch_failed"})
             except Exception:
-                results.append({"symbol": sym, "price": 0, "error": "fetch_failed"})
+                q = _yahoo_chart_quote(sym)
+                results.append(q or {"symbol": sym, "price": 0, "error": "fetch_failed"})
     except Exception:
-        # Fallback: individual fetches
+        # Keep batch calls fast: Alpha Vantage's free endpoint is intentionally
+        # rate-limited and is only suitable for explicit single-symbol quotes.
         for sym in symbols:
-            q = get_quote(sym)
-            results.append({"symbol": sym, "price": q.get("price", 0)})
+            q = _yahoo_chart_quote(sym)
+            results.append(q or {"symbol": sym, "price": 0, "error": "fetch_failed"})
     return results
 
 

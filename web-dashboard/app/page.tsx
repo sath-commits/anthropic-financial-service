@@ -108,6 +108,7 @@ export default function Dashboard() {
   }, []);
 
   const totalPnlPositive = (summary?.totalUnrealizedPnl ?? 0) >= 0;
+  const hasCompleteLivePrices = summary?.missingPriceSymbols.length === 0;
 
   function openAddHolding() {
     setAddingPortfolio(true);
@@ -307,6 +308,14 @@ export default function Dashboard() {
       )}
 
       <main className="flex-1 px-6 py-5 space-y-5">
+        {summary && !hasCompleteLivePrices && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Live prices are unavailable for {summary.missingPriceSymbols.join(', ')}. Values are temporarily estimated from cost basis.
+            Check that <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_URL</code> and
+            <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_TOKEN</code> are configured on the dashboard service,
+            and that the same token is configured on the Python service.
+          </div>
+        )}
         {/* Metric cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {loading ? (
@@ -320,9 +329,9 @@ export default function Dashboard() {
               />
               <MetricCard
                 label="Total P&L"
-                value={`${totalPnlPositive ? '+' : '-'}$${fmt(Math.abs(summary.totalUnrealizedPnl))}`}
-                subValue={`${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%`}
-                positive={totalPnlPositive}
+                value={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : '-'}$${fmt(Math.abs(summary.totalUnrealizedPnl))}` : '—'}
+                subValue={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%` : 'Waiting for live prices'}
+                positive={hasCompleteLivePrices ? totalPnlPositive : null}
               />
               <MetricCard
                 label="Day Change"

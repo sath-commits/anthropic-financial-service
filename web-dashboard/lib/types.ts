@@ -4,6 +4,7 @@ export interface Position {
   shares: number;
   avgCost: number;
   currentPrice: number;
+  hasLivePrice: boolean;
   equity: number;
   unrealizedPnl: number;
   unrealizedPnlPct: number;
@@ -21,6 +22,7 @@ export interface PortfolioSummary {
   totalUnrealizedPnl: number;
   totalUnrealizedPnlPct: number;
   buyingPower: number;
+  missingPriceSymbols: string[];
   positions: Position[];
 }
 

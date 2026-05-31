@@ -36,7 +36,8 @@ async function handler(
   }
 
   const positions: Position[] = rawPositions.map(p => {
-    const price = priceMap[p.symbol] ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
+    const livePrice = priceMap[p.symbol];
+    const price = livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
     const equity = price * p.shares;
     const costTotal = p.avgCost * p.shares;
     const unrealizedPnl = equity - costTotal;
@@ -44,6 +45,7 @@ async function handler(
     return {
       ...p,
       currentPrice: price,
+      hasLivePrice: livePrice !== undefined,
       equity,
       unrealizedPnl,
       unrealizedPnlPct,
@@ -106,6 +108,7 @@ async function handler(
     totalUnrealizedPnl,
     totalUnrealizedPnlPct: totalCost > 0 ? (totalUnrealizedPnl / totalCost) * 100 : 0,
     buyingPower: 2450.00,
+    missingPriceSymbols: positions.filter(p => !p.hasLivePrice).map(p => p.symbol),
     positions: positions.sort((a, b) => b.equity - a.equity),
   };
 

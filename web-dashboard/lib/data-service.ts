@@ -23,7 +23,10 @@ export async function callDataService(
     // Production (Railway): HTTP call to the Python FastAPI service
     try {
       const token = process.env.DATA_SERVICE_TOKEN;
-      if (!token) return null;
+      if (!token) {
+        console.error('Data service call skipped: DATA_SERVICE_TOKEN is not configured.');
+        return null;
+      }
       const res = await fetch(`${baseUrl.replace(/\/$/, '')}/call`, {
         method: 'POST',
         headers: {
@@ -33,10 +36,18 @@ export async function callDataService(
         body: JSON.stringify({ method, params }),
         signal: AbortSignal.timeout(15_000),
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        console.error(`Data service call failed: ${method} returned HTTP ${res.status}.`);
+        return null;
+      }
       const result = await res.json() as Record<string, unknown>;
-      return result?.error ? null : result;
-    } catch {
+      if (result?.error) {
+        console.error(`Data service call failed: ${method}: ${String(result.error)}`);
+        return null;
+      }
+      return result;
+    } catch (error) {
+      console.error(`Data service call failed: ${method}:`, error);
       return null;
     }
   }
@@ -51,7 +62,8 @@ export async function callDataService(
     });
     const result = JSON.parse(output) as Record<string, unknown>;
     return result?.error ? null : result;
-  } catch {
+  } catch (error) {
+    console.error(`Local data service call failed: ${method}:`, error);
     return null;
   }
 }

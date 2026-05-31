@@ -61,13 +61,15 @@ export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
                         </td>
                         <td className="py-2.5 pr-4 text-zinc-300">{fmt(p.shares)}</td>
                         <td className="py-2.5 pr-4 text-zinc-300">${fmt(p.avgCost)}</td>
-                        <td className="py-2.5 pr-4 text-zinc-100 font-medium">${fmt(p.currentPrice)}</td>
+                        <td className="py-2.5 pr-4 text-zinc-100 font-medium">
+                          {p.hasLivePrice ? `$${fmt(p.currentPrice)}` : <span className="text-amber-300">Unavailable</span>}
+                        </td>
                         <td className="py-2.5 pr-4 text-zinc-100">{fmtUSD(p.equity)}</td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {gain ? '+' : '-'}{fmtUSD(p.unrealizedPnl)}
+                          {p.hasLivePrice ? `${gain ? '+' : '-'}${fmtUSD(p.unrealizedPnl)}` : <span className="text-zinc-500">—</span>}
                         </td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {gain ? '+' : ''}{fmt(p.unrealizedPnlPct)}%
+                          {p.hasLivePrice ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-zinc-500">—</span>}
                         </td>
                         <td className="py-2.5 pr-4 text-zinc-400">{fmt(p.portfolioWeightPct, 1)}%</td>
                         <td className="py-2.5 pl-3">
