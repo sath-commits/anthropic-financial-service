@@ -23,6 +23,7 @@ export interface PortfolioSummary {
   totalUnrealizedPnl: number;
   totalUnrealizedPnlPct: number;
   buyingPower: number;
+  cashEquivalentsByAccount: Partial<Record<Position['accountType'], number>>;
   usdToSgdRate: number;
   hasLiveUsdToSgdRate: boolean;
   missingPriceSymbols: string[];

@@ -113,6 +113,7 @@ export default function Dashboard() {
 
   const totalPnlPositive = (summary?.totalUnrealizedPnl ?? 0) >= 0;
   const hasCompleteLivePrices = summary?.missingPriceSymbols.length === 0;
+  const hsaCashEquivalents = summary?.cashEquivalentsByAccount.hsa ?? 0;
 
   function openAddHolding() {
     setAddingPortfolio(true);
@@ -413,8 +414,11 @@ export default function Dashboard() {
                 positive={summary.dayChange === 0 ? null : summary.dayChange >= 0}
               />
               <MetricCard
-                label="Buying Power"
+                label="Cash Equivalents"
                 value={formatCurrency(summary.buyingPower, displayCurrency, summary.usdToSgdRate)}
+                subValue={hsaCashEquivalents > 0
+                  ? `Includes ${formatCurrency(hsaCashEquivalents, displayCurrency, summary.usdToSgdRate)} in HSA`
+                  : 'Available across accounts'}
                 positive={null}
               />
             </>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { MOCK_POSITIONS, TARGET_ALLOCATION } from '@/lib/mock-portfolio';
 import { callDataService } from '@/lib/data-service';
-import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
+import { isCashEquivalent, shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
 import { DEFAULT_USD_TO_SGD_RATE, positionCurrency, toUsd } from '@/lib/currency';
 import type { UserPosition } from '@/lib/types';
 import type { Position, PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
@@ -74,6 +74,15 @@ async function handler(
 
   const totalUnrealizedPnl = positions.reduce((s, p) => s + p.unrealizedPnl, 0);
   const totalCost = positions.reduce((s, p) => s + p.avgCost * p.shares, 0);
+  const buyingPower = positions
+    .filter(p => isCashEquivalent(p.symbol, p.assetClass))
+    .reduce((total, p) => total + p.equity, 0);
+  const cashEquivalentsByAccount = positions
+    .filter(p => isCashEquivalent(p.symbol, p.assetClass))
+    .reduce<PortfolioSummary['cashEquivalentsByAccount']>((totals, p) => {
+      totals[p.accountType] = (totals[p.accountType] ?? 0) + p.equity;
+      return totals;
+    }, {});
 
   // Allocation vs. targets — use user's profile targets if provided, else mock defaults
   const actualByClass: Record<string, number> = {};
@@ -120,7 +129,8 @@ async function handler(
     dayChangePct: 0,
     totalUnrealizedPnl,
     totalUnrealizedPnlPct: totalCost > 0 ? (totalUnrealizedPnl / totalCost) * 100 : 0,
-    buyingPower: 2450.00,
+    buyingPower,
+    cashEquivalentsByAccount,
     usdToSgdRate,
     hasLiveUsdToSgdRate: liveUsdToSgdRate !== undefined,
     missingPriceSymbols: positions.filter(p => !p.hasLivePrice).map(p => p.symbol),
