@@ -1,17 +1,50 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { RefreshCw, TrendingUp, Calendar, Bot, Settings, Brain } from 'lucide-react';
+import { RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
 import PnLChart from '@/components/PnLChart';
 import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
-import { loadPositions, loadProfile } from '@/lib/storage';
-import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile } from '@/lib/types';
+import { loadPositions, loadProfile, savePositions } from '@/lib/storage';
+import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
+
+const ASSET_CLASSES = ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Alternatives', 'Cash'];
+const ACCOUNT_TYPES: UserPosition['accountType'][] = ['taxable', 'ira', 'roth_ira', '401k', 'hsa'];
+
+interface HoldingDraft {
+  symbol: string;
+  name: string;
+  shares: string;
+  avgCost: string;
+  accountType: UserPosition['accountType'];
+  assetClass: string;
+  purchaseDate: string;
+}
+
+function blankHolding(): HoldingDraft {
+  return { symbol: '', name: '', shares: '', avgCost: '', accountType: 'taxable', assetClass: 'US Large Cap', purchaseDate: '' };
+}
+
+function holdingDraft(position: UserPosition): HoldingDraft {
+  return {
+    symbol: position.symbol, name: position.name, shares: String(position.shares), avgCost: String(position.avgCost),
+    accountType: position.accountType, assetClass: position.assetClass, purchaseDate: position.purchaseDate ?? '',
+  };
+}
+
+function daysHeld(dateStr: string): number {
+  if (!dateStr) return 365;
+  return Math.max(0, Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000));
+}
+
+function matchesStoredPosition(stored: UserPosition, displayed: Position): boolean {
+  return stored.symbol === displayed.symbol && stored.shares === displayed.shares && stored.avgCost === displayed.avgCost
+    && stored.accountType === displayed.accountType && stored.assetClass === displayed.assetClass;
+}
 
 function fmt(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -22,7 +55,6 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 export default function Dashboard() {
-  const router = useRouter();
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [allocation, setAllocation] = useState<AllocationItem[]>([]);
   const [earnings, setEarnings] = useState<EarningsEvent[]>([]);
@@ -31,6 +63,9 @@ export default function Dashboard() {
   const [chartSymbol, setChartSymbol] = useState('');
   const [profile, setProfile] = useState<InvestorProfile | null>(null);
   const [userPositions, setUserPositions] = useState<UserPosition[] | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [holding, setHolding] = useState<HoldingDraft | null>(null);
+  const [holdingError, setHoldingError] = useState('');
 
   async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null) {
     setLoading(true);
@@ -66,23 +101,63 @@ export default function Dashboard() {
   useEffect(() => {
     const positions = loadPositions();
     const prof = loadProfile();
-    if (!positions || positions.length === 0) {
-      router.push('/onboarding');
-      return;
-    }
+    const savedPositions = positions ?? [];
     // Hydrate the browser-local portfolio after the client mounts.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUserPositions(positions);
+    setUserPositions(savedPositions);
     setProfile(prof);
     // Pass prof directly — React state may not reflect yet at this point
-    load(positions, prof);
+    load(savedPositions, prof);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalPnlPositive = (summary?.totalUnrealizedPnl ?? 0) >= 0;
 
-  function editPortfolio() {
-    router.push('/onboarding');
+  function openAddHolding() {
+    setEditingIndex(null);
+    setHolding(blankHolding());
+    setHoldingError('');
+  }
+
+  function openEditHolding(position: Position) {
+    const index = (userPositions ?? []).findIndex(stored => matchesStoredPosition(stored, position));
+    if (index < 0) return;
+    setEditingIndex(index);
+    setHolding(holdingDraft(userPositions![index]));
+    setHoldingError('');
+  }
+
+  function deleteHolding(position: Position) {
+    const positions = userPositions ?? [];
+    const index = positions.findIndex(stored => matchesStoredPosition(stored, position));
+    if (index < 0 || !window.confirm(`Delete ${position.symbol} from your portfolio?`)) return;
+    const next = positions.filter((_, positionIndex) => positionIndex !== index);
+    savePositions(next);
+    setUserPositions(next);
+    setChartSymbol(next[0]?.symbol ?? '');
+    load(next, profile);
+  }
+
+  function saveHolding() {
+    if (!holding) return;
+    const shares = Number(holding.shares);
+    const avgCost = Number(holding.avgCost);
+    const symbol = holding.symbol.trim().toUpperCase();
+    if (!symbol || !Number.isFinite(shares) || shares <= 0 || !Number.isFinite(avgCost) || avgCost <= 0) {
+      setHoldingError('Enter a ticker, a positive share count, and a positive average cost.');
+      return;
+    }
+    const updated: UserPosition = {
+      symbol, name: holding.name.trim() || symbol, shares, avgCost, accountType: holding.accountType,
+      assetClass: holding.assetClass, purchaseDate: holding.purchaseDate || undefined, holdingDays: daysHeld(holding.purchaseDate),
+    };
+    const next = [...(userPositions ?? [])];
+    if (editingIndex === null) next.push(updated);
+    else next[editingIndex] = updated;
+    savePositions(next);
+    setUserPositions(next);
+    setHolding(null);
+    load(next, profile);
   }
 
   const portfolioContext = summary
@@ -129,14 +204,83 @@ export default function Dashboard() {
             Refresh
           </button>
           <button
-            onClick={editPortfolio}
+            onClick={openAddHolding}
             className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
-            title="Edit portfolio"
+            title="Add holding"
           >
-            <Settings className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5" />
+            Add holding
           </button>
         </div>
       </header>
+
+      {holding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-xl rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-zinc-100">{editingIndex === null ? 'Add holding' : `Edit ${holding.symbol}`}</h2>
+              <button onClick={() => setHolding(null)} className="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Ticker</span>
+                <input value={holding.symbol} onChange={e => setHolding({ ...holding, symbol: e.target.value.toUpperCase() })}
+                  placeholder="AAPL" maxLength={10}
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Name optional</span>
+                <input value={holding.name} onChange={e => setHolding({ ...holding, name: e.target.value })}
+                  placeholder="Apple Inc."
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Shares</span>
+                <input type="number" value={holding.shares} onChange={e => setHolding({ ...holding, shares: e.target.value })}
+                  min="0" step="any"
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Average cost</span>
+                <input type="number" value={holding.avgCost} onChange={e => setHolding({ ...holding, avgCost: e.target.value })}
+                  min="0" step="any"
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Account</span>
+                <select value={holding.accountType} onChange={e => setHolding({ ...holding, accountType: e.target.value as UserPosition['accountType'] })}
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
+                  {ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Asset class</span>
+                <select value={holding.assetClass} onChange={e => setHolding({ ...holding, assetClass: e.target.value })}
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
+                  {ASSET_CLASSES.map(assetClass => <option key={assetClass} value={assetClass}>{assetClass}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Purchase date optional</span>
+                <input type="date" value={holding.purchaseDate} onChange={e => setHolding({ ...holding, purchaseDate: e.target.value })}
+                  max={new Date().toISOString().slice(0, 10)}
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600" />
+              </label>
+            </div>
+            {holdingError && <p className="mt-4 text-sm text-red-400">{holdingError}</p>}
+            <div className="mt-6 flex items-center gap-3">
+              <button onClick={saveHolding} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500">
+                Save holding
+              </button>
+              <button onClick={() => setHolding(null)} className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 px-6 py-5 space-y-5">
         {/* Metric cards */}
@@ -177,13 +321,21 @@ export default function Dashboard() {
           <div className="space-y-5">
             {/* Positions table */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-              <h2 className="mb-4 text-sm font-semibold text-zinc-200">Positions</h2>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-zinc-200">Positions</h2>
+                <button onClick={openAddHolding}
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200">
+                  <Plus className="h-3.5 w-3.5" /> Add holding
+                </button>
+              </div>
               {loading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
                 </div>
               ) : summary ? (
-                <PositionsTable positions={summary.positions} />
+                summary.positions.length
+                  ? <PositionsTable positions={summary.positions} onEdit={openEditHolding} onDelete={deleteHolding} />
+                  : <p className="py-8 text-center text-sm text-zinc-500">No holdings yet. Add your first position to start tracking your portfolio.</p>
               ) : null}
             </div>
 

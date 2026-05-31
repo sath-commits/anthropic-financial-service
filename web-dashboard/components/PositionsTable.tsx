@@ -1,9 +1,12 @@
 'use client';
 
+import { Edit2, Trash2 } from 'lucide-react';
 import type { Position } from '@/lib/types';
 
 interface Props {
   positions: Position[];
+  onEdit: (position: Position) => void;
+  onDelete: (position: Position) => void;
 }
 
 function fmt(n: number, decimals = 2) {
@@ -14,13 +17,13 @@ function fmtUSD(n: number) {
   return '$' + fmt(Math.abs(n));
 }
 
-export default function PositionsTable({ positions }: Props) {
+export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-zinc-800 text-left">
-            {['Symbol', 'Shares', 'Avg Cost', 'Price', 'Value', 'P&L', 'P&L %', 'Weight', 'Account'].map(h => (
+            {['Symbol', 'Shares', 'Avg Cost', 'Price', 'Value', 'P&L', 'P&L %', 'Weight', 'Account', ''].map(h => (
               <th key={h} className="pb-2 pr-4 text-xs font-medium uppercase tracking-wider text-zinc-500 last:pr-0">
                 {h}
               </th>
@@ -28,10 +31,10 @@ export default function PositionsTable({ positions }: Props) {
           </tr>
         </thead>
         <tbody>
-          {positions.map(p => {
+          {positions.map((p, index) => {
             const gain = p.unrealizedPnl >= 0;
             return (
-              <tr key={p.symbol} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+              <tr key={`${p.symbol}-${p.accountType}-${index}`} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                 <td className="py-2.5 pr-4">
                   <div className="font-semibold text-zinc-100">{p.symbol}</div>
                   <div className="text-xs text-zinc-500 truncate max-w-[140px]">{p.name}</div>
@@ -48,6 +51,18 @@ export default function PositionsTable({ positions }: Props) {
                 </td>
                 <td className="py-2.5 pr-4 text-zinc-400">{fmt(p.portfolioWeightPct, 1)}%</td>
                 <td className="py-2.5 text-zinc-500 uppercase text-xs">{p.accountType}</td>
+                <td className="py-2.5 pl-3">
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => onEdit(p)} title={`Edit ${p.symbol}`}
+                      className="rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-300">
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => onDelete(p)} title={`Delete ${p.symbol}`}
+                      className="rounded p-1 text-zinc-600 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </td>
               </tr>
             );
           })}
