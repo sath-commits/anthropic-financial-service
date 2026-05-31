@@ -1,6 +1,8 @@
 import type { UserPosition, InvestorProfile, ThesisEntry } from './types';
 
 const POSITIONS_KEY = 'portfolio-ai:positions';
+const POSITION_BACKUPS_KEY = 'portfolio-ai:position-backups';
+const POSITIONS_DIRTY_KEY = 'portfolio-ai:positions-dirty';
 const PROFILE_KEY   = 'portfolio-ai:profile';
 const THESIS_KEY    = 'portfolio-ai:theses';
 
@@ -9,19 +11,61 @@ interface StoredSettings {
   profile?: InvestorProfile;
 }
 
-function persistSettings(settings: StoredSettings) {
+interface SavePositionsOptions {
+  allowEmptyPositions?: boolean;
+}
+
+function persistSettings(settings: StoredSettings, options: SavePositionsOptions = {}) {
   void fetch('/api/settings', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
+    body: JSON.stringify({ ...settings, ...options }),
+  }).then(res => {
+    if (!res.ok) throw new Error('Settings store rejected the update');
+    if (settings.positions !== undefined && localStorage.getItem(POSITIONS_KEY) === JSON.stringify(settings.positions)) {
+      localStorage.removeItem(POSITIONS_DIRTY_KEY);
+    }
   }).catch(() => {
-    // Browser storage remains available when the server store is unreachable.
+    // Browser storage remains authoritative until a later retry succeeds.
   });
 }
 
-export function savePositions(positions: UserPosition[]) {
-  localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
-  persistSettings({ positions });
+export function savePositions(positions: UserPosition[], options: SavePositionsOptions = {}) {
+  const current = loadPositions();
+  if (!positions.length && current?.length && !options.allowEmptyPositions) return;
+  if (current) saveBrowserSnapshot(current);
+  saveBrowserSnapshot(positions);
+  try {
+    localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
+    localStorage.setItem(POSITIONS_DIRTY_KEY, '1');
+  } catch {
+    // The Railway volume write below remains the durable fallback.
+  }
+  persistSettings({ positions }, options);
+}
+
+function saveBrowserSnapshot(positions: UserPosition[]) {
+  try {
+    const raw = localStorage.getItem(POSITION_BACKUPS_KEY);
+    const snapshots = raw ? JSON.parse(raw) as Array<{ savedAt: string; positions: UserPosition[] }> : [];
+    snapshots.push({ savedAt: new Date().toISOString(), positions });
+    localStorage.setItem(POSITION_BACKUPS_KEY, JSON.stringify(snapshots.slice(-100)));
+  } catch {
+    // Browser snapshots are best-effort; the Railway volume keeps full history.
+  }
+}
+
+function loadLatestBrowserSnapshot(): UserPosition[] | null {
+  try {
+    const raw = localStorage.getItem(POSITION_BACKUPS_KEY);
+    const snapshots = raw ? JSON.parse(raw) as Array<{ savedAt: string; positions: UserPosition[] }> : [];
+    for (const snapshot of snapshots.reverse()) {
+      if (Array.isArray(snapshot.positions)) return snapshot.positions;
+    }
+  } catch {
+    // No usable local snapshots.
+  }
+  return null;
 }
 
 export function loadPositions(): UserPosition[] | null {
@@ -30,13 +74,25 @@ export function loadPositions(): UserPosition[] | null {
     const raw = localStorage.getItem(POSITIONS_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
-    return null;
+    return loadLatestBrowserSnapshot();
   }
 }
 
 export function saveProfile(profile: InvestorProfile) {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   persistSettings({ profile });
+}
+
+export function downloadSettingsBackup(positions: UserPosition[], profile: InvestorProfile | null) {
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), positions, profile }, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `beta-than-nothing-portfolio-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export function loadProfile(): InvestorProfile | null {
@@ -52,15 +108,20 @@ export function loadProfile(): InvestorProfile | null {
 export async function hydrateSettings(): Promise<StoredSettings> {
   const localPositions = loadPositions() ?? undefined;
   const localProfile = loadProfile() ?? undefined;
+  const localPositionsAreNewer = localStorage.getItem(POSITIONS_DIRTY_KEY) === '1';
   try {
     const res = await fetch('/api/settings', { cache: 'no-store' });
     if (!res.ok) throw new Error('Settings store unavailable');
     const server = await res.json() as StoredSettings;
-    const positions = server.positions ?? localPositions;
+    const positions = localPositionsAreNewer && localPositions
+      ? localPositions
+      : server.positions?.length === 0 && localPositions?.length
+      ? localPositions
+      : server.positions ?? localPositions;
     const profile = server.profile ?? localProfile;
     if (positions) localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
     if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-    if (!server.positions && localPositions) persistSettings({ positions: localPositions });
+    if ((localPositionsAreNewer || !server.positions) && localPositions) persistSettings({ positions: localPositions });
     if (!server.profile && localProfile) persistSettings({ profile: localProfile });
     return { positions, profile };
   } catch {

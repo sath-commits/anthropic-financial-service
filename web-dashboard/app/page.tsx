@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X } from 'lucide-react';
+import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
@@ -10,7 +10,7 @@ import PnLChart from '@/components/PnLChart';
 import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
 import PortfolioEditor from '@/components/PortfolioEditor';
-import { hydrateSettings, savePositions } from '@/lib/storage';
+import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile } from '@/lib/storage';
 import { formatCurrency, type Currency } from '@/lib/currency';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
 
@@ -67,6 +67,7 @@ export default function Dashboard() {
   const [holdingError, setHoldingError] = useState('');
   const [addingPortfolio, setAddingPortfolio] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
+  const restoreInputRef = useRef<HTMLInputElement>(null);
 
   async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null) {
     setLoading(true);
@@ -130,7 +131,7 @@ export default function Dashboard() {
     const index = positions.findIndex(stored => matchesStoredPosition(stored, position));
     if (index < 0 || !window.confirm(`Delete ${position.symbol} from your portfolio?`)) return;
     const next = positions.filter((_, positionIndex) => positionIndex !== index);
-    savePositions(next);
+    savePositions(next, { allowEmptyPositions: next.length === 0 });
     setUserPositions(next);
     setChartSymbol(next[0]?.symbol ?? '');
     load(next, profile);
@@ -163,6 +164,25 @@ export default function Dashboard() {
     setUserPositions(next);
     setAddingPortfolio(false);
     load(next, profile);
+  }
+
+  async function restoreSettingsBackup(file: File | undefined) {
+    if (!file) return;
+    try {
+      const backup = JSON.parse(await file.text()) as { positions?: UserPosition[]; profile?: InvestorProfile | null };
+      if (!Array.isArray(backup.positions) || !backup.positions.length) throw new Error('Backup does not contain any holdings.');
+      if (!window.confirm(`Restore ${backup.positions.length} holdings from this backup? This replaces the current portfolio after preserving a snapshot.`)) return;
+      savePositions(backup.positions);
+      if (backup.profile) saveProfile(backup.profile);
+      setUserPositions(backup.positions);
+      setProfile(backup.profile ?? profile);
+      setChartSymbol(backup.positions[0]?.symbol ?? '');
+      load(backup.positions, backup.profile ?? profile);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Could not restore that portfolio backup.');
+    } finally {
+      if (restoreInputRef.current) restoreInputRef.current.value = '';
+    }
   }
 
   const portfolioContext = summary
@@ -214,6 +234,31 @@ export default function Dashboard() {
             </span>
           )}
           {lastUpdated && <span>Updated {lastUpdated}</span>}
+          <button
+            type="button"
+            onClick={() => downloadSettingsBackup(userPositions ?? [], profile)}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            title="Download portfolio backup"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </button>
+          <input
+            ref={restoreInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={event => void restoreSettingsBackup(event.target.files?.[0])}
+          />
+          <button
+            type="button"
+            onClick={() => restoreInputRef.current?.click()}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            title="Restore portfolio backup"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Restore
+          </button>
           <button
             onClick={() => load()}
             disabled={loading}

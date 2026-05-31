@@ -41,6 +41,16 @@ Attach a Railway volume to the dashboard service at `/data`. This preserves
 portfolio settings across dashboard redeployments and restores them when a new
 browser session opens the app.
 
+Portfolio writes are atomic and versioned. The dashboard keeps up to 500
+historical snapshots on the `/data` volume and up to 100 additional snapshots
+in browser storage. If the active server JSON file is damaged, the API restores
+the newest valid server snapshot automatically. Use the dashboard's `Export`
+button periodically to keep an off-platform JSON copy and `Restore` to load it.
+
+The `/data` Railway volume is required for durable server-side storage. Removing
+that volume also removes its server snapshots, so keep occasional exported JSON
+copies outside Railway.
+
 The dashboard fails closed in production if its username or password is
 missing. The Python `/call` endpoint fails closed if `DATA_SERVICE_TOKEN` is
 missing or incorrect. Its `/health` endpoint remains unauthenticated so Railway
