@@ -250,24 +250,61 @@ def get_earnings_history(symbol: str) -> list[dict]:
 
 def get_earnings_calendar(symbols: list[str]) -> list[dict]:
     import yfinance as yf
-    results = []
-    for sym in symbols:
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from datetime import datetime, timezone
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    def fetch_one(sym: str) -> dict | None:
         try:
             t = yf.Ticker(sym)
+            # Primary: t.calendar
             cal = t.calendar
             if cal is not None and not cal.empty:
                 date_val = cal.get("Earnings Date")
                 if date_val is not None:
-                    dates = date_val if hasattr(date_val, "__iter__") else [date_val]
+                    dates = list(date_val) if hasattr(date_val, "__iter__") else [date_val]
                     for d in dates:
-                        results.append({
-                            "symbol": sym,
-                            "earnings_date": str(d)[:10],
-                            "eps_estimate": cal.get("EPS Estimate", [None])[0] if isinstance(cal.get("EPS Estimate"), list) else cal.get("EPS Estimate"),
-                        })
-                        break  # just the next date
+                        date_str = str(d)[:10]
+                        if date_str >= today:
+                            eps_raw = cal.get("EPS Estimate")
+                            eps = None
+                            if eps_raw is not None:
+                                try:
+                                    eps = float(list(eps_raw)[0]) if hasattr(eps_raw, "__iter__") else float(eps_raw)
+                                except (TypeError, ValueError, StopIteration):
+                                    pass
+                            return {"symbol": sym, "earnings_date": date_str, "eps_estimate": eps}
+            # Fallback: earnings_dates index
+            ed = t.earnings_dates
+            if ed is not None and not ed.empty:
+                future = ed[ed.index.strftime("%Y-%m-%d") >= today]
+                if not future.empty:
+                    date_str = future.index[-1].strftime("%Y-%m-%d")
+                    eps = None
+                    if "EPS Estimate" in future.columns:
+                        try:
+                            import math
+                            v = future.iloc[-1]["EPS Estimate"]
+                            if v is not None and not math.isnan(float(v)):
+                                eps = round(float(v), 2)
+                        except (TypeError, ValueError):
+                            pass
+                    return {"symbol": sym, "earnings_date": date_str, "eps_estimate": eps}
         except Exception:
             pass
+        return None
+
+    results = []
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(fetch_one, sym): sym for sym in symbols}
+        for future in as_completed(futures, timeout=12):
+            try:
+                result = future.result()
+                if result:
+                    results.append(result)
+            except Exception:
+                pass
     return results
 
 

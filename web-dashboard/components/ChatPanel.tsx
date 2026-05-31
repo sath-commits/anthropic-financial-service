@@ -21,7 +21,6 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -91,8 +90,10 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
     }
   }
 
+  const hasMessages = messages.length > 0;
+
   return (
-    <div className="flex h-full flex-col rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div className="flex flex-col rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
         <Bot className="h-4 w-4 text-blue-400" />
@@ -100,25 +101,10 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
         <span className="ml-auto text-xs text-zinc-600">gpt-4o</span>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 min-h-0">
-        {messages.length === 0 ? (
-          <div className="space-y-3">
-            <p className="text-xs text-zinc-600 text-center pt-2">Ask anything about your portfolio</p>
-            <div className="flex flex-wrap gap-2">
-              {QUICK_PROMPTS.map(p => (
-                <button
-                  key={p}
-                  onClick={() => send(p)}
-                  className="rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          messages.map((m, i) => (
+      {/* Messages — compact when empty, scrollable once conversation starts */}
+      {hasMessages ? (
+        <div className="overflow-y-auto px-4 py-3 space-y-4" style={{ maxHeight: '520px' }}>
+          {messages.map((m, i) => (
             <div key={i} className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {m.role === 'assistant' && (
                 <div className="mt-0.5 flex-shrink-0 rounded-full bg-blue-950 p-1">
@@ -127,9 +113,7 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
               )}
               <div
                 className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
-                  m.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-zinc-800 text-zinc-200'
+                  m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-200'
                 }`}
               >
                 {m.content || (loading && i === messages.length - 1 ? (
@@ -142,16 +126,30 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
                 </div>
               )}
             </div>
-          ))
-        )}
-        <div ref={bottomRef} />
-      </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+      ) : (
+        <div className="px-4 pt-4 pb-2 space-y-3">
+          <p className="text-xs text-zinc-600 text-center">Ask anything about your portfolio</p>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_PROMPTS.map(p => (
+              <button
+                key={p}
+                onClick={() => send(p)}
+                className="rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Input */}
       <div className="border-t border-zinc-800 px-3 py-3">
         <div className="flex items-end gap-2">
           <textarea
-            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

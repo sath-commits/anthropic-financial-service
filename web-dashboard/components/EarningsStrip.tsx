@@ -5,14 +5,17 @@ import { Calendar } from 'lucide-react';
 
 interface Props {
   earnings: EarningsEvent[];
+  hasPositions?: boolean;
 }
 
-export default function EarningsStrip({ earnings }: Props) {
+export default function EarningsStrip({ earnings, hasPositions }: Props) {
   if (!earnings.length) {
     return (
       <div className="flex items-center gap-2 text-xs text-zinc-600">
         <Calendar className="h-3.5 w-3.5" />
-        No earnings in the next 60 days
+        {hasPositions
+          ? 'No earnings found in the next 60 days — calendar data may be temporarily unavailable'
+          : 'No earnings in the next 60 days'}
       </div>
     );
   }

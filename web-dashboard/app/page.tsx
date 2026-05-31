@@ -761,9 +761,7 @@ export default function Dashboard() {
             </div>
 
             {/* AI chat */}
-            <div className="flex-1 min-h-[420px]">
-              <ChatPanel portfolioContext={portfolioContext} profileContext={profileContext} />
-            </div>
+            <ChatPanel portfolioContext={portfolioContext} profileContext={profileContext} />
           </div>
         </div>
 
@@ -778,7 +776,7 @@ export default function Dashboard() {
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-7 w-24 rounded-full" />)}
             </div>
           ) : (
-            <EarningsStrip earnings={earnings} />
+            <EarningsStrip earnings={earnings} hasPositions={isOwnPortfolio} />
           )}
         </div>
       </main>
