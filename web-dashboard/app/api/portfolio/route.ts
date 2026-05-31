@@ -60,8 +60,7 @@ async function handler(
     const avgCost = toUsd(p.avgCost, currency, usdToSgdRate, usdToInrRate);
     const equity = price * p.shares;
     const costTotal = avgCost * p.shares;
-    const unrealizedPnl = Math.max(0, equity - costTotal);
-    const unrealizedPnlPct = Math.max(0, ((price / p.avgCost) - 1) * 100);
+    const cpfGrowthFactor = Math.pow(1.045, p.holdingDays / 365);
     return {
       ...p,
       brokerage: (p as { brokerage?: string }).brokerage ?? (userPositions ? 'Fidelity' : 'Demo'),
@@ -70,8 +69,12 @@ async function handler(
       currentPrice: price,
       hasLivePrice: isCpf || manualValue !== undefined || usesCostBasisPrice || livePrice !== undefined,
       equity,
-      unrealizedPnl: isCpf ? unrealizedPnl : equity - costTotal,
-      unrealizedPnlPct: isCpf ? unrealizedPnlPct : ((price / p.avgCost) - 1) * 100,
+      // CPF: P&L is always the 4.5% growth amount (never negative); percentage uses
+      // the pure growth factor so currency conversion doesn't distort it
+      unrealizedPnl: isCpf ? Math.max(0, equity - costTotal) : equity - costTotal,
+      unrealizedPnlPct: isCpf
+        ? Math.max(0, (cpfGrowthFactor - 1) * 100)
+        : ((price / p.avgCost) - 1) * 100,
       portfolioWeightPct: 0,
       isShortTerm: p.holdingDays < 366,
     };

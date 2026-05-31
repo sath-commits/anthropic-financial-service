@@ -47,8 +47,11 @@ function daysHeld(dateStr: string): number {
 }
 
 function matchesStoredPosition(stored: UserPosition, displayed: Position): boolean {
-  return stored.symbol === displayed.symbol && stored.shares === displayed.shares && stored.avgCost === displayed.avgCost
-    && stored.accountType === displayed.accountType && stored.assetClass === displayed.assetClass;
+  // avgCost is excluded: route.ts converts it to USD, so native-currency values won't match
+  return stored.symbol === displayed.symbol
+    && stored.accountType === displayed.accountType
+    && stored.assetClass === displayed.assetClass
+    && Math.abs(stored.shares - displayed.shares) < 0.001;
 }
 
 // ─── Client-side position recompute (avoids full API round-trip on edits) ────
@@ -77,12 +80,13 @@ function recomputePositionFast(
   const avgCostUsd = toUsd(userPos.avgCost, currency, usdToSgdRate, usdToInrRate);
   const equity = priceUsd * userPos.shares;
   const costTotal = avgCostUsd * userPos.shares;
+  const cpfGrowthFactor = Math.pow(1.045, userPos.holdingDays / 365);
   return {
     symbol: userPos.symbol, name: userPos.name, shares: userPos.shares, avgCost: avgCostUsd,
     currentPrice: priceUsd, hasLivePrice: live, equity,
     unrealizedPnl: isCpf ? Math.max(0, equity - costTotal) : equity - costTotal,
     unrealizedPnlPct: isCpf
-      ? Math.max(0, ((priceUsd / userPos.avgCost) - 1) * 100)
+      ? Math.max(0, (cpfGrowthFactor - 1) * 100)
       : ((priceUsd / userPos.avgCost) - 1) * 100,
     portfolioWeightPct: 0,
     accountType: userPos.accountType, currency,
