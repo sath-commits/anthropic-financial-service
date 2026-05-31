@@ -68,11 +68,13 @@ function getOpenAIClient() {
 }
 
 function validateImageDataUrl(imageDataUrl: string): { error: string | null; size: number } {
-  const match = imageDataUrl.match(/^data:([^;]+);base64,([A-Za-z0-9+/=]+)$/);
-  if (!match || !ALLOWED_IMAGE_TYPES.has(match[1])) {
+  const match = imageDataUrl.match(/^data:([^;,]+)(?:;[^,]*)?;base64,([\s\S]+)$/i);
+  const imageType = match?.[1].toLowerCase();
+  const encodedImage = match?.[2].replace(/\s/g, '') ?? '';
+  if (!match || !imageType || !ALLOWED_IMAGE_TYPES.has(imageType) || !/^[A-Za-z0-9+/]*={0,2}$/.test(encodedImage)) {
     return { error: 'Upload PNG, JPEG, or WEBP screenshots.', size: 0 };
   }
-  const size = Math.ceil((match[2].length * 3) / 4);
+  const size = Math.ceil((encodedImage.length * 3) / 4);
   return {
     error: size > MAX_IMAGE_BYTES ? 'Each screenshot must be smaller than 8 MB.' : null,
     size,
@@ -146,6 +148,7 @@ export async function POST(req: Request) {
   const instructions = `Extract investment positions from the supplied portfolio screenshots or pasted text.
 Return JSON only using the requested schema.
 - Include only actual holdings. Exclude watchlists, totals, cash balances, and pending orders unless cash appears as a holding.
+- Do not infer, guess, or generate example holdings. If no legible holdings are visible or supplied, return an empty positions array with a warning.
 - Never invent values. Use null when shares, average cost, account type, asset class, or purchase date are missing or unclear.
 - Normalize account types to taxable, ira, roth_ira, 401k, or hsa only when explicitly supported by the input.
 - Screenshots may overlap. Consolidate rows only when they are clearly the same holding with the same values. Preserve separate tax lots and holdings in different accounts.

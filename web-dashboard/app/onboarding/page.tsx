@@ -35,6 +35,12 @@ interface ImportedPosition {
   assetClass: string | null;
 }
 
+interface PortfolioImportResponse {
+  error?: string;
+  positions?: ImportedPosition[];
+  warnings?: string[];
+}
+
 function blankRow(): RowDraft {
   return {
     symbol: '', name: '', shares: '', avgCost: '',
@@ -90,7 +96,19 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const body = await res.json() as { error?: string; positions?: ImportedPosition[]; warnings?: string[] };
+      const responseText = await res.text();
+      let body: PortfolioImportResponse = {};
+      try {
+        body = JSON.parse(responseText) as PortfolioImportResponse;
+      } catch {
+        if (res.status === 413) {
+          throw new Error('Those screenshots are too large to upload together. Try fewer screenshots or smaller image files.');
+        }
+        if (res.status === 401) {
+          throw new Error('Your dashboard login expired. Reload the page and sign in again.');
+        }
+        throw new Error(`Screenshot import failed with HTTP ${res.status}. Try fewer screenshots or paste the holdings as text.`);
+      }
       if (!res.ok || !body.positions?.length) throw new Error(body.error ?? 'No holdings detected.');
       setRows(body.positions.map(importedRow));
       setImportWarnings(body.warnings ?? []);
