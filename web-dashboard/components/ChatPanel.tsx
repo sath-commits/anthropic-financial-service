@@ -96,7 +96,7 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
         <Bot className="h-4 w-4 text-blue-400" />
-        <span className="text-sm font-semibold text-zinc-200">Portfolio AI</span>
+        <span className="text-sm font-semibold text-zinc-200">Beta than nothing</span>
         <span className="ml-auto text-xs text-zinc-600">gpt-4o</span>
       </div>
 

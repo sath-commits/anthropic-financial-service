@@ -601,7 +601,7 @@ export default function OnboardingPage() {
       {/* Header */}
       <div className="mb-10 flex items-center gap-2.5">
         <TrendingUp className="h-6 w-6 text-blue-400" />
-        <span className="text-xl font-semibold text-zinc-100">Portfolio AI</span>
+        <span className="text-xl font-semibold text-zinc-100">Beta than nothing</span>
       </div>
 
       {/* Step indicator */}

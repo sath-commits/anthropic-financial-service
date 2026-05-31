@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Portfolio AI",
-  description: "Personal AI-powered investment dashboard",
+  title: "Beta than nothing",
+  description: "Personal investment planning dashboard",
 };
 
 export default function RootLayout({

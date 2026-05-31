@@ -102,7 +102,7 @@ export default function Dashboard() {
       <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
         <div className="flex items-center gap-2.5">
           <TrendingUp className="h-5 w-5 text-blue-400" />
-          <span className="text-base font-semibold text-zinc-100">Portfolio AI</span>
+          <span className="text-base font-semibold text-zinc-100">Beta than nothing</span>
           <span className="ml-2 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500">
             {isOwnPortfolio ? 'Your portfolio' : 'Demo portfolio · DRY_RUN=true'}
           </span>

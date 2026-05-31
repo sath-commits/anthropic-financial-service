@@ -1,6 +1,6 @@
-# Portfolio AI Data Service
+# Beta than nothing Data Service
 
-Private FastAPI market-data service for the Portfolio AI dashboard.
+Private FastAPI market-data service for the Beta than nothing dashboard.
 
 Deploy this directory on Railway with root directory `data-service`. Keep it
 private: the Next.js dashboard calls it over Railway private networking.

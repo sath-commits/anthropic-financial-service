@@ -703,7 +703,7 @@ export default function AdvisorPage() {
         <div className="flex items-center gap-4">
           <button onClick={() => router.push('/')} className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors">
             <TrendingUp className="h-5 w-5 text-blue-400" />
-            <span className="text-base font-semibold text-zinc-100">Portfolio AI</span>
+            <span className="text-base font-semibold text-zinc-100">Beta than nothing</span>
           </button>
           <span className="text-zinc-700">/</span>
           <div className="flex items-center gap-1.5">

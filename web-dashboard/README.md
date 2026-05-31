@@ -1,4 +1,4 @@
-# Portfolio AI Dashboard
+# Beta than nothing Dashboard
 
 Personal portfolio dashboard and AI advisor. The production deployment uses a
 separate Python market-data service over Railway private networking.

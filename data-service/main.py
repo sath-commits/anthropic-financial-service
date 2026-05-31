@@ -1,5 +1,5 @@
 """
-HTTP data service for the Portfolio AI Next.js app.
+HTTP data service for the Beta than nothing Next.js app.
 Wraps yfinance, FRED, and Alpha Vantage behind a single POST /call endpoint.
 
 Deploy this as a separate Railway service.
