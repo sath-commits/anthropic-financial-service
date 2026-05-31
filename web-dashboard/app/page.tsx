@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X } from 'lucide-react';
+import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X, Edit2 } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
@@ -11,10 +11,11 @@ import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
 import PortfolioEditor from '@/components/PortfolioEditor';
 import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile } from '@/lib/storage';
+import { TARGET_ALLOCATION } from '@/lib/mock-portfolio';
 import { formatCurrency, type Currency } from '@/lib/currency';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
 
-const ASSET_CLASSES = ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Alternatives', 'Cash'];
+const ASSET_CLASSES = ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Real Estate', 'Gold / Commodities', 'Alternatives', 'Cash'];
 const ACCOUNT_TYPES: UserPosition['accountType'][] = ['taxable', 'ira', 'roth_ira', '401k', 'hsa', 'cpf'];
 
 interface HoldingDraft {
@@ -26,12 +27,16 @@ interface HoldingDraft {
   currency: Currency;
   assetClass: string;
   purchaseDate: string;
+  brokerage: string;
+  currentValue: string;
 }
 
 function holdingDraft(position: UserPosition): HoldingDraft {
   return {
     symbol: position.symbol, name: position.name, shares: String(position.shares), avgCost: String(position.avgCost),
     accountType: position.accountType, currency: position.currency ?? (position.accountType === 'cpf' ? 'SGD' : 'USD'), assetClass: position.assetClass, purchaseDate: position.purchaseDate ?? '',
+    brokerage: position.brokerage ?? 'Fidelity',
+    currentValue: position.currentValue != null ? String(position.currentValue) : '',
   };
 }
 
@@ -67,6 +72,10 @@ export default function Dashboard() {
   const [holdingError, setHoldingError] = useState('');
   const [addingPortfolio, setAddingPortfolio] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
+  const [brokerageFilter, setBrokerageFilter] = useState<string>('All');
+  const [editingAllocation, setEditingAllocation] = useState(false);
+  const [allocationDraft, setAllocationDraft] = useState<Record<string, string>>({});
+  const [allocationError, setAllocationError] = useState('');
   const restoreInputRef = useRef<HTMLInputElement>(null);
 
   async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null) {
@@ -150,6 +159,8 @@ export default function Dashboard() {
     const updated: UserPosition = {
       symbol, name: holding.name.trim() || symbol, shares, avgCost, accountType: holding.accountType, currency: holding.currency,
       assetClass: holding.assetClass, purchaseDate: holding.purchaseDate || undefined, holdingDays: daysHeld(holding.purchaseDate),
+      brokerage: holding.brokerage.trim() || 'Fidelity',
+      currentValue: holding.currentValue ? Number(holding.currentValue) : undefined,
     };
     const next = [...(userPositions ?? [])];
     next[editingIndex] = updated;
@@ -196,6 +207,45 @@ export default function Dashboard() {
 
   const isOwnPortfolio = userPositions !== null;
 
+  const uniqueBrokerages = summary?.positions
+    ? [...new Set(summary.positions.map(p => p.brokerage).filter(Boolean))].sort() as string[]
+    : [];
+  const filteredPositions = brokerageFilter === 'All'
+    ? (summary?.positions ?? [])
+    : (summary?.positions ?? []).filter(p => p.brokerage === brokerageFilter);
+
+  function openAllocationEditor() {
+    const targets = profile?.targetAllocation ?? TARGET_ALLOCATION;
+    const draft: Record<string, string> = {};
+    for (const cls of ASSET_CLASSES) {
+      draft[cls] = targets[cls] != null ? String(Math.round(targets[cls] * 100)) : '0';
+    }
+    setAllocationDraft(draft);
+    setAllocationError('');
+    setEditingAllocation(true);
+  }
+
+  function saveAllocation() {
+    const total = Object.values(allocationDraft).reduce((sum, v) => sum + (Number(v) || 0), 0);
+    if (Math.abs(total - 100) > 0.5) {
+      setAllocationError(`Total is ${total.toFixed(0)}% — must equal 100%.`);
+      return;
+    }
+    const targetAllocation: Record<string, number> = {};
+    for (const [cls, v] of Object.entries(allocationDraft)) {
+      const pct = Number(v) || 0;
+      if (pct > 0) targetAllocation[cls] = pct / 100;
+    }
+    const updatedProfile: InvestorProfile = {
+      ...(profile ?? { currentAge: 30, retirementAge: 65, monthlyContribution: 0, riskTolerance: 'moderate', primaryGoal: 'growth', targetAllocation: {} }),
+      targetAllocation,
+    };
+    saveProfile(updatedProfile);
+    setProfile(updatedProfile);
+    setEditingAllocation(false);
+    load(userPositions, updatedProfile);
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
       {/* Top bar */}
@@ -229,6 +279,17 @@ export default function Dashboard() {
             <option value="USD">USD</option>
             <option value="SGD">SGD</option>
           </select>
+          {uniqueBrokerages.length > 1 && (
+            <select
+              value={brokerageFilter}
+              onChange={event => setBrokerageFilter(event.target.value)}
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 outline-none"
+              aria-label="Filter by brokerage"
+            >
+              <option value="All">All brokerages</option>
+              {uniqueBrokerages.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+          )}
           {displayCurrency === 'SGD' && summary && (
             <span className={summary.hasLiveUsdToSgdRate ? 'text-zinc-500' : 'text-amber-400'}>
               1 USD = {summary.usdToSgdRate.toFixed(4)} SGD{summary.hasLiveUsdToSgdRate ? '' : ' estimate'}
@@ -278,6 +339,53 @@ export default function Dashboard() {
           </button>
         </div>
       </header>
+
+      {editingAllocation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-zinc-100">Target Allocation</h2>
+              <button onClick={() => setEditingAllocation(false)} className="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-zinc-500">Set target percentages. Must total 100%.</p>
+            <div className="mt-4 space-y-2 max-h-[50vh] overflow-y-auto">
+              {ASSET_CLASSES.map(cls => (
+                <label key={cls} className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-zinc-300 truncate">{cls}</span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <input
+                      type="number" min="0" max="100" step="1"
+                      value={allocationDraft[cls] ?? '0'}
+                      onChange={e => setAllocationDraft(d => ({ ...d, [cls]: e.target.value }))}
+                      className="w-14 rounded bg-zinc-800 px-2 py-1 text-right text-sm text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600"
+                    />
+                    <span className="text-sm text-zinc-500">%</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+            {(() => {
+              const total = Object.values(allocationDraft).reduce((sum, v) => sum + (Number(v) || 0), 0);
+              return (
+                <p className={`mt-3 text-sm font-medium ${Math.abs(total - 100) < 0.5 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  Total: {total.toFixed(0)}%
+                </p>
+              );
+            })()}
+            {allocationError && <p className="mt-2 text-sm text-red-400">{allocationError}</p>}
+            <div className="mt-5 flex gap-3">
+              <button onClick={saveAllocation} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">
+                Save
+              </button>
+              <button onClick={() => setEditingAllocation(false)} className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 hover:bg-zinc-800">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {addingPortfolio && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
@@ -367,6 +475,19 @@ export default function Dashboard() {
                   max={new Date().toISOString().slice(0, 10)}
                   className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600" />
               </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Brokerage</span>
+                <input value={holding.brokerage} onChange={e => setHolding({ ...holding, brokerage: e.target.value })}
+                  placeholder="Fidelity"
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+              </label>
+              <label className="space-y-1.5 sm:col-span-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Current market value optional</span>
+                <input type="number" value={holding.currentValue} onChange={e => setHolding({ ...holding, currentValue: e.target.value })}
+                  placeholder="For real estate, gold — overrides live price"
+                  min="0" step="any"
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+              </label>
             </div>
             {holdingError && <p className="mt-4 text-sm text-red-400">{holdingError}</p>}
             <div className="mt-6 flex items-center gap-3">
@@ -444,7 +565,7 @@ export default function Dashboard() {
                 </div>
               ) : summary ? (
                 summary.positions.length
-                  ? <PositionsTable positions={summary.positions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
+                  ? <PositionsTable positions={filteredPositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
                   : <p className="py-8 text-center text-sm text-zinc-500">No holdings yet. Add your first position to start tracking your portfolio.</p>
               ) : null}
             </div>
@@ -479,7 +600,16 @@ export default function Dashboard() {
           <div className="flex flex-col gap-5">
             {/* Allocation */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-              <h2 className="mb-4 text-sm font-semibold text-zinc-200">Asset Allocation</h2>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-zinc-200">Asset Allocation</h2>
+                <button
+                  onClick={openAllocationEditor}
+                  className="rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                  title="Edit target allocation"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
               {loading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8" />)}

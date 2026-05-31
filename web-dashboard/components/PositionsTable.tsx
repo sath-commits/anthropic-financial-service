@@ -27,7 +27,7 @@ function fmt(n: number, decimals = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-type SortKey = 'symbol' | 'shares' | 'avgCost' | 'currentPrice' | 'equity' | 'unrealizedPnl' | 'unrealizedPnlPct' | 'portfolioWeightPct';
+type SortKey = 'symbol' | 'shares' | 'avgCost' | 'currentPrice' | 'equity' | 'unrealizedPnl' | 'unrealizedPnlPct' | 'portfolioWeightPct' | 'brokerage';
 type SortDirection = 'asc' | 'desc';
 
 const COLUMNS: Array<{ label: string; key: SortKey }> = [
@@ -39,6 +39,7 @@ const COLUMNS: Array<{ label: string; key: SortKey }> = [
   { label: 'P&L', key: 'unrealizedPnl' },
   { label: 'P&L %', key: 'unrealizedPnlPct' },
   { label: 'Weight', key: 'portfolioWeightPct' },
+  { label: 'Brokerage', key: 'brokerage' },
 ];
 
 export default function PositionsTable({ positions, onEdit, onDelete, displayCurrency, usdToSgdRate }: Props) {
@@ -135,7 +136,7 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
                           <div className="text-xs text-zinc-500 truncate max-w-[140px]">{p.name}</div>
                         </td>
                         <td className="py-2.5 pr-4 text-zinc-300">{fmt(p.shares)}</td>
-                        <td className="py-2.5 pr-4 text-zinc-300">{money(p.avgCost)}</td>
+                        <td className="py-2.5 pr-4 text-zinc-300">{p.accountType === 'cpf' ? <span className="text-zinc-600">—</span> : money(p.avgCost)}</td>
                         <td className="py-2.5 pr-4 text-zinc-100 font-medium">
                           {p.hasLivePrice ? money(p.currentPrice) : <span className="text-amber-300">Unavailable</span>}
                         </td>
@@ -147,6 +148,7 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
                           {p.hasLivePrice ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-zinc-500">—</span>}
                         </td>
                         <td className="py-2.5 pr-4 text-zinc-400">{fmt(p.portfolioWeightPct, 1)}%</td>
+                        <td className="py-2.5 pr-4 text-zinc-500 text-xs">{p.brokerage}</td>
                         <td className="py-2.5 pl-3">
                           <div className="flex items-center gap-1">
                             <button onClick={() => onEdit(p)} title={`Edit ${p.symbol}`}

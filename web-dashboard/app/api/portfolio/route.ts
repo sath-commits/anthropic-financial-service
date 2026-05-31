@@ -46,22 +46,27 @@ async function handler(
     const livePrice = priceMap[p.symbol];
     const usesCostBasisPrice = shouldPriceAtCostBasis(p.symbol);
     const currency = positionCurrency('currency' in p ? p.currency : undefined);
-    const nativePrice = usesCostBasisPrice ? p.avgCost : livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
+    const isCpf = p.accountType === 'cpf';
+    const manualValue = 'currentValue' in p ? (p as UserPosition).currentValue : undefined;
+    const nativePrice = isCpf
+      ? p.avgCost * Math.pow(1.045, p.holdingDays / 365)
+      : manualValue ?? (usesCostBasisPrice ? p.avgCost : livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost);
     const price = toUsd(nativePrice, currency, usdToSgdRate);
     const avgCost = toUsd(p.avgCost, currency, usdToSgdRate);
     const equity = price * p.shares;
     const costTotal = avgCost * p.shares;
-    const unrealizedPnl = equity - costTotal;
-    const unrealizedPnlPct = ((price / p.avgCost) - 1) * 100;
+    const unrealizedPnl = Math.max(0, equity - costTotal);
+    const unrealizedPnlPct = Math.max(0, ((price / p.avgCost) - 1) * 100);
     return {
       ...p,
+      brokerage: (p as { brokerage?: string }).brokerage ?? (userPositions ? 'Fidelity' : 'Demo'),
       avgCost,
       currency,
       currentPrice: price,
-      hasLivePrice: usesCostBasisPrice || livePrice !== undefined,
+      hasLivePrice: isCpf || manualValue !== undefined || usesCostBasisPrice || livePrice !== undefined,
       equity,
-      unrealizedPnl,
-      unrealizedPnlPct,
+      unrealizedPnl: isCpf ? unrealizedPnl : equity - costTotal,
+      unrealizedPnlPct: isCpf ? unrealizedPnlPct : ((price / p.avgCost) - 1) * 100,
       portfolioWeightPct: 0,
       isShortTerm: p.holdingDays < 366,
     };

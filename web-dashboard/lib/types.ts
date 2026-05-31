@@ -11,6 +11,7 @@ export interface Position {
   portfolioWeightPct: number;
   accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa' | 'cpf';
   currency: 'USD' | 'SGD';
+  brokerage: string;
   holdingDays: number;
   isShortTerm: boolean;
   assetClass: string;
@@ -63,9 +64,11 @@ export interface UserPosition {
   avgCost: number;
   accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa' | 'cpf';
   currency?: 'USD' | 'SGD';
+  brokerage?: string;
   holdingDays: number;
   assetClass: string;
   purchaseDate?: string; // ISO date string
+  currentValue?: number; // manual current-value override (real estate, gold, etc.)
 }
 
 // User profile / investment goals from onboarding

@@ -15,6 +15,10 @@ interface SavePositionsOptions {
   allowEmptyPositions?: boolean;
 }
 
+function normalizePositions(positions: UserPosition[]): UserPosition[] {
+  return positions.map(position => ({ ...position, brokerage: position.brokerage?.trim() || 'Fidelity' }));
+}
+
 function persistSettings(settings: StoredSettings, options: SavePositionsOptions = {}) {
   void fetch('/api/settings', {
     method: 'PUT',
@@ -31,6 +35,7 @@ function persistSettings(settings: StoredSettings, options: SavePositionsOptions
 }
 
 export function savePositions(positions: UserPosition[], options: SavePositionsOptions = {}) {
+  positions = normalizePositions(positions);
   const current = loadPositions();
   if (!positions.length && current?.length && !options.allowEmptyPositions) return;
   if (current) saveBrowserSnapshot(current);
@@ -72,7 +77,7 @@ export function loadPositions(): UserPosition[] | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(POSITIONS_KEY);
-    return raw ? JSON.parse(raw) : null;
+    return raw ? normalizePositions(JSON.parse(raw) as UserPosition[]) : null;
   } catch {
     return loadLatestBrowserSnapshot();
   }
@@ -113,6 +118,7 @@ export async function hydrateSettings(): Promise<StoredSettings> {
     const res = await fetch('/api/settings', { cache: 'no-store' });
     if (!res.ok) throw new Error('Settings store unavailable');
     const server = await res.json() as StoredSettings;
+    if (server.positions) server.positions = normalizePositions(server.positions);
     const positions = localPositionsAreNewer && localPositions
       ? localPositions
       : server.positions?.length === 0 && localPositions?.length
@@ -121,7 +127,7 @@ export async function hydrateSettings(): Promise<StoredSettings> {
     const profile = server.profile ?? localProfile;
     if (positions) localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
     if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-    if ((localPositionsAreNewer || !server.positions) && localPositions) persistSettings({ positions: localPositions });
+    if ((localPositionsAreNewer || !server.positions || server.positions.some(position => !position.brokerage)) && localPositions) persistSettings({ positions: localPositions });
     if (!server.profile && localProfile) persistSettings({ profile: localProfile });
     return { positions, profile };
   } catch {
