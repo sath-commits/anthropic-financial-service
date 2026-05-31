@@ -6,17 +6,21 @@ Deploy this as a separate Railway service.
 Set DATA_SERVICE_URL in the Next.js service to the Railway URL of this service.
 """
 
+from __future__ import annotations
+
 import os
+import secrets
 import time
 import requests
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, Header, HTTPException
+from pydantic import BaseModel, Field
 from typing import Any
 
 app = FastAPI()
 
 ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY", "")
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
+DATA_SERVICE_TOKEN = os.getenv("DATA_SERVICE_TOKEN", "")
 
 _av_last_call = 0.0
 
@@ -25,7 +29,7 @@ _av_last_call = 0.0
 
 class CallRequest(BaseModel):
     method: str
-    params: dict = {}
+    params: dict = Field(default_factory=dict)
 
 
 @app.get("/health")
@@ -34,7 +38,13 @@ def health():
 
 
 @app.post("/call")
-def call_method(req: CallRequest) -> Any:
+def call_method(req: CallRequest, authorization: str | None = Header(default=None)) -> Any:
+    if not DATA_SERVICE_TOKEN:
+        raise HTTPException(status_code=503, detail="DATA_SERVICE_TOKEN is not configured")
+    expected = f"Bearer {DATA_SERVICE_TOKEN}"
+    if not authorization or not secrets.compare_digest(authorization, expected):
+        raise HTTPException(status_code=401, detail="Invalid data-service credentials")
+
     handlers = {
         "get_quote":            get_quote,
         "get_batch_quotes":     get_batch_quotes,

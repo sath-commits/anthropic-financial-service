@@ -5,7 +5,7 @@
  * Railway    — HTTP POST to the Python FastAPI service at DATA_SERVICE_URL
  *
  * Set DATA_SERVICE_URL in the Next.js Railway service env to the internal
- * URL of the Python Railway service (e.g. https://data-service.railway.internal).
+ * URL of the Python Railway service (e.g. http://data-service.railway.internal:8000).
  */
 
 import { execSync } from 'child_process';
@@ -22,9 +22,14 @@ export async function callDataService(
   if (baseUrl) {
     // Production (Railway): HTTP call to the Python FastAPI service
     try {
+      const token = process.env.DATA_SERVICE_TOKEN;
+      if (!token) return null;
       const res = await fetch(`${baseUrl.replace(/\/$/, '')}/call`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ method, params }),
         signal: AbortSignal.timeout(15_000),
       });
