@@ -81,7 +81,13 @@ function daysHeld(dateStr: string): number {
   return Math.max(0, Math.floor((today.getTime() - purchase.getTime()) / 86400000));
 }
 
-function PortfolioStep({ initialPositions, onNext }: { initialPositions: UserPosition[]; onNext: (positions: UserPosition[]) => void }) {
+function PortfolioStep({
+  initialPositions, onNext, onSaveDashboard,
+}: {
+  initialPositions: UserPosition[];
+  onNext: (positions: UserPosition[]) => void;
+  onSaveDashboard: (positions: UserPosition[]) => void;
+}) {
   const [rows, setRows] = useState<RowDraft[]>(() => initialPositions.length ? initialPositions.map(savedRow) : [blankRow()]);
   const [error, setError] = useState('');
   const [importMode, setImportMode] = useState<'screenshot' | 'paste' | 'manual'>('screenshot');
@@ -168,7 +174,7 @@ function PortfolioStep({ initialPositions, onNext }: { initialPositions: UserPos
     }
   }
 
-  function validate() {
+  function validate(onValid: (positions: UserPosition[]) => void) {
     const valid: UserPosition[] = [];
     for (const r of rows) {
       if (!r.symbol.trim()) continue; // skip empty rows
@@ -199,7 +205,7 @@ function PortfolioStep({ initialPositions, onNext }: { initialPositions: UserPos
     }
     if (valid.length === 0) { setError('Add at least one position to continue.'); return; }
     setError('');
-    onNext(valid);
+    onValid(valid);
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -357,10 +363,16 @@ function PortfolioStep({ initialPositions, onNext }: { initialPositions: UserPos
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      <button onClick={validate}
-        className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors">
-        Continue <ChevronRight className="h-4 w-4" />
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button onClick={() => validate(onNext)}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors">
+          Continue <ChevronRight className="h-4 w-4" />
+        </button>
+        <button onClick={() => validate(onSaveDashboard)}
+          className="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200">
+          Save and open dashboard
+        </button>
+      </div>
     </div>
   );
 }
@@ -630,13 +642,17 @@ export default function OnboardingPage() {
   }, []);
 
   function handlePositions(p: UserPosition[]) {
+    savePositions(p);
     if (savedProfile) {
-      savePositions(p);
       router.push('/');
       return;
     }
     setPositions(p);
     setStep(1);
+  }
+  function handleSaveDashboard(p: UserPosition[]) {
+    savePositions(p);
+    router.push('/');
   }
   function handleProfile(p: Omit<InvestorProfile, 'strategy'>) { setProfile(p); setStep(2); }
   function handleDone(strategy: string) {
@@ -670,7 +686,7 @@ export default function OnboardingPage() {
 
       {/* Step content */}
       <div className="w-full max-w-4xl rounded-2xl border border-zinc-800 bg-zinc-900 p-8">
-        {step === 0 && hydrated && <PortfolioStep initialPositions={initialPositions} onNext={handlePositions} />}
+        {step === 0 && hydrated && <PortfolioStep initialPositions={initialPositions} onNext={handlePositions} onSaveDashboard={handleSaveDashboard} />}
         {step === 1 && <ProfileStep onNext={handleProfile} onBack={() => setStep(0)} />}
         {step === 2 && profile !== null && (
           <StrategyStep positions={positions} profile={profile} onDone={handleDone} onBack={() => setStep(1)} />
