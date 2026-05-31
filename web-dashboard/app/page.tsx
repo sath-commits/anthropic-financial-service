@@ -10,7 +10,7 @@ import AllocationChart from '@/components/AllocationChart';
 import PnLChart from '@/components/PnLChart';
 import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
-import { loadPositions, loadProfile, clearAll } from '@/lib/storage';
+import { loadPositions, loadProfile } from '@/lib/storage';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile } from '@/lib/types';
 
 function fmt(n: number) {
@@ -81,8 +81,7 @@ export default function Dashboard() {
 
   const totalPnlPositive = (summary?.totalUnrealizedPnl ?? 0) >= 0;
 
-  function resetPortfolio() {
-    clearAll();
+  function editPortfolio() {
     router.push('/onboarding');
   }
 
@@ -130,9 +129,9 @@ export default function Dashboard() {
             Refresh
           </button>
           <button
-            onClick={resetPortfolio}
+            onClick={editPortfolio}
             className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
-            title="Change portfolio / re-run onboarding"
+            title="Edit portfolio"
           >
             <Settings className="h-3.5 w-3.5" />
           </button>

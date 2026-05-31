@@ -1,12 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Trash2, ChevronRight, ChevronLeft, Loader2, TrendingUp, CheckCircle,
   Camera, ClipboardPaste, PencilLine, Upload,
 } from 'lucide-react';
-import { savePositions, saveProfile } from '@/lib/storage';
+import { loadPositions, loadProfile, savePositions, saveProfile } from '@/lib/storage';
 import type { UserPosition, InvestorProfile } from '@/lib/types';
 
 // ── Step 1: Portfolio entry ───────────────────────────────────────────────────
@@ -62,6 +62,18 @@ function importedRow(position: ImportedPosition): RowDraft {
   };
 }
 
+function savedRow(position: UserPosition): RowDraft {
+  return {
+    symbol: position.symbol,
+    name: position.name,
+    shares: position.shares.toString(),
+    avgCost: position.avgCost.toString(),
+    accountType: position.accountType,
+    purchaseDate: position.purchaseDate ?? '',
+    assetClass: position.assetClass,
+  };
+}
+
 function daysHeld(dateStr: string): number {
   if (!dateStr) return 365;
   const purchase = new Date(dateStr);
@@ -69,8 +81,8 @@ function daysHeld(dateStr: string): number {
   return Math.max(0, Math.floor((today.getTime() - purchase.getTime()) / 86400000));
 }
 
-function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void }) {
-  const [rows, setRows] = useState<RowDraft[]>([blankRow()]);
+function PortfolioStep({ initialPositions, onNext }: { initialPositions: UserPosition[]; onNext: (positions: UserPosition[]) => void }) {
+  const [rows, setRows] = useState<RowDraft[]>(() => initialPositions.length ? initialPositions.map(savedRow) : [blankRow()]);
   const [error, setError] = useState('');
   const [importMode, setImportMode] = useState<'screenshot' | 'paste' | 'manual'>('screenshot');
   const [pasteText, setPasteText] = useState('');
@@ -605,8 +617,27 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [positions, setPositions] = useState<UserPosition[]>([]);
   const [profile, setProfile] = useState<Omit<InvestorProfile, 'strategy'> | null>(null);
+  const [savedProfile, setSavedProfile] = useState<InvestorProfile | null>(null);
+  const [initialPositions, setInitialPositions] = useState<UserPosition[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
-  function handlePositions(p: UserPosition[]) { setPositions(p); setStep(1); }
+  useEffect(() => {
+    // Hydrate the browser-local portfolio editor after the client mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInitialPositions(loadPositions() ?? []);
+    setSavedProfile(loadProfile());
+    setHydrated(true);
+  }, []);
+
+  function handlePositions(p: UserPosition[]) {
+    if (savedProfile) {
+      savePositions(p);
+      router.push('/');
+      return;
+    }
+    setPositions(p);
+    setStep(1);
+  }
   function handleProfile(p: Omit<InvestorProfile, 'strategy'>) { setProfile(p); setStep(2); }
   function handleDone(strategy: string) {
     savePositions(positions);
@@ -639,7 +670,7 @@ export default function OnboardingPage() {
 
       {/* Step content */}
       <div className="w-full max-w-4xl rounded-2xl border border-zinc-800 bg-zinc-900 p-8">
-        {step === 0 && <PortfolioStep onNext={handlePositions} />}
+        {step === 0 && hydrated && <PortfolioStep initialPositions={initialPositions} onNext={handlePositions} />}
         {step === 1 && <ProfileStep onNext={handleProfile} onBack={() => setStep(0)} />}
         {step === 2 && profile !== null && (
           <StrategyStep positions={positions} profile={profile} onDone={handleDone} onBack={() => setStep(1)} />
