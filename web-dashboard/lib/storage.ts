@@ -135,6 +135,31 @@ export async function hydrateSettings(): Promise<StoredSettings> {
   }
 }
 
+// ─── Portfolio display cache (instant first-paint) ────────────────────────────
+
+const PORTFOLIO_CACHE_KEY = 'portfolio-ai:display-cache-v1';
+const PORTFOLIO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 h
+
+export function savePortfolioCache(data: unknown): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(PORTFOLIO_CACHE_KEY, JSON.stringify({ d: data, t: Date.now() }));
+  } catch {}
+}
+
+export function loadPortfolioCache<T>(): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(PORTFOLIO_CACHE_KEY);
+    if (!raw) return null;
+    const { d, t } = JSON.parse(raw) as { d: T; t: number };
+    if (Date.now() - t > PORTFOLIO_CACHE_TTL) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+
 export function clearAll() {
   localStorage.removeItem(POSITIONS_KEY);
   localStorage.removeItem(PROFILE_KEY);

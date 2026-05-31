@@ -9,6 +9,24 @@ interface HistoryPoint {
   close: number;
 }
 
+const HISTORY_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 h
+
+function readHistoryCache(symbol: string, period: string): HistoryPoint[] | null {
+  try {
+    const raw = localStorage.getItem(`portfolio-ai:history-v1-${symbol}-${period}`);
+    if (!raw) return null;
+    const { d, t } = JSON.parse(raw) as { d: HistoryPoint[]; t: number };
+    if (Date.now() - t > HISTORY_CACHE_TTL) return null;
+    return d;
+  } catch { return null; }
+}
+
+function writeHistoryCache(symbol: string, period: string, data: HistoryPoint[]): void {
+  try {
+    localStorage.setItem(`portfolio-ai:history-v1-${symbol}-${period}`, JSON.stringify({ d: data, t: Date.now() }));
+  } catch {}
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTooltip({ active, payload, label, currency, usdToSgdRate }: any) {
   if (!active || !payload?.length) return null;
@@ -28,17 +46,28 @@ export default function PnLChart({ symbol = 'VOO', holdingCurrency = 'USD', disp
 
   useEffect(() => {
     if (!symbol) return;
-    // Cancel any in-flight request before starting a new one
+
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    // Show loading immediately when the requested chart series changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
+    // Show cached data immediately — no spinner if we have recent data
+    const cached = readHistoryCache(symbol, period);
+    if (cached) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setData(cached.slice(-120));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(false);
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(true);
+    }
+
+    // Fetch fresh data in background regardless of cache
     fetch(`/api/history?symbol=${symbol}&period=${period}`, { signal: controller.signal })
       .then(r => r.json())
       .then((rows: HistoryPoint[]) => {
+        writeHistoryCache(symbol, period, rows);
         setData(rows.slice(-120));
         setLoading(false);
       })

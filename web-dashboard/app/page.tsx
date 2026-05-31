@@ -10,7 +10,7 @@ import PnLChart from '@/components/PnLChart';
 import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
 import PortfolioEditor from '@/components/PortfolioEditor';
-import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile } from '@/lib/storage';
+import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile, savePortfolioCache, loadPortfolioCache } from '@/lib/storage';
 import { TARGET_ALLOCATION } from '@/lib/mock-portfolio';
 import { formatCurrency, type Currency } from '@/lib/currency';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
@@ -78,8 +78,8 @@ export default function Dashboard() {
   const [allocationError, setAllocationError] = useState('');
   const restoreInputRef = useRef<HTMLInputElement>(null);
 
-  async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null) {
-    setLoading(true);
+  async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null, silent = false) {
+    if (!silent) setLoading(true);
     try {
       const posToSend = positions ?? userPositions;
       // Use explicitly-passed profile first, then state (for refresh calls)
@@ -99,6 +99,7 @@ export default function Dashboard() {
       setAllocation(data.allocation);
       setEarnings(data.earnings);
       setLastUpdated(new Date().toLocaleTimeString());
+      savePortfolioCache(data);
       if (!chartSymbol && data.summary?.positions?.length) {
         setChartSymbol(data.summary.positions[0].symbol);
       }
@@ -110,12 +111,26 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    // Show last-known portfolio instantly from localStorage while live prices load
+    type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
+    const cached = loadPortfolioCache<CacheShape>();
+    let hadCache = false;
+    if (cached?.summary) {
+      hadCache = true;
+      setSummary(cached.summary);
+      setAllocation(cached.allocation ?? []);
+      setEarnings(cached.earnings ?? []);
+      setLoading(false);
+      if (cached.summary.positions?.length) setChartSymbol(cached.summary.positions[0].symbol);
+    }
+
     void hydrateSettings().then(({ positions, profile: savedProfile }) => {
       const savedPositions = positions ?? [];
       setUserPositions(savedPositions);
       setProfile(savedProfile ?? null);
       // Pass values directly because React state may not reflect them yet.
-      load(savedPositions, savedProfile ?? null);
+      // silent=true when cache already rendered — no flash of skeletons
+      load(savedPositions, savedProfile ?? null, hadCache);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -460,6 +475,7 @@ export default function Dashboard() {
                   className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
                   <option value="USD">USD</option>
                   <option value="SGD">SGD</option>
+                  <option value="INR">INR (₹)</option>
                 </select>
               </label>
               <label className="space-y-1.5">

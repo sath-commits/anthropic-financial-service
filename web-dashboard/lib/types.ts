@@ -10,7 +10,7 @@ export interface Position {
   unrealizedPnlPct: number;
   portfolioWeightPct: number;
   accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa' | 'cpf';
-  currency: 'USD' | 'SGD';
+  currency: 'USD' | 'SGD' | 'INR';
   brokerage: string;
   holdingDays: number;
   isShortTerm: boolean;
@@ -27,6 +27,8 @@ export interface PortfolioSummary {
   cashEquivalentsByAccount: Partial<Record<Position['accountType'], number>>;
   usdToSgdRate: number;
   hasLiveUsdToSgdRate: boolean;
+  usdToInrRate: number;
+  hasLiveUsdToInrRate: boolean;
   missingPriceSymbols: string[];
   positions: Position[];
 }
@@ -63,7 +65,7 @@ export interface UserPosition {
   shares: number;
   avgCost: number;
   accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa' | 'cpf';
-  currency?: 'USD' | 'SGD';
+  currency?: 'USD' | 'SGD' | 'INR';
   brokerage?: string;
   holdingDays: number;
   assetClass: string;
