@@ -27,8 +27,8 @@ export interface PortfolioSummary {
   cashEquivalentsByAccount: Partial<Record<Position['accountType'], number>>;
   usdToSgdRate: number;
   hasLiveUsdToSgdRate: boolean;
-  usdToInrRate: number;
-  hasLiveUsdToInrRate: boolean;
+  usdToInrRate?: number;
+  hasLiveUsdToInrRate?: boolean;
   missingPriceSymbols: string[];
   positions: Position[];
 }

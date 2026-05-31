@@ -12,7 +12,8 @@ import ChatPanel from '@/components/ChatPanel';
 import PortfolioEditor from '@/components/PortfolioEditor';
 import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile, savePortfolioCache, loadPortfolioCache } from '@/lib/storage';
 import { TARGET_ALLOCATION } from '@/lib/mock-portfolio';
-import { formatCurrency, type Currency } from '@/lib/currency';
+import { formatCurrency, toUsd, positionCurrency, DEFAULT_USD_TO_INR_RATE, type Currency } from '@/lib/currency';
+import { isCashEquivalent } from '@/lib/cash-equivalents';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
 
 const ASSET_CLASSES = ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Real Estate', 'Gold / Commodities', 'Alternatives', 'Cash'];
@@ -50,6 +51,85 @@ function matchesStoredPosition(stored: UserPosition, displayed: Position): boole
     && stored.accountType === displayed.accountType && stored.assetClass === displayed.assetClass;
 }
 
+// ─── Client-side position recompute (avoids full API round-trip on edits) ────
+
+function recomputePositionFast(
+  userPos: UserPosition,
+  currentPriceUsd: number,
+  hasLivePrice: boolean,
+  usdToSgdRate: number,
+  usdToInrRate: number,
+): Position {
+  const currency = positionCurrency(userPos.currency);
+  const isCpf = userPos.accountType === 'cpf';
+  let priceUsd: number;
+  let live: boolean;
+  if (isCpf) {
+    priceUsd = toUsd(userPos.avgCost * Math.pow(1.045, userPos.holdingDays / 365), currency, usdToSgdRate, usdToInrRate);
+    live = true;
+  } else if (userPos.currentValue != null) {
+    priceUsd = toUsd(userPos.currentValue, currency, usdToSgdRate, usdToInrRate);
+    live = true;
+  } else {
+    priceUsd = currentPriceUsd;
+    live = hasLivePrice;
+  }
+  const avgCostUsd = toUsd(userPos.avgCost, currency, usdToSgdRate, usdToInrRate);
+  const equity = priceUsd * userPos.shares;
+  const costTotal = avgCostUsd * userPos.shares;
+  return {
+    symbol: userPos.symbol, name: userPos.name, shares: userPos.shares, avgCost: avgCostUsd,
+    currentPrice: priceUsd, hasLivePrice: live, equity,
+    unrealizedPnl: isCpf ? Math.max(0, equity - costTotal) : equity - costTotal,
+    unrealizedPnlPct: isCpf
+      ? Math.max(0, ((priceUsd / userPos.avgCost) - 1) * 100)
+      : ((priceUsd / userPos.avgCost) - 1) * 100,
+    portfolioWeightPct: 0,
+    accountType: userPos.accountType, currency,
+    brokerage: userPos.brokerage ?? 'Fidelity',
+    holdingDays: userPos.holdingDays,
+    isShortTerm: userPos.holdingDays < 366,
+    assetClass: userPos.assetClass,
+  };
+}
+
+function applyLocalPositionUpdate(
+  rawPositions: Position[],
+  summaryBase: PortfolioSummary,
+  profile: InvestorProfile | null,
+  earnings: EarningsEvent[],
+): { summary: PortfolioSummary; allocation: AllocationItem[] } {
+  const totalEquity = rawPositions.reduce((s, p) => s + p.equity, 0);
+  const withWeights = [...rawPositions]
+    .sort((a, b) => b.equity - a.equity)
+    .map(p => ({ ...p, portfolioWeightPct: totalEquity > 0 ? (p.equity / totalEquity) * 100 : 0 }));
+  const totalCost = withWeights.reduce((s, p) => s + p.avgCost * p.shares, 0);
+  const totalUnrealizedPnl = withWeights.reduce((s, p) => s + p.unrealizedPnl, 0);
+  const cashPositions = withWeights.filter(p => isCashEquivalent(p.symbol, p.assetClass));
+  const cashEquivalentsByAccount = cashPositions.reduce<PortfolioSummary['cashEquivalentsByAccount']>((acc, p) => {
+    acc[p.accountType] = (acc[p.accountType] ?? 0) + p.equity;
+    return acc;
+  }, {});
+  const summary: PortfolioSummary = {
+    ...summaryBase,
+    positions: withWeights,
+    totalEquity,
+    totalUnrealizedPnl,
+    totalUnrealizedPnlPct: totalCost > 0 ? (totalUnrealizedPnl / totalCost) * 100 : 0,
+    buyingPower: cashPositions.reduce((s, p) => s + p.equity, 0),
+    cashEquivalentsByAccount,
+    missingPriceSymbols: withWeights.filter(p => !p.hasLivePrice).map(p => p.symbol),
+  };
+  const targets = profile?.targetAllocation ?? TARGET_ALLOCATION;
+  const actualByClass: Record<string, number> = {};
+  for (const p of withWeights) actualByClass[p.assetClass] = (actualByClass[p.assetClass] ?? 0) + p.equity;
+  const allocation: AllocationItem[] = Object.entries(targets).map(([name, target]) => {
+    const current = totalEquity > 0 ? (actualByClass[name] ?? 0) / totalEquity : 0;
+    return { name, target, current, drift: current - target };
+  });
+  return { summary, allocation };
+}
+
 function fmt(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -73,6 +153,7 @@ export default function Dashboard() {
   const [addingPortfolio, setAddingPortfolio] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
   const [brokerageFilter, setBrokerageFilter] = useState<string>('All');
+  const [liquidityFilter, setLiquidityFilter] = useState<'All' | 'Liquid' | 'Illiquid'>('All');
   const [editingAllocation, setEditingAllocation] = useState(false);
   const [allocationDraft, setAllocationDraft] = useState<Record<string, string>>({});
   const [allocationError, setAllocationError] = useState('');
@@ -159,6 +240,14 @@ export default function Dashboard() {
     savePositions(next, { allowEmptyPositions: next.length === 0 });
     setUserPositions(next);
     setChartSymbol(next[0]?.symbol ?? '');
+    if (summary) {
+      const rawPositions = summary.positions.filter(p => p !== position);
+      const { summary: s, allocation: a } = applyLocalPositionUpdate(rawPositions, summary, profile, earnings);
+      setSummary(s);
+      setAllocation(a);
+      savePortfolioCache({ summary: s, allocation: a, earnings });
+      return;
+    }
     load(next, profile);
   }
 
@@ -171,6 +260,7 @@ export default function Dashboard() {
       setHoldingError('Enter a ticker, positive shares, positive average cost, account, and asset class.');
       return;
     }
+    const oldUserPos = (userPositions ?? [])[editingIndex];
     const updated: UserPosition = {
       symbol, name: holding.name.trim() || symbol, shares, avgCost, accountType: holding.accountType, currency: holding.currency,
       assetClass: holding.assetClass, purchaseDate: holding.purchaseDate || undefined, holdingDays: daysHeld(holding.purchaseDate),
@@ -182,6 +272,23 @@ export default function Dashboard() {
     savePositions(next);
     setUserPositions(next);
     setHolding(null);
+    // Fast path: same symbol — recompute this row client-side, no API call
+    if (summary && oldUserPos && symbol === oldUserPos.symbol) {
+      const existingPos = summary.positions.find(
+        p => p.symbol === oldUserPos.symbol && p.accountType === oldUserPos.accountType
+      );
+      if (existingPos) {
+        const inrRate = summary.usdToInrRate ?? DEFAULT_USD_TO_INR_RATE;
+        const newPos = recomputePositionFast(updated, existingPos.currentPrice, existingPos.hasLivePrice, summary.usdToSgdRate, inrRate);
+        const rawPositions = summary.positions.map(p => p === existingPos ? newPos : p);
+        const { summary: s, allocation: a } = applyLocalPositionUpdate(rawPositions, summary, profile, earnings);
+        setSummary(s);
+        setAllocation(a);
+        savePortfolioCache({ summary: s, allocation: a, earnings });
+        return;
+      }
+    }
+    // Slow path: ticker changed or no match — fetch live price for new symbol
     load(next, profile);
   }
 
@@ -225,9 +332,13 @@ export default function Dashboard() {
   const uniqueBrokerages = summary?.positions
     ? [...new Set(summary.positions.map(p => p.brokerage).filter(Boolean))].sort() as string[]
     : [];
-  const filteredPositions = brokerageFilter === 'All'
-    ? (summary?.positions ?? [])
-    : (summary?.positions ?? []).filter(p => p.brokerage === brokerageFilter);
+  const isLiquid = (p: Position) => p.accountType !== 'cpf' && p.assetClass !== 'Real Estate';
+  const filteredPositions = (summary?.positions ?? []).filter(p => {
+    if (brokerageFilter !== 'All' && p.brokerage !== brokerageFilter) return false;
+    if (liquidityFilter === 'Liquid' && !isLiquid(p)) return false;
+    if (liquidityFilter === 'Illiquid' && isLiquid(p)) return false;
+    return true;
+  });
 
   function openAllocationEditor() {
     const targets = profile?.targetAllocation ?? TARGET_ALLOCATION;
@@ -305,6 +416,16 @@ export default function Dashboard() {
               {uniqueBrokerages.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           )}
+          <select
+            value={liquidityFilter}
+            onChange={event => setLiquidityFilter(event.target.value as typeof liquidityFilter)}
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 outline-none"
+            aria-label="Filter by liquidity"
+          >
+            <option value="All">All assets</option>
+            <option value="Liquid">Liquid only</option>
+            <option value="Illiquid">Illiquid only</option>
+          </select>
           {displayCurrency === 'SGD' && summary && (
             <span className={summary.hasLiveUsdToSgdRate ? 'text-zinc-500' : 'text-amber-400'}>
               1 USD = {summary.usdToSgdRate.toFixed(4)} SGD{summary.hasLiveUsdToSgdRate ? '' : ' estimate'}
