@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 import { callDataService } from '@/lib/data-service';
+import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
 
 export const maxDuration = 90;
 import type {
@@ -238,7 +239,7 @@ export async function POST(req: Request) {
 
   // ── Position data package ───────────────────────────────────────
   const positionData = positions.map(p => {
-    const price = priceMap[p.symbol] ?? p.avgCost;
+    const price = shouldPriceAtCostBasis(p.symbol) ? p.avgCost : priceMap[p.symbol] ?? p.avgCost;
     const equity = price * p.shares;
     return {
       symbol: p.symbol,

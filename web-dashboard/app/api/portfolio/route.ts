@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { MOCK_POSITIONS, TARGET_ALLOCATION } from '@/lib/mock-portfolio';
 import { callDataService } from '@/lib/data-service';
+import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
 import type { UserPosition } from '@/lib/types';
 import type { Position, PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 
@@ -37,7 +38,8 @@ async function handler(
 
   const positions: Position[] = rawPositions.map(p => {
     const livePrice = priceMap[p.symbol];
-    const price = livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
+    const usesCostBasisPrice = shouldPriceAtCostBasis(p.symbol);
+    const price = usesCostBasisPrice ? p.avgCost : livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
     const equity = price * p.shares;
     const costTotal = p.avgCost * p.shares;
     const unrealizedPnl = equity - costTotal;
@@ -45,7 +47,7 @@ async function handler(
     return {
       ...p,
       currentPrice: price,
-      hasLivePrice: livePrice !== undefined,
+      hasLivePrice: usesCostBasisPrice || livePrice !== undefined,
       equity,
       unrealizedPnl,
       unrealizedPnlPct,
