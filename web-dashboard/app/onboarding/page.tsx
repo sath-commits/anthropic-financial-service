@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, ChevronRight, ChevronLeft, Loader2, TrendingUp, CheckCircle } from 'lucide-react';
+import {
+  Plus, Trash2, ChevronRight, ChevronLeft, Loader2, TrendingUp, CheckCircle,
+  Camera, ClipboardPaste, PencilLine, Upload,
+} from 'lucide-react';
 import { savePositions, saveProfile } from '@/lib/storage';
 import type { UserPosition, InvestorProfile } from '@/lib/types';
 
@@ -17,9 +20,19 @@ interface RowDraft {
   name: string;
   shares: string;
   avgCost: string;
-  accountType: UserPosition['accountType'];
+  accountType: UserPosition['accountType'] | '';
   purchaseDate: string; // YYYY-MM-DD — used to compute holdingDays
   assetClass: string;
+}
+
+interface ImportedPosition {
+  symbol: string;
+  name: string | null;
+  shares: number | null;
+  avgCost: number | null;
+  accountType: UserPosition['accountType'] | null;
+  purchaseDate: string | null;
+  assetClass: string | null;
 }
 
 function blankRow(): RowDraft {
@@ -28,6 +41,18 @@ function blankRow(): RowDraft {
     accountType: 'taxable',
     purchaseDate: '',
     assetClass: 'US Large Cap',
+  };
+}
+
+function importedRow(position: ImportedPosition): RowDraft {
+  return {
+    symbol: position.symbol,
+    name: position.name ?? '',
+    shares: position.shares?.toString() ?? '',
+    avgCost: position.avgCost?.toString() ?? '',
+    accountType: position.accountType ?? '',
+    purchaseDate: position.purchaseDate ?? '',
+    assetClass: position.assetClass ?? '',
   };
 }
 
@@ -41,6 +66,11 @@ function daysHeld(dateStr: string): number {
 function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void }) {
   const [rows, setRows] = useState<RowDraft[]>([blankRow()]);
   const [error, setError] = useState('');
+  const [importMode, setImportMode] = useState<'screenshot' | 'paste' | 'manual'>('screenshot');
+  const [pasteText, setPasteText] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importWarnings, setImportWarnings] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function update<K extends keyof RowDraft>(i: number, field: K, value: RowDraft[K]) {
     setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -48,6 +78,44 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
 
   function addRow() { setRows(prev => [...prev, blankRow()]); }
   function removeRow(i: number) { setRows(prev => prev.filter((_, idx) => idx !== i)); }
+
+  async function importPortfolio(payload: { imageDataUrl?: string; text?: string }) {
+    setImporting(true);
+    setError('');
+    setImportWarnings([]);
+    try {
+      const res = await fetch('/api/import-portfolio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json() as { error?: string; positions?: ImportedPosition[]; warnings?: string[] };
+      if (!res.ok || !body.positions?.length) throw new Error(body.error ?? 'No holdings detected.');
+      setRows(body.positions.map(importedRow));
+      setImportWarnings(body.warnings ?? []);
+      setImportMode('manual');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Portfolio import failed.');
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function importScreenshot(file: File | undefined) {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setError('Upload a PNG, JPEG, or WEBP screenshot.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setError('Screenshot must be smaller than 8 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => importPortfolio({ imageDataUrl: String(reader.result) });
+    reader.onerror = () => setError('Could not read that screenshot.');
+    reader.readAsDataURL(file);
+  }
 
   function validate() {
     const valid: UserPosition[] = [];
@@ -60,6 +128,12 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
       }
       if (!r.avgCost || isNaN(avgCost) || avgCost <= 0) {
         setError(`Enter a valid avg cost for ${r.symbol}`); return;
+      }
+      if (!r.accountType) {
+        setError(`Choose an account type for ${r.symbol}`); return;
+      }
+      if (!r.assetClass) {
+        setError(`Choose an asset class for ${r.symbol}`); return;
       }
       valid.push({
         symbol: r.symbol.trim().toUpperCase(),
@@ -83,8 +157,65 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-zinc-100">What&apos;s in your portfolio?</h2>
-        <p className="mt-1 text-sm text-zinc-500">Enter your current holdings. Purchase date is used for tax calculations.</p>
+        <p className="mt-1 text-sm text-zinc-500">Import your holdings, then review the rows. Purchase date is used for tax calculations.</p>
       </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { id: 'screenshot', label: 'Upload screenshot', detail: 'Fastest option', icon: Camera },
+          { id: 'paste', label: 'Paste holdings', detail: 'Copy a table or list', icon: ClipboardPaste },
+          { id: 'manual', label: 'Enter manually', detail: 'Edit each position', icon: PencilLine },
+        ].map(option => {
+          const Icon = option.icon;
+          return (
+            <button key={option.id} type="button" onClick={() => setImportMode(option.id as typeof importMode)}
+              className={`rounded-xl border p-4 text-left transition-colors ${
+                importMode === option.id ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-800 bg-zinc-950/30 hover:border-zinc-700'
+              }`}>
+              <Icon className={`h-5 w-5 ${importMode === option.id ? 'text-blue-400' : 'text-zinc-500'}`} />
+              <div className="mt-3 text-sm font-medium text-zinc-200">{option.label}</div>
+              <div className="mt-0.5 text-xs text-zinc-500">{option.detail}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {importMode === 'screenshot' && (
+        <div className="rounded-xl border border-dashed border-zinc-700 bg-zinc-950/30 p-5">
+          <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+            onChange={e => importScreenshot(e.target.files?.[0])} />
+          <button type="button" disabled={importing} onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {importing ? 'Reading screenshot...' : 'Choose portfolio screenshot'}
+          </button>
+          <p className="mt-3 text-xs text-zinc-500">PNG, JPEG, or WEBP up to 8 MB. Crop out account numbers and personal details. Screenshot contents are sent securely to OpenAI for extraction and are not stored by this app.</p>
+        </div>
+      )}
+
+      {importMode === 'paste' && (
+        <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/30 p-4">
+          <textarea value={pasteText} onChange={e => setPasteText(e.target.value)}
+            placeholder={'Paste a brokerage table, CSV rows, or a list such as:\nAAPL | 10 shares | avg cost $150 | taxable'}
+            rows={5}
+            className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:ring-1 focus:ring-zinc-600" />
+          <button type="button" disabled={importing || !pasteText.trim()} onClick={() => importPortfolio({ text: pasteText })}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+            {importing && <Loader2 className="h-4 w-4 animate-spin" />}
+            Extract holdings
+          </button>
+          <p className="text-xs text-zinc-500">Remove account numbers and personal details. Pasted contents are sent securely to OpenAI for extraction and are not stored by this app.</p>
+        </div>
+      )}
+
+      {importWarnings.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">Review imported values</p>
+          <ul className="mt-2 space-y-1 text-xs text-amber-200/80">
+            {importWarnings.map(warning => <li key={warning}>- {warning}</li>)}
+          </ul>
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -133,9 +264,10 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
                 <td className="py-2 pr-3">
                   <select
                     value={r.accountType}
-                    onChange={e => update(i, 'accountType', e.target.value as UserPosition['accountType'])}
+                    onChange={e => update(i, 'accountType', e.target.value as RowDraft['accountType'])}
                     className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600"
                   >
+                    <option value="">Choose account</option>
                     {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </td>
@@ -145,6 +277,7 @@ function PortfolioStep({ onNext }: { onNext: (positions: UserPosition[]) => void
                     onChange={e => update(i, 'assetClass', e.target.value)}
                     className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600"
                   >
+                    <option value="">Choose class</option>
                     {ASSET_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </td>

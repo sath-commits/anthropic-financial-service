@@ -3,6 +3,10 @@
 Personal portfolio dashboard and AI advisor. The production deployment uses a
 separate Python market-data service over Railway private networking.
 
+Portfolio onboarding supports screenshot upload, pasted holdings, and manual
+entry. Screenshot and pasted imports are sent to OpenAI for structured
+extraction, returned to the browser for review, and not persisted by the app.
+
 ## Local Development
 
 ```bash
