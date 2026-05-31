@@ -146,29 +146,41 @@ def get_quote(symbol: str) -> dict:
 
 def get_batch_quotes(symbols: list[str]) -> list[dict]:
     import yfinance as yf
-    results = []
+    normalized_symbols = list(dict.fromkeys(sym.strip().upper() for sym in symbols if sym.strip()))
+    if not normalized_symbols:
+        return []
+
+    prices: dict[str, float] = {}
     try:
-        tickers = yf.Tickers(" ".join(symbols))
-        for sym in symbols:
+        # Fetch one compact daily-price frame for the entire portfolio. Calling
+        # Ticker.info serially is too slow for a real portfolio and can exceed
+        # the dashboard's request timeout.
+        history = yf.download(
+            tickers=" ".join(normalized_symbols),
+            period="5d",
+            interval="1d",
+            group_by="ticker",
+            auto_adjust=False,
+            progress=False,
+            threads=True,
+            timeout=8,
+        )
+        for sym in normalized_symbols:
             try:
-                ticker = tickers.tickers[sym]
-                fast_info = ticker.fast_info
-                price = fast_info.get("last_price") or 0
-                if not price:
-                    info = ticker.info
-                    price = info.get("currentPrice") or info.get("regularMarketPrice") or 0
-                if price:
-                    results.append({"symbol": sym, "price": price})
-                else:
-                    q = _yahoo_chart_quote(sym)
-                    results.append(q or {"symbol": sym, "price": 0, "error": "fetch_failed"})
+                close = history["Close"] if len(normalized_symbols) == 1 else history[sym]["Close"]
+                valid = close.dropna()
+                if not valid.empty:
+                    prices[sym] = float(valid.iloc[-1])
             except Exception:
-                q = _yahoo_chart_quote(sym)
-                results.append(q or {"symbol": sym, "price": 0, "error": "fetch_failed"})
+                pass
     except Exception:
-        # Keep batch calls fast: Alpha Vantage's free endpoint is intentionally
-        # rate-limited and is only suitable for explicit single-symbol quotes.
-        for sym in symbols:
+        pass
+
+    results = []
+    for sym in normalized_symbols:
+        if sym in prices:
+            results.append({"symbol": sym, "price": prices[sym], "source": "yahoo_batch"})
+        else:
             q = _yahoo_chart_quote(sym)
             results.append(q or {"symbol": sym, "price": 0, "error": "fetch_failed"})
     return results
