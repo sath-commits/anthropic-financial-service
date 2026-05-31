@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { MOCK_POSITIONS, TARGET_ALLOCATION } from '@/lib/mock-portfolio';
 import { callDataService } from '@/lib/data-service';
 import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
+import { DEFAULT_USD_TO_SGD_RATE, positionCurrency, toUsd } from '@/lib/currency';
 import type { UserPosition } from '@/lib/types';
 import type { Position, PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 
@@ -26,10 +27,15 @@ async function handler(
     assetClass: p.assetClass,
   }));
 
-  const symbols = rawPositions.map(p => p.symbol);
+  const symbols = rawPositions.filter(p => !shouldPriceAtCostBasis(p.symbol)).map(p => p.symbol);
 
-  const quotes: Array<{ symbol: string; price: number; error?: string }> =
-    (await callDataService('get_batch_quotes', { symbols }) as Array<{ symbol: string; price: number; error?: string }>) ?? [];
+  const [quotesRaw, fxRaw] = await Promise.all([
+    callDataService('get_batch_quotes', { symbols }),
+    callDataService('get_quote', { symbol: 'SGD=X' }),
+  ]);
+  const quotes = (quotesRaw as Array<{ symbol: string; price: number; error?: string }>) ?? [];
+  const liveUsdToSgdRate = (fxRaw as { price?: number } | null)?.price;
+  const usdToSgdRate = liveUsdToSgdRate || DEFAULT_USD_TO_SGD_RATE;
 
   const priceMap: Record<string, number> = {};
   for (const q of quotes) {
@@ -39,13 +45,18 @@ async function handler(
   const positions: Position[] = rawPositions.map(p => {
     const livePrice = priceMap[p.symbol];
     const usesCostBasisPrice = shouldPriceAtCostBasis(p.symbol);
-    const price = usesCostBasisPrice ? p.avgCost : livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
+    const currency = positionCurrency('currency' in p ? p.currency : undefined);
+    const nativePrice = usesCostBasisPrice ? p.avgCost : livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost;
+    const price = toUsd(nativePrice, currency, usdToSgdRate);
+    const avgCost = toUsd(p.avgCost, currency, usdToSgdRate);
     const equity = price * p.shares;
-    const costTotal = p.avgCost * p.shares;
+    const costTotal = avgCost * p.shares;
     const unrealizedPnl = equity - costTotal;
     const unrealizedPnlPct = ((price / p.avgCost) - 1) * 100;
     return {
       ...p,
+      avgCost,
+      currency,
       currentPrice: price,
       hasLivePrice: usesCostBasisPrice || livePrice !== undefined,
       equity,
@@ -110,6 +121,8 @@ async function handler(
     totalUnrealizedPnl,
     totalUnrealizedPnlPct: totalCost > 0 ? (totalUnrealizedPnl / totalCost) * 100 : 0,
     buyingPower: 2450.00,
+    usdToSgdRate,
+    hasLiveUsdToSgdRate: liveUsdToSgdRate !== undefined,
     missingPriceSymbols: positions.filter(p => !p.hasLivePrice).map(p => p.symbol),
     positions: positions.sort((a, b) => b.equity - a.equity),
   };

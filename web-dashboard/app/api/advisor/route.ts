@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 import { callDataService } from '@/lib/data-service';
 import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
+import { DEFAULT_USD_TO_SGD_RATE, positionCurrency, toUsd } from '@/lib/currency';
 
 export const maxDuration = 90;
 import type {
@@ -220,13 +221,15 @@ export async function POST(req: Request) {
   const today = new Date();
 
   // ── Market data — parallel async fetches ────────────────────────
-  const [quotesRaw, fundamentalsArr, ratingsArr] = await Promise.all([
+  const [quotesRaw, fxRaw, fundamentalsArr, ratingsArr] = await Promise.all([
     callDataService('get_batch_quotes', { symbols }),
+    callDataService('get_quote', { symbol: 'SGD=X' }),
     Promise.all(symbols.map(sym => callDataService('get_fundamentals', { symbol: sym }))),
     Promise.all(symbols.map(sym => callDataService('get_analyst_ratings', { symbol: sym }))),
   ]);
 
   const quotes = (quotesRaw as Array<{ symbol: string; price: number }>) ?? [];
+  const usdToSgdRate = (fxRaw as { price?: number } | null)?.price || DEFAULT_USD_TO_SGD_RATE;
   const priceMap: Record<string, number> = {};
   for (const q of quotes) if (q?.price) priceMap[q.symbol] = q.price;
 
@@ -239,13 +242,16 @@ export async function POST(req: Request) {
 
   // ── Position data package ───────────────────────────────────────
   const positionData = positions.map(p => {
-    const price = shouldPriceAtCostBasis(p.symbol) ? p.avgCost : priceMap[p.symbol] ?? p.avgCost;
+    const currency = positionCurrency(p.currency);
+    const avgCost = toUsd(p.avgCost, currency, usdToSgdRate);
+    const nativePrice = shouldPriceAtCostBasis(p.symbol) ? p.avgCost : priceMap[p.symbol] ?? p.avgCost;
+    const price = toUsd(nativePrice, currency, usdToSgdRate);
     const equity = price * p.shares;
     return {
       symbol: p.symbol,
       name: p.name,
       shares: p.shares,
-      avgCost: p.avgCost,
+      avgCost,
       currentPrice: price,
       equity,
       unrealizedPnlPct: Number((((price / p.avgCost) - 1) * 100).toFixed(2)),
@@ -388,7 +394,7 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
     executiveSummary: (raw.executiveSummary as string) ?? '',
     recommendations: (raw.recommendations ?? []).map(r => ({
       symbol: r.symbol as string,
-      priceAtAnalysis: priceMap[r.symbol as string] ?? positions.find(p => p.symbol === r.symbol)?.avgCost ?? 0,
+      priceAtAnalysis: positionData.find(p => p.symbol === r.symbol)?.currentPrice ?? 0,
       action: (r.action as 'buy' | 'sell' | 'trim' | 'add' | 'hold') ?? 'hold',
       trimPct: (r.trimPct as number | null) ?? null,
       conviction: (r.conviction as 'high' | 'medium' | 'low') ?? 'medium',

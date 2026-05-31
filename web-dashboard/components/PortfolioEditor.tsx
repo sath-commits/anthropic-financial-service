@@ -3,9 +3,10 @@
 import { useRef, useState } from 'react';
 import { Camera, ClipboardPaste, Loader2, PencilLine, Plus, Trash2, Upload } from 'lucide-react';
 import type { UserPosition } from '@/lib/types';
+import type { Currency } from '@/lib/currency';
 
 const ASSET_CLASSES = ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Alternatives', 'Cash'];
-const ACCOUNT_TYPES: UserPosition['accountType'][] = ['taxable', 'ira', 'roth_ira', '401k', 'hsa'];
+const ACCOUNT_TYPES: UserPosition['accountType'][] = ['taxable', 'ira', 'roth_ira', '401k', 'hsa', 'cpf'];
 
 interface RowDraft {
   symbol: string;
@@ -13,6 +14,7 @@ interface RowDraft {
   shares: string;
   avgCost: string;
   accountType: UserPosition['accountType'] | '';
+  currency: Currency;
   purchaseDate: string;
   assetClass: string;
 }
@@ -23,6 +25,7 @@ interface ImportedPosition {
   shares: number | null;
   avgCost: number | null;
   accountType: UserPosition['accountType'] | null;
+  currency?: Currency | null;
   purchaseDate: string | null;
   assetClass: string | null;
 }
@@ -35,7 +38,7 @@ interface Props {
 }
 
 function blankRow(): RowDraft {
-  return { symbol: '', name: '', shares: '', avgCost: '', accountType: 'taxable', purchaseDate: '', assetClass: 'US Large Cap' };
+  return { symbol: '', name: '', shares: '', avgCost: '', accountType: 'taxable', currency: 'USD', purchaseDate: '', assetClass: 'US Large Cap' };
 }
 
 function importedRow(position: ImportedPosition): RowDraft {
@@ -45,6 +48,7 @@ function importedRow(position: ImportedPosition): RowDraft {
     shares: position.shares?.toString() ?? '',
     avgCost: position.avgCost?.toString() ?? '',
     accountType: position.accountType ?? '',
+    currency: position.currency ?? (position.accountType === 'cpf' ? 'SGD' : 'USD'),
     purchaseDate: position.purchaseDate ?? '',
     assetClass: position.assetClass ?? '',
   };
@@ -53,7 +57,7 @@ function importedRow(position: ImportedPosition): RowDraft {
 function savedRow(position: UserPosition): RowDraft {
   return {
     symbol: position.symbol, name: position.name, shares: position.shares.toString(), avgCost: position.avgCost.toString(),
-    accountType: position.accountType, purchaseDate: position.purchaseDate ?? '', assetClass: position.assetClass,
+    accountType: position.accountType, currency: position.currency ?? (position.accountType === 'cpf' ? 'SGD' : 'USD'), purchaseDate: position.purchaseDate ?? '', assetClass: position.assetClass,
   };
 }
 
@@ -148,7 +152,7 @@ export default function PortfolioEditor({ initialPositions = [], onSubmit, submi
       if (!row.assetClass) { setError(`Choose an asset class for ${row.symbol}.`); return; }
       positions.push({
         symbol: row.symbol.trim().toUpperCase(), name: row.name.trim() || row.symbol.trim().toUpperCase(),
-        shares, avgCost, accountType: row.accountType, assetClass: row.assetClass,
+        shares, avgCost, accountType: row.accountType, currency: row.currency, assetClass: row.assetClass,
         purchaseDate: row.purchaseDate || undefined, holdingDays: daysHeld(row.purchaseDate),
       });
     }
@@ -197,13 +201,18 @@ export default function PortfolioEditor({ initialPositions = [], onSubmit, submi
       </div>}
       <div className="max-h-[45vh] overflow-x-auto overflow-y-auto">
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-zinc-800 text-left">{['Ticker', 'Name', 'Shares', 'Avg Cost', 'Account', 'Asset Class', 'Purchase Date', ''].map(header => <th key={header} className="pb-2 pr-3 text-xs uppercase tracking-wider text-zinc-500">{header}</th>)}</tr></thead>
+          <thead><tr className="border-b border-zinc-800 text-left">{['Ticker', 'Name', 'Shares', 'Avg Cost', 'Account', 'Currency', 'Asset Class', 'Purchase Date', ''].map(header => <th key={header} className="pb-2 pr-3 text-xs uppercase tracking-wider text-zinc-500">{header}</th>)}</tr></thead>
           <tbody>{rows.map((row, index) => <tr key={index} className="border-b border-zinc-800/40">
             <td className="py-2 pr-3"><input value={row.symbol} onChange={e => update(index, 'symbol', e.target.value.toUpperCase())} placeholder="AAPL" className="w-20 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
             <td className="py-2 pr-3"><input value={row.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Apple Inc." className="w-32 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
             <td className="py-2 pr-3"><input type="number" value={row.shares} onChange={e => update(index, 'shares', e.target.value)} placeholder="10" className="w-20 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
             <td className="py-2 pr-3"><input type="number" value={row.avgCost} onChange={e => update(index, 'avgCost', e.target.value)} placeholder="150" className="w-24 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
-            <td className="py-2 pr-3"><select value={row.accountType} onChange={e => update(index, 'accountType', e.target.value as RowDraft['accountType'])} className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300"><option value="">Choose account</option>{ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}</select></td>
+            <td className="py-2 pr-3"><select value={row.accountType} onChange={e => {
+              const accountType = e.target.value as RowDraft['accountType'];
+              update(index, 'accountType', accountType);
+              if (accountType === 'cpf') update(index, 'currency', 'SGD');
+            }} className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300"><option value="">Choose account</option>{ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}</select></td>
+            <td className="py-2 pr-3"><select value={row.currency} onChange={e => update(index, 'currency', e.target.value as Currency)} className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300"><option value="USD">USD</option><option value="SGD">SGD</option></select></td>
             <td className="py-2 pr-3"><select value={row.assetClass} onChange={e => update(index, 'assetClass', e.target.value)} className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300"><option value="">Choose class</option>{ASSET_CLASSES.map(assetClass => <option key={assetClass} value={assetClass}>{assetClass}</option>)}</select></td>
             <td className="py-2 pr-3"><input type="date" value={row.purchaseDate} onChange={e => update(index, 'purchaseDate', e.target.value)} max={today} className="rounded bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300" /></td>
             <td className="py-2"><button onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="text-zinc-600 hover:text-red-400"><Trash2 className="h-4 w-4" /></button></td>

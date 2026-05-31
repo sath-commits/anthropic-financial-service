@@ -9,7 +9,8 @@ export interface Position {
   unrealizedPnl: number;
   unrealizedPnlPct: number;
   portfolioWeightPct: number;
-  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa';
+  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa' | 'cpf';
+  currency: 'USD' | 'SGD';
   holdingDays: number;
   isShortTerm: boolean;
   assetClass: string;
@@ -22,6 +23,8 @@ export interface PortfolioSummary {
   totalUnrealizedPnl: number;
   totalUnrealizedPnlPct: number;
   buyingPower: number;
+  usdToSgdRate: number;
+  hasLiveUsdToSgdRate: boolean;
   missingPriceSymbols: string[];
   positions: Position[];
 }
@@ -57,7 +60,8 @@ export interface UserPosition {
   name: string;
   shares: number;
   avgCost: number;
-  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa';
+  accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa' | 'cpf';
+  currency?: 'USD' | 'SGD';
   holdingDays: number;
   assetClass: string;
   purchaseDate?: string; // ISO date string

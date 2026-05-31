@@ -9,7 +9,7 @@ const MAX_IMAGES = 5;
 const MAX_TOTAL_IMAGE_BYTES = 24 * 1024 * 1024;
 const MAX_TEXT_LENGTH = 20_000;
 const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
-const ACCOUNT_TYPES = new Set<UserPosition['accountType']>(['taxable', 'ira', 'roth_ira', '401k', 'hsa']);
+const ACCOUNT_TYPES = new Set<UserPosition['accountType']>(['taxable', 'ira', 'roth_ira', '401k', 'hsa', 'cpf']);
 const ASSET_CLASSES = new Set([
   'US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets',
   'Bonds', 'REITs', 'Alternatives', 'Cash',
@@ -44,14 +44,15 @@ const portfolioSchema = {
             name: { type: ['string', 'null'] },
             shares: { type: ['number', 'null'] },
             avgCost: { type: ['number', 'null'] },
-            accountType: { type: ['string', 'null'], enum: ['taxable', 'ira', 'roth_ira', '401k', 'hsa', null] },
+            accountType: { type: ['string', 'null'], enum: ['taxable', 'ira', 'roth_ira', '401k', 'hsa', 'cpf', null] },
+            currency: { type: ['string', 'null'], enum: ['USD', 'SGD', null] },
             assetClass: {
               type: ['string', 'null'],
               enum: ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Alternatives', 'Cash', null],
             },
             purchaseDate: { type: ['string', 'null'] },
           },
-          required: ['symbol', 'name', 'shares', 'avgCost', 'accountType', 'assetClass', 'purchaseDate'],
+          required: ['symbol', 'name', 'shares', 'avgCost', 'accountType', 'currency', 'assetClass', 'purchaseDate'],
         },
       },
       warnings: { type: 'array', items: { type: 'string' } },
@@ -66,6 +67,7 @@ type ImportedPosition = {
   shares: number | null;
   avgCost: number | null;
   accountType: UserPosition['accountType'] | null;
+  currency: 'USD' | 'SGD' | null;
   assetClass: string | null;
   purchaseDate: string | null;
 };
@@ -132,12 +134,13 @@ function sanitizeImport(raw: PortfolioImport): PortfolioImport {
         shares: position.shares && position.shares > 0 ? position.shares : null,
         avgCost: position.avgCost && position.avgCost > 0 ? position.avgCost : null,
         accountType: position.accountType && ACCOUNT_TYPES.has(position.accountType) ? position.accountType : null,
+        currency: position.currency ?? (position.accountType === 'cpf' ? 'SGD' : 'USD'),
         assetClass,
         purchaseDate: position.purchaseDate?.match(/^\d{4}-\d{2}-\d{2}$/) ? position.purchaseDate : null,
       };
       const fingerprint = [
         sanitized.symbol, sanitized.shares, sanitized.avgCost, sanitized.accountType,
-        sanitized.assetClass, sanitized.purchaseDate,
+        sanitized.currency, sanitized.assetClass, sanitized.purchaseDate,
       ].join('|');
       if (seen.has(fingerprint)) {
         warnings.push(`${symbol}: removed an exact duplicate imported from overlapping screenshots.`);
@@ -182,7 +185,8 @@ Return JSON only using the requested schema.
 - Include only actual holdings. Exclude watchlists, totals, cash balances, and pending orders unless cash appears as a holding.
 - Do not infer, guess, or generate example holdings. If no legible holdings are visible or supplied, return an empty positions array with a warning.
 - Never invent values. Use null when shares, average cost, account type, asset class, or purchase date are missing or unclear.
-- Normalize account types to taxable, ira, roth_ira, 401k, or hsa only when explicitly supported by the input.
+- Normalize account types to taxable, ira, roth_ira, 401k, hsa, or cpf only when explicitly supported by the input.
+- Normalize currency to USD or SGD when visible. Use SGD for CPF holdings unless the input clearly says otherwise. Use USD when no currency is visible for a non-CPF holding.
 - Screenshots may overlap. Consolidate rows only when they are clearly the same holding with the same values. Preserve separate tax lots and holdings in different accounts.
 - Use YYYY-MM-DD for purchaseDate only when clearly supplied.
 - Infer the closest allowed asset class from a recognized ticker or fund name when the exposure is reasonably clear.

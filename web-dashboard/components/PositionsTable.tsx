@@ -2,29 +2,29 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react';
+import { formatCurrency, type Currency } from '@/lib/currency';
 import type { Position } from '@/lib/types';
 
 interface Props {
   positions: Position[];
   onEdit: (position: Position) => void;
   onDelete: (position: Position) => void;
+  displayCurrency: Currency;
+  usdToSgdRate: number;
 }
 
-const ACCOUNT_ORDER: Position['accountType'][] = ['taxable', '401k', 'ira', 'roth_ira', 'hsa'];
+const ACCOUNT_ORDER: Position['accountType'][] = ['taxable', '401k', 'ira', 'roth_ira', 'hsa', 'cpf'];
 const ACCOUNT_LABELS: Record<Position['accountType'], string> = {
   taxable: 'Taxable brokerage',
   '401k': '401(k)',
   ira: 'Traditional IRA',
   roth_ira: 'Roth IRA',
   hsa: 'HSA',
+  cpf: 'Singapore CPF',
 };
 
 function fmt(n: number, decimals = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-
-function fmtUSD(n: number) {
-  return '$' + fmt(Math.abs(n));
 }
 
 type SortKey = 'symbol' | 'shares' | 'avgCost' | 'currentPrice' | 'equity' | 'unrealizedPnl' | 'unrealizedPnlPct' | 'portfolioWeightPct';
@@ -41,7 +41,8 @@ const COLUMNS: Array<{ label: string; key: SortKey }> = [
   { label: 'Weight', key: 'portfolioWeightPct' },
 ];
 
-export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
+export default function PositionsTable({ positions, onEdit, onDelete, displayCurrency, usdToSgdRate }: Props) {
+  const money = (amount: number) => formatCurrency(Math.abs(amount), displayCurrency, usdToSgdRate);
   const [sortKey, setSortKey] = useState<SortKey>('equity');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -91,12 +92,12 @@ export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
                 <div>
                   <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Category P&amp;L</div>
                   <div className={`mt-0.5 text-sm font-medium ${hasCompleteLivePrices ? accountPnlPositive ? 'text-emerald-400' : 'text-red-400' : 'text-zinc-500'}`}>
-                    {hasCompleteLivePrices ? `${accountPnlPositive ? '+' : '-'}${fmtUSD(accountPnl)}` : 'Unavailable'}
+                    {hasCompleteLivePrices ? `${accountPnlPositive ? '+' : '-'}${money(accountPnl)}` : 'Unavailable'}
                   </div>
                 </div>
                 <div>
                   <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Category Total</div>
-                  <div className="mt-0.5 text-sm font-semibold text-zinc-100">{fmtUSD(accountValue)}</div>
+                  <div className="mt-0.5 text-sm font-semibold text-zinc-100">{money(accountValue)}</div>
                 </div>
               </div>
             </div>
@@ -134,13 +135,13 @@ export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
                           <div className="text-xs text-zinc-500 truncate max-w-[140px]">{p.name}</div>
                         </td>
                         <td className="py-2.5 pr-4 text-zinc-300">{fmt(p.shares)}</td>
-                        <td className="py-2.5 pr-4 text-zinc-300">${fmt(p.avgCost)}</td>
+                        <td className="py-2.5 pr-4 text-zinc-300">{money(p.avgCost)}</td>
                         <td className="py-2.5 pr-4 text-zinc-100 font-medium">
-                          {p.hasLivePrice ? `$${fmt(p.currentPrice)}` : <span className="text-amber-300">Unavailable</span>}
+                          {p.hasLivePrice ? money(p.currentPrice) : <span className="text-amber-300">Unavailable</span>}
                         </td>
-                        <td className="py-2.5 pr-4 text-zinc-100">{fmtUSD(p.equity)}</td>
+                        <td className="py-2.5 pr-4 text-zinc-100">{money(p.equity)}</td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {p.hasLivePrice ? `${gain ? '+' : '-'}${fmtUSD(p.unrealizedPnl)}` : <span className="text-zinc-500">—</span>}
+                          {p.hasLivePrice ? `${gain ? '+' : '-'}${money(p.unrealizedPnl)}` : <span className="text-zinc-500">—</span>}
                         </td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
                           {p.hasLivePrice ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-zinc-500">—</span>}

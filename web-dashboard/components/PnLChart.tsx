@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatCurrency, toUsd, type Currency } from '@/lib/currency';
 
 interface HistoryPoint {
   date: string;
@@ -9,17 +10,17 @@ interface HistoryPoint {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label, currency, usdToSgdRate }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs shadow-xl">
       <p className="text-zinc-400">{label}</p>
-      <p className="font-semibold text-zinc-100">${payload[0].value.toFixed(2)}</p>
+      <p className="font-semibold text-zinc-100">{formatCurrency(payload[0].value, currency, usdToSgdRate)}</p>
     </div>
   );
 }
 
-export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
+export default function PnLChart({ symbol = 'VOO', holdingCurrency = 'USD', displayCurrency, usdToSgdRate }: { symbol?: string; holdingCurrency?: Currency; displayCurrency: Currency; usdToSgdRate: number }) {
   const [data, setData] = useState<HistoryPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('6mo');
@@ -48,7 +49,8 @@ export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
     return () => controller.abort();
   }, [symbol, period]);
 
-  const isUp = data.length >= 2 && data[data.length - 1].close >= data[0].close;
+  const displayData = data.map(point => ({ ...point, close: toUsd(point.close, holdingCurrency, usdToSgdRate) }));
+  const isUp = displayData.length >= 2 && displayData[displayData.length - 1].close >= displayData[0].close;
   const strokeColor = isUp ? '#22c55e' : '#ef4444';
 
   const periods = ['1mo', '3mo', '6mo', '1y', '2y'];
@@ -79,7 +81,7 @@ export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
         <div className="flex h-40 items-center justify-center text-xs text-zinc-600">No data available</div>
       ) : (
         <ResponsiveContainer width="100%" height={160}>
-          <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+          <AreaChart data={displayData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
             <defs>
               <linearGradient id={`grad-${symbol}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={strokeColor} stopOpacity={0.3} />
@@ -98,10 +100,10 @@ export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
               tick={{ fill: '#71717a', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={v => `$${v}`}
+              tickFormatter={v => formatCurrency(v, displayCurrency, usdToSgdRate)}
               domain={['auto', 'auto']}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip currency={displayCurrency} usdToSgdRate={usdToSgdRate} />} />
             <Area
               type="monotone"
               dataKey="close"

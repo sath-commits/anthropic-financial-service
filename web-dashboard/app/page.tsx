@@ -11,10 +11,11 @@ import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
 import PortfolioEditor from '@/components/PortfolioEditor';
 import { hydrateSettings, savePositions } from '@/lib/storage';
+import { formatCurrency, type Currency } from '@/lib/currency';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
 
 const ASSET_CLASSES = ['US Large Cap', 'US Small/Mid Cap', 'International', 'Emerging Markets', 'Bonds', 'REITs', 'Alternatives', 'Cash'];
-const ACCOUNT_TYPES: UserPosition['accountType'][] = ['taxable', 'ira', 'roth_ira', '401k', 'hsa'];
+const ACCOUNT_TYPES: UserPosition['accountType'][] = ['taxable', 'ira', 'roth_ira', '401k', 'hsa', 'cpf'];
 
 interface HoldingDraft {
   symbol: string;
@@ -22,6 +23,7 @@ interface HoldingDraft {
   shares: string;
   avgCost: string;
   accountType: UserPosition['accountType'] | '';
+  currency: Currency;
   assetClass: string;
   purchaseDate: string;
 }
@@ -29,7 +31,7 @@ interface HoldingDraft {
 function holdingDraft(position: UserPosition): HoldingDraft {
   return {
     symbol: position.symbol, name: position.name, shares: String(position.shares), avgCost: String(position.avgCost),
-    accountType: position.accountType, assetClass: position.assetClass, purchaseDate: position.purchaseDate ?? '',
+    accountType: position.accountType, currency: position.currency ?? (position.accountType === 'cpf' ? 'SGD' : 'USD'), assetClass: position.assetClass, purchaseDate: position.purchaseDate ?? '',
   };
 }
 
@@ -64,6 +66,7 @@ export default function Dashboard() {
   const [holding, setHolding] = useState<HoldingDraft | null>(null);
   const [holdingError, setHoldingError] = useState('');
   const [addingPortfolio, setAddingPortfolio] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
 
   async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null) {
     setLoading(true);
@@ -143,7 +146,7 @@ export default function Dashboard() {
       return;
     }
     const updated: UserPosition = {
-      symbol, name: holding.name.trim() || symbol, shares, avgCost, accountType: holding.accountType,
+      symbol, name: holding.name.trim() || symbol, shares, avgCost, accountType: holding.accountType, currency: holding.currency,
       assetClass: holding.assetClass, purchaseDate: holding.purchaseDate || undefined, holdingDays: daysHeld(holding.purchaseDate),
     };
     const next = [...(userPositions ?? [])];
@@ -196,6 +199,20 @@ export default function Dashboard() {
           </nav>
         </div>
         <div className="flex items-center gap-3 text-xs text-zinc-500">
+          <select
+            value={displayCurrency}
+            onChange={event => setDisplayCurrency(event.target.value as Currency)}
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 outline-none"
+            aria-label="Display currency"
+          >
+            <option value="USD">USD</option>
+            <option value="SGD">SGD</option>
+          </select>
+          {displayCurrency === 'SGD' && summary && (
+            <span className={summary.hasLiveUsdToSgdRate ? 'text-zinc-500' : 'text-amber-400'}>
+              1 USD = {summary.usdToSgdRate.toFixed(4)} SGD{summary.hasLiveUsdToSgdRate ? '' : ' estimate'}
+            </span>
+          )}
           {lastUpdated && <span>Updated {lastUpdated}</span>}
           <button
             onClick={() => load()}
@@ -275,9 +292,20 @@ export default function Dashboard() {
               </label>
               <label className="space-y-1.5">
                 <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Account</span>
-                <select value={holding.accountType} onChange={e => setHolding({ ...holding, accountType: e.target.value as UserPosition['accountType'] })}
+                <select value={holding.accountType} onChange={e => {
+                  const accountType = e.target.value as UserPosition['accountType'];
+                  setHolding({ ...holding, accountType, currency: accountType === 'cpf' ? 'SGD' : holding.currency });
+                }}
                   className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
                   {ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Currency</span>
+                <select value={holding.currency} onChange={e => setHolding({ ...holding, currency: e.target.value as Currency })}
+                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
+                  <option value="USD">USD</option>
+                  <option value="SGD">SGD</option>
                 </select>
               </label>
               <label className="space-y-1.5">
@@ -324,12 +352,12 @@ export default function Dashboard() {
             <>
               <MetricCard
                 label="Portfolio Value"
-                value={`$${fmt(summary.totalEquity)}`}
+                value={formatCurrency(summary.totalEquity, displayCurrency, summary.usdToSgdRate)}
                 positive={null}
               />
               <MetricCard
                 label="Total P&L"
-                value={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : '-'}$${fmt(Math.abs(summary.totalUnrealizedPnl))}` : '—'}
+                value={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : '-'}${formatCurrency(Math.abs(summary.totalUnrealizedPnl), displayCurrency, summary.usdToSgdRate)}` : '—'}
                 subValue={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%` : 'Waiting for live prices'}
                 positive={hasCompleteLivePrices ? totalPnlPositive : null}
               />
@@ -341,7 +369,7 @@ export default function Dashboard() {
               />
               <MetricCard
                 label="Buying Power"
-                value={`$${fmt(summary.buyingPower)}`}
+                value={formatCurrency(summary.buyingPower, displayCurrency, summary.usdToSgdRate)}
                 positive={null}
               />
             </>
@@ -367,7 +395,7 @@ export default function Dashboard() {
                 </div>
               ) : summary ? (
                 summary.positions.length
-                  ? <PositionsTable positions={summary.positions} onEdit={openEditHolding} onDelete={deleteHolding} />
+                  ? <PositionsTable positions={summary.positions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
                   : <p className="py-8 text-center text-sm text-zinc-500">No holdings yet. Add your first position to start tracking your portfolio.</p>
               ) : null}
             </div>
@@ -389,7 +417,12 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-              <PnLChart symbol={chartSymbol} />
+              <PnLChart
+                symbol={chartSymbol}
+                holdingCurrency={summary?.positions.find(position => position.symbol === chartSymbol)?.currency}
+                displayCurrency={displayCurrency}
+                usdToSgdRate={summary?.usdToSgdRate ?? 1.35}
+              />
             </div>
           </div>
 
