@@ -3,7 +3,9 @@ import { callDataService } from '@/lib/data-service';
 
 export const maxDuration = 60;
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAIClient() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 const TOOLS: OpenAI.ChatCompletionTool[] = [
   {
@@ -111,6 +113,7 @@ Be concise, direct, and data-driven. Use markdown tables when presenting data.`;
 
 export async function POST(req: Request) {
   const { messages, portfolioContext, profileContext } = await req.json();
+  const openai = getOpenAIClient();
 
   const systemPrompt = buildSystemPrompt(portfolioContext, profileContext);
 

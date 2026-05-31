@@ -70,6 +70,8 @@ export default function Dashboard() {
       router.push('/onboarding');
       return;
     }
+    // Hydrate the browser-local portfolio after the client mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUserPositions(positions);
     setProfile(prof);
     // Pass prof directly — React state may not reflect yet at this point

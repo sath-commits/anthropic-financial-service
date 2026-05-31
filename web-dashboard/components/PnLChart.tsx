@@ -32,6 +32,8 @@ export default function PnLChart({ symbol = 'VOO' }: { symbol?: string }) {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    // Show loading immediately when the requested chart series changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(`/api/history?symbol=${symbol}&period=${period}`, { signal: controller.signal })
       .then(r => r.json())

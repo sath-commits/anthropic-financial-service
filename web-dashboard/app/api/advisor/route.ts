@@ -9,7 +9,9 @@ import type {
   TLHOpportunity, RetirementProjection,
 } from '@/lib/types';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAIClient() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 // Known FOMC meeting dates (decision day = second day of 2-day meeting)
 const FOMC_DATES = [
@@ -202,6 +204,7 @@ function computeRetirement(totalEquity: number, profile: InvestorProfile): Retir
 }
 
 export async function POST(req: Request) {
+  const openai = getOpenAIClient();
   const { positions, profile, history } = (await req.json()) as {
     positions: UserPosition[];
     profile: InvestorProfile | null;

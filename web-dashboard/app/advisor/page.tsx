@@ -59,6 +59,8 @@ function ThesisNote({ symbol }: { symbol: string }) {
 
   useEffect(() => {
     const entry = loadThesis(symbol);
+    // Sync the browser-local thesis when this card changes symbols.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNote(entry?.note ?? '');
   }, [symbol]);
 
@@ -657,6 +659,8 @@ export default function AdvisorPage() {
     const positions = loadPositions();
     if (!positions?.length) { router.push('/onboarding'); return; }
     const hist = loadAdvisorHistory();
+    // Hydrate browser-local advisor state after the client mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHistory(hist);
     setAutoRunState(getAutoRunEnabled());
     setRunLabel(nextRunLabel());
@@ -670,6 +674,8 @@ export default function AdvisorPage() {
   }, [analyze, router]);
 
   useEffect(() => {
+    // Refresh the schedule label after browser-local run history changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRunLabel(nextRunLabel());
   }, [history]);
 
