@@ -1,6 +1,7 @@
 'use client';
 
-import { Edit2, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react';
 import type { Position } from '@/lib/types';
 
 interface Props {
@@ -26,7 +27,47 @@ function fmtUSD(n: number) {
   return '$' + fmt(Math.abs(n));
 }
 
+type SortKey = 'symbol' | 'shares' | 'avgCost' | 'currentPrice' | 'equity' | 'unrealizedPnl' | 'unrealizedPnlPct' | 'portfolioWeightPct';
+type SortDirection = 'asc' | 'desc';
+
+const COLUMNS: Array<{ label: string; key: SortKey }> = [
+  { label: 'Symbol', key: 'symbol' },
+  { label: 'Shares', key: 'shares' },
+  { label: 'Avg Cost', key: 'avgCost' },
+  { label: 'Price', key: 'currentPrice' },
+  { label: 'Value', key: 'equity' },
+  { label: 'P&L', key: 'unrealizedPnl' },
+  { label: 'P&L %', key: 'unrealizedPnlPct' },
+  { label: 'Weight', key: 'portfolioWeightPct' },
+];
+
 export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
+  const [sortKey, setSortKey] = useState<SortKey>('equity');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  function changeSort(nextKey: SortKey) {
+    if (sortKey === nextKey) {
+      setSortDirection(current => current === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDirection(nextKey === 'symbol' ? 'asc' : 'desc');
+  }
+
+  function sortPositions(accountPositions: Position[]) {
+    return [...accountPositions].sort((a, b) => {
+      if ((sortKey === 'currentPrice' || sortKey === 'unrealizedPnl' || sortKey === 'unrealizedPnlPct') && a.hasLivePrice !== b.hasLivePrice) {
+        return a.hasLivePrice ? -1 : 1;
+      }
+      const aValue = a[sortKey];
+      const bValue = b[sortKey];
+      const result = typeof aValue === 'string'
+        ? aValue.localeCompare(String(bValue))
+        : aValue - Number(bValue);
+      return sortDirection === 'asc' ? result : -result;
+    });
+  }
+
   return (
     <div className="space-y-6">
       {ACCOUNT_ORDER.map(accountType => {
@@ -43,15 +84,28 @@ export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-800 text-left">
-                    {['Symbol', 'Shares', 'Avg Cost', 'Price', 'Value', 'P&L', 'P&L %', 'Weight', ''].map(h => (
-                      <th key={h} className="pb-2 pr-4 text-xs font-medium uppercase tracking-wider text-zinc-500 last:pr-0">
-                        {h}
+                    {COLUMNS.map(column => (
+                      <th key={column.key} className="pb-2 pr-4 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                        <button
+                          type="button"
+                          onClick={() => changeSort(column.key)}
+                          className="flex items-center gap-1 transition-colors hover:text-zinc-200"
+                          aria-label={`Sort by ${column.label}`}
+                        >
+                          {column.label}
+                          {sortKey === column.key && (
+                            sortDirection === 'asc'
+                              ? <ChevronUp className="h-3 w-3" />
+                              : <ChevronDown className="h-3 w-3" />
+                          )}
+                        </button>
                       </th>
                     ))}
+                    <th className="pb-2 text-xs font-medium uppercase tracking-wider text-zinc-500" />
                   </tr>
                 </thead>
                 <tbody>
-                  {accountPositions.map((p, index) => {
+                  {sortPositions(accountPositions).map((p, index) => {
                     const gain = p.unrealizedPnl >= 0;
                     return (
                       <tr key={`${p.symbol}-${p.accountType}-${index}`} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
