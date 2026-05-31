@@ -74,18 +74,38 @@ export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
         const accountPositions = positions.filter(position => position.accountType === accountType);
         if (!accountPositions.length) return null;
         const accountValue = accountPositions.reduce((total, position) => total + position.equity, 0);
+        const accountWeight = accountPositions.reduce((total, position) => total + position.portfolioWeightPct, 0);
+        const hasCompleteLivePrices = accountPositions.every(position => position.hasLivePrice);
+        const accountPnl = accountPositions.reduce((total, position) => total + position.unrealizedPnl, 0);
+        const accountPnlPositive = accountPnl >= 0;
         return (
-          <section key={accountType}>
-            <div className="mb-2 flex items-center justify-between border-b border-zinc-800 pb-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">{ACCOUNT_LABELS[accountType]}</h3>
-              <span className="text-xs text-zinc-500">{fmtUSD(accountValue)}</span>
+          <section key={accountType} className="overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-950/30">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-700/80 bg-zinc-800/50 px-4 py-3">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-200">{ACCOUNT_LABELS[accountType]}</h3>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {accountPositions.length} holding{accountPositions.length === 1 ? '' : 's'} · {fmt(accountWeight, 1)}% of portfolio
+                </p>
+              </div>
+              <div className="flex items-center gap-5 text-right">
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Category P&amp;L</div>
+                  <div className={`mt-0.5 text-sm font-medium ${hasCompleteLivePrices ? accountPnlPositive ? 'text-emerald-400' : 'text-red-400' : 'text-zinc-500'}`}>
+                    {hasCompleteLivePrices ? `${accountPnlPositive ? '+' : '-'}${fmtUSD(accountPnl)}` : 'Unavailable'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Category Total</div>
+                  <div className="mt-0.5 text-sm font-semibold text-zinc-100">{fmtUSD(accountValue)}</div>
+                </div>
+              </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto px-4">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-800 text-left">
                     {COLUMNS.map(column => (
-                      <th key={column.key} className="pb-2 pr-4 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                      <th key={column.key} className="py-2.5 pr-4 text-xs font-medium uppercase tracking-wider text-zinc-500">
                         <button
                           type="button"
                           onClick={() => changeSort(column.key)}
@@ -101,7 +121,7 @@ export default function PositionsTable({ positions, onEdit, onDelete }: Props) {
                         </button>
                       </th>
                     ))}
-                    <th className="pb-2 text-xs font-medium uppercase tracking-wider text-zinc-500" />
+                    <th className="py-2.5 text-xs font-medium uppercase tracking-wider text-zinc-500" />
                   </tr>
                 </thead>
                 <tbody>
