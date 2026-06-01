@@ -878,7 +878,7 @@ export default function AdvisorPage() {
           <div className="space-y-4">
             <div className="rounded-xl border border-blue-900/40 bg-blue-950/20 px-5 py-4 flex items-center gap-3">
               <RefreshCw className="h-4 w-4 text-blue-400 animate-spin flex-shrink-0" />
-              <span className="text-sm text-zinc-300">Analyzing your portfolio with GPT-4o…</span>
+              <span className="text-sm text-zinc-300">Analyzing your portfolio with Claude Sonnet…</span>
             </div>
             <Skeleton className="h-20" />
             <div className="grid grid-cols-3 gap-3">

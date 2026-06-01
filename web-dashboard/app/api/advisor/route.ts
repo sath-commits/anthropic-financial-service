@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
 import { callDataService } from '@/lib/data-service';
 import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
@@ -11,8 +11,8 @@ import type {
   TLHOpportunity, RetirementProjection,
 } from '@/lib/types';
 
-function getOpenAIClient() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getAnthropicClient() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
 // Known FOMC meeting dates (decision day = second day of 2-day meeting)
@@ -209,7 +209,6 @@ function computeRetirement(totalEquity: number, profile: InvestorProfile): Retir
 }
 
 export async function POST(req: Request) {
-  const openai = getOpenAIClient();
   const { positions, profile, history } = (await req.json()) as {
     positions: UserPosition[];
     profile: InvestorProfile | null;
@@ -370,18 +369,20 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
 
   let rawContent: string;
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      response_format: { type: 'json_object' },
+    const anthropic = getAnthropicClient();
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
       temperature: 0.3,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
     });
-    rawContent = response.choices[0].message.content ?? '{}';
+    const block = response.content.find(b => b.type === 'text');
+    rawContent = block?.type === 'text' ? block.text : '{}';
+    // Strip markdown fences if Claude wraps the JSON
+    rawContent = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'OpenAI API error';
+    const msg = err instanceof Error ? err.message : 'Anthropic API error';
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
