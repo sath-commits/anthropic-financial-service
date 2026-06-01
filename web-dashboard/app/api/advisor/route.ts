@@ -375,80 +375,91 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
     return NextResponse.json({ error: `Anthropic: ${msg}` }, { status: 502 });
   }
 
+  console.log('[advisor] Claude raw (first 300):', rawContent.slice(0, 300));
+
   let raw: { executiveSummary?: string; recommendations?: Array<Record<string, unknown>>; buyCandidates?: Array<Record<string, unknown>>; marketEvents?: Array<Record<string, unknown>> };
   try {
     raw = JSON.parse(rawContent);
-  } catch {
-    return NextResponse.json({ error: 'Failed to parse AI response as JSON' }, { status: 502 });
+  } catch (parseErr) {
+    console.error('[advisor] JSON parse failed. Raw:', rawContent.slice(0, 500));
+    return NextResponse.json({ error: `Failed to parse AI response as JSON: ${String(parseErr)}` }, { status: 502 });
   }
 
-  // ── Skill integrations (computed server-side, no GPT needed) ──────
-  // portfolio-rebalance skill: drift analysis + specific trade quantities
-  const rebalancePlan = profile?.targetAllocation && Object.keys(profile.targetAllocation).length > 0
-    ? computeRebalancePlan(positionData, profile.targetAllocation, totalEquity)
-    : undefined;
+  try {
+    // ── Skill integrations (computed server-side) ──────────────────
+    const rebalancePlan = profile?.targetAllocation && Object.keys(profile.targetAllocation).length > 0
+      ? computeRebalancePlan(positionData, profile.targetAllocation, totalEquity)
+      : undefined;
 
-  // tax-loss-harvesting skill: taxable positions with unrealized losses > 2%
-  const tlhRaw = computeTLH(positionData);
-  const tlhOpportunities = tlhRaw.length > 0 ? tlhRaw : undefined;
+    const tlhRaw = computeTLH(positionData);
+    const tlhOpportunities = tlhRaw.length > 0 ? tlhRaw : undefined;
 
-  // financial-plan skill: retirement projection (base/bear/bull)
-  const retirementProjection = profile ? computeRetirement(totalEquity, profile) : undefined;
+    const retirementProjection = profile ? computeRetirement(totalEquity, profile) : undefined;
 
-  const run: AdvisorRun = {
-    id: crypto.randomUUID(),
-    timestamp: today.toISOString(),
-    executiveSummary: (raw.executiveSummary as string) ?? '',
-    recommendations: (raw.recommendations ?? []).map(r => ({
-      symbol: r.symbol as string,
-      priceAtAnalysis: positionData.find(p => p.symbol === r.symbol)?.currentPrice ?? 0,
-      action: (r.action as 'buy' | 'sell' | 'trim' | 'add' | 'hold') ?? 'hold',
-      trimPct: (r.trimPct as number | null) ?? null,
-      conviction: (r.conviction as 'high' | 'medium' | 'low') ?? 'medium',
-      summary: (r.summary as string) ?? '',
-      reasoning: (r.reasoning as string) ?? '',
-      catalysts: (r.catalysts as string[]) ?? [],
-      risks: (r.risks as string[]) ?? [],
-      taxNote: (r.taxNote as string | null) ?? null,
-      analystConsensus: (r.analystConsensus as string | null) ?? null,
-      analystPriceTarget: (r.analystPriceTarget as number | null) ?? null,
-    })),
-    buyCandidates: (raw.buyCandidates ?? []).map(c => ({
-      symbol: c.symbol as string,
-      name: (c.name as string) ?? c.symbol as string,
-      priceAtAnalysis: priceMap[c.symbol as string] ?? 0,
-      conviction: (c.conviction as 'high' | 'medium' | 'low') ?? 'medium',
-      theme: (c.theme as string | null) ?? null,
-      summary: (c.summary as string) ?? '',
-      reasoning: (c.reasoning as string) ?? '',
-      catalysts: (c.catalysts as string[]) ?? [],
-      risks: (c.risks as string[]) ?? [],
-      suggestedPortfolioWeightPct: (c.suggestedPortfolioWeightPct as number) ?? 3,
-      priceTarget12m: (c.priceTarget12m as number | null) ?? null,
-      analystConsensus: (c.analystConsensus as string | null) ?? null,
-      analystPriceTarget: (c.analystPriceTarget as number | null) ?? null,
-    })),
-    marketEvents: (raw.marketEvents ?? []).map(e => ({
-      date: e.date as string,
-      daysUntil: Math.round((new Date(e.date as string).getTime() - today.getTime()) / 86400000),
-      event: e.event as string,
-      category: (e.category as 'fed' | 'earnings' | 'economic' | 'geopolitical') ?? 'economic',
-      marketExpectation: (e.marketExpectation as string) ?? '',
-      portfolioImpact: (e.portfolioImpact as string) ?? '',
-      suggestedAction: (e.suggestedAction as string) ?? '',
-      urgency: (e.urgency as 'low' | 'medium' | 'high') ?? 'medium',
-    })),
-    portfolioSnapshot: positionData.map(p => ({
-      symbol: p.symbol,
-      shares: p.shares,
-      price: p.currentPrice,
-      equity: p.equity,
-    })),
-    totalEquityAtAnalysis: totalEquity,
-    rebalancePlan,
-    tlhOpportunities,
-    retirementProjection,
-  };
+    const run: AdvisorRun = {
+      id: crypto.randomUUID(),
+      timestamp: today.toISOString(),
+      executiveSummary: (raw.executiveSummary as string) ?? '',
+      recommendations: ((raw.recommendations ?? []) as Array<Record<string, unknown>>).map(r => ({
+        symbol: r.symbol as string,
+        priceAtAnalysis: positionData.find(p => p.symbol === r.symbol)?.currentPrice ?? 0,
+        action: (r.action as 'buy' | 'sell' | 'trim' | 'add' | 'hold') ?? 'hold',
+        trimPct: (r.trimPct as number | null) ?? null,
+        conviction: (r.conviction as 'high' | 'medium' | 'low') ?? 'medium',
+        summary: (r.summary as string) ?? '',
+        reasoning: (r.reasoning as string) ?? '',
+        catalysts: Array.isArray(r.catalysts) ? (r.catalysts as string[]) : [],
+        risks: Array.isArray(r.risks) ? (r.risks as string[]) : [],
+        taxNote: (r.taxNote as string | null) ?? null,
+        analystConsensus: (r.analystConsensus as string | null) ?? null,
+        analystPriceTarget: (r.analystPriceTarget as number | null) ?? null,
+      })),
+      buyCandidates: ((raw.buyCandidates ?? []) as Array<Record<string, unknown>>).map(c => ({
+        symbol: c.symbol as string,
+        name: (c.name as string) ?? c.symbol as string,
+        priceAtAnalysis: priceMap[c.symbol as string] ?? 0,
+        conviction: (c.conviction as 'high' | 'medium' | 'low') ?? 'medium',
+        theme: (c.theme as string | null) ?? null,
+        summary: (c.summary as string) ?? '',
+        reasoning: (c.reasoning as string) ?? '',
+        catalysts: Array.isArray(c.catalysts) ? (c.catalysts as string[]) : [],
+        risks: Array.isArray(c.risks) ? (c.risks as string[]) : [],
+        suggestedPortfolioWeightPct: (c.suggestedPortfolioWeightPct as number) ?? 3,
+        priceTarget12m: (c.priceTarget12m as number | null) ?? null,
+        analystConsensus: (c.analystConsensus as string | null) ?? null,
+        analystPriceTarget: (c.analystPriceTarget as number | null) ?? null,
+      })),
+      marketEvents: ((raw.marketEvents ?? []) as Array<Record<string, unknown>>).map(e => {
+        const dateStr = (e.date as string) ?? '';
+        const d = new Date(dateStr);
+        const daysUntil = isNaN(d.getTime()) ? 999 : Math.round((d.getTime() - today.getTime()) / 86400000);
+        return {
+          date: dateStr,
+          daysUntil,
+          event: (e.event as string) ?? '',
+          category: (e.category as 'fed' | 'earnings' | 'economic' | 'geopolitical') ?? 'economic',
+          marketExpectation: (e.marketExpectation as string) ?? '',
+          portfolioImpact: (e.portfolioImpact as string) ?? '',
+          suggestedAction: (e.suggestedAction as string) ?? '',
+          urgency: (e.urgency as 'low' | 'medium' | 'high') ?? 'medium',
+        };
+      }).filter(e => e.daysUntil >= 0 && e.daysUntil <= 60),
+      portfolioSnapshot: positionData.map(p => ({
+        symbol: p.symbol,
+        shares: p.shares,
+        price: p.currentPrice,
+        equity: p.equity,
+      })),
+      totalEquityAtAnalysis: totalEquity,
+      rebalancePlan,
+      tlhOpportunities,
+      retirementProjection,
+    };
 
-  return NextResponse.json(run);
+    return NextResponse.json(run);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[advisor] Post-parse processing error:', msg);
+    return NextResponse.json({ error: `Processing error: ${msg}` }, { status: 500 });
+  }
 }
