@@ -163,6 +163,8 @@ function computeTLH(positionData: PositionRow[]): TLHOpportunity[] {
       const holdingType: 'short-term' | 'long-term' = p.isShortTerm ? 'short-term' : 'long-term';
       const taxRate = holdingType === 'short-term' ? 0.22 : 0.15;
       const estimatedTaxSavings = Math.round(Math.abs(unrealizedLoss) * taxRate);
+      const currentPositionValue = Math.round(p.currentPrice * p.shares);
+      const effectiveSaleValue = currentPositionValue + estimatedTaxSavings;
       const rep = replacementFor(p.symbol, p.assetClass);
       const windowEnd = new Date(today);
       windowEnd.setDate(windowEnd.getDate() + 30);
@@ -170,6 +172,7 @@ function computeTLH(positionData: PositionRow[]): TLHOpportunity[] {
         symbol: p.symbol, name: p.name, accountType: p.accountType,
         unrealizedLoss, unrealizedLossPct: p.unrealizedPnlPct,
         holdingType, estimatedTaxSavings,
+        currentPositionValue, effectiveSaleValue,
         suggestedReplacement: rep.symbol, replacementRationale: rep.rationale,
         washSaleWindowEnd: windowEnd.toISOString().split('T')[0],
       };
@@ -293,8 +296,17 @@ CRITICAL RULES:
 4. Respect investor's risk tolerance (${profile?.riskTolerance ?? 'moderate'}) and goal (${profile?.primaryGoal ?? 'growth'})
 5. Every recommendation must have a clear "why now" — not generic advice
 6. For trim/sell, specify exact % to reduce (trimPct field)
-7. Suggest 2-3 buy candidates that FIT the existing portfolio and investor profile
+7. Buy candidates MUST be bold and thematic — see rules below
 8. Market events must include portfolio-specific impact (name actual holdings affected)
+9. Do NOT base buy recommendations on rebalancing to target allocation percentages — that is handled separately. Base all recommendations purely on fundamental, technical, and macro analysis.
+
+BUY CANDIDATE RULES — be aggressive and specific:
+- Identify 3 high-conviction thematic ideas based on structural market trends (AI compute infrastructure, EUV lithography monopolies, data center power, uranium/nuclear for energy, biotech breakthroughs, defense tech, critical minerals, etc.)
+- NEVER suggest generic index ETFs (VWO, IEMG, IJR, etc.) — pick SPECIFIC STOCKS
+- Every candidate must have a named macro/structural theme (e.g. "EUV semiconductor monopoly", "AI data center power demand", "uranium nuclear renaissance")
+- Include a 12-month price target (priceTarget12m) — use analyst consensus if available, else your own estimate
+- Explain WHY this specific company outperforms its peers in the theme
+- Include analyst consensus rating and price target when known
 
 Return exactly this schema:
 {
@@ -314,14 +326,18 @@ Return exactly this schema:
   ],
   "buyCandidates": [
     {
-      "symbol": "TICKER",
-      "name": "Company Name",
-      "conviction": "medium",
-      "summary": "Single sentence headline",
-      "reasoning": "Why this fits this portfolio and this investor's profile specifically",
-      "catalysts": ["..."],
-      "risks": ["..."],
-      "suggestedPortfolioWeightPct": 3
+      "symbol": "ASML",
+      "name": "ASML Holding N.V.",
+      "conviction": "high",
+      "theme": "EUV lithography monopoly — every leading-edge AI chip needs ASML's machines",
+      "summary": "Single sentence bold thesis — not generic",
+      "reasoning": "Why THIS company specifically, what structural advantage, why now vs. 6 months ago",
+      "catalysts": ["Specific near-term catalyst 1", "Structural tail 2"],
+      "risks": ["Specific risk 1", "Specific risk 2"],
+      "suggestedPortfolioWeightPct": 3,
+      "priceTarget12m": 950,
+      "analystConsensus": "Buy — 28 of 32 analysts",
+      "analystPriceTarget": 950
     }
   ],
   "marketEvents": [
@@ -411,11 +427,13 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
       name: (c.name as string) ?? c.symbol as string,
       priceAtAnalysis: priceMap[c.symbol as string] ?? 0,
       conviction: (c.conviction as 'high' | 'medium' | 'low') ?? 'medium',
+      theme: (c.theme as string | null) ?? null,
       summary: (c.summary as string) ?? '',
       reasoning: (c.reasoning as string) ?? '',
       catalysts: (c.catalysts as string[]) ?? [],
       risks: (c.risks as string[]) ?? [],
       suggestedPortfolioWeightPct: (c.suggestedPortfolioWeightPct as number) ?? 3,
+      priceTarget12m: (c.priceTarget12m as number | null) ?? null,
       analystConsensus: (c.analystConsensus as string | null) ?? null,
       analystPriceTarget: (c.analystPriceTarget as number | null) ?? null,
     })),

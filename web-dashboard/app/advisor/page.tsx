@@ -12,7 +12,8 @@ import {
   saveAdvisorRun, loadAdvisorHistory, shouldAutoRun, nextRunLabel,
   getAutoRunEnabled, setAutoRunEnabled, computeTrackRecord,
 } from '@/lib/recommendations';
-import { hydrateSettings, loadPositions, loadProfile, saveThesis, loadThesis, deleteThesis } from '@/lib/storage';
+import { hydrateSettings, loadPositions, loadProfile, saveProfile, saveThesis, loadThesis, deleteThesis } from '@/lib/storage';
+import type { InvestorProfile } from '@/lib/types';
 import type {
   AdvisorRun, PositionRecommendation, BuyCandidate, MarketEvent,
   RebalanceTrade, DriftItem, TLHOpportunity,
@@ -244,7 +245,40 @@ function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
       </button>
       {expanded && (
         <div className="border-t border-zinc-800 px-5 py-4 space-y-3">
+          {cand.theme && (
+            <div className="rounded-lg bg-blue-950/40 border border-blue-800/30 px-3 py-2 text-xs text-blue-300 font-medium">
+              📡 {cand.theme}
+            </div>
+          )}
           <p className="text-sm text-zinc-300 leading-relaxed">{cand.reasoning}</p>
+          {/* 12m price target strip */}
+          {(cand.priceTarget12m || cand.analystPriceTarget || cand.analystConsensus) && (
+            <div className="flex flex-wrap gap-4 rounded-lg bg-zinc-800/60 border border-zinc-700/50 px-3 py-2">
+              {cand.priceTarget12m && cand.priceAtAnalysis > 0 && (
+                <div>
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-wide">12m Price Target</div>
+                  <div className="text-sm font-bold text-emerald-400">
+                    ${fmt(cand.priceTarget12m)}
+                    <span className="ml-1.5 text-xs font-normal text-zinc-400">
+                      ({cand.priceTarget12m > cand.priceAtAnalysis ? '+' : ''}{fmt((cand.priceTarget12m / cand.priceAtAnalysis - 1) * 100, 0)}% upside)
+                    </span>
+                  </div>
+                </div>
+              )}
+              {cand.analystConsensus && (
+                <div>
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Analyst Consensus</div>
+                  <div className="text-sm font-semibold text-zinc-200">{cand.analystConsensus}</div>
+                </div>
+              )}
+              {cand.priceAtAnalysis > 0 && (
+                <div>
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Current Price</div>
+                  <div className="text-sm font-semibold text-zinc-400">${fmt(cand.priceAtAnalysis)}</div>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             {cand.catalysts.length > 0 && (
               <div>
@@ -263,15 +297,6 @@ function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
               </div>
             )}
           </div>
-          {(cand.analystConsensus || cand.analystPriceTarget) && (
-            <div className="flex gap-4 text-xs text-zinc-500">
-              {cand.analystConsensus && <span>Consensus: <span className="text-zinc-300">{cand.analystConsensus}</span></span>}
-              {cand.analystPriceTarget && <span>Target: <span className="text-zinc-300">${fmt(cand.analystPriceTarget)}</span></span>}
-            </div>
-          )}
-          {cand.priceAtAnalysis > 0 && (
-            <div className="text-xs text-zinc-600">Analysis price: ${fmt(cand.priceAtAnalysis)}</div>
-          )}
         </div>
       )}
     </div>
@@ -435,7 +460,7 @@ function RebalanceTradeCard({ trade }: { trade: RebalanceTrade }) {
             <span className="text-xs text-zinc-400 truncate">{trade.name}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
-            {trade.shares > 0 && <span><span className="text-zinc-300 font-semibold">{trade.shares} shares</span></span>}
+            {trade.shares > 0 && <span><span className="text-zinc-300 font-semibold">~{trade.shares} shares</span><span className="text-zinc-600 ml-1">(est.)</span></span>}
             <span><span className="text-zinc-300 font-semibold">{fmtM(trade.dollarAmount)}</span></span>
             <span className="text-zinc-600 capitalize">{trade.accountType.replace('_', ' ')}</span>
           </div>
@@ -482,6 +507,13 @@ function TLHCard({ opp }: { opp: TLHOpportunity }) {
             Est. tax savings: <span className="text-emerald-400 font-semibold">{fmtM(opp.estimatedTaxSavings)}</span>
             <span className="ml-2 text-zinc-600 capitalize">· {opp.holdingType}</span>
           </div>
+          {opp.effectiveSaleValue > 0 && (
+            <div className="mt-1 text-xs">
+              <span className="text-zinc-500">Effective proceeds: </span>
+              <span className="text-emerald-400 font-semibold">{fmtM(opp.effectiveSaleValue)}</span>
+              <span className="text-zinc-600"> ({fmtM(opp.currentPositionValue)} market + {fmtM(opp.estimatedTaxSavings)} tax credit)</span>
+            </div>
+          )}
         </div>
         <div className="flex-shrink-0 text-zinc-600">
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -567,9 +599,55 @@ function TaxHarvestTab({ run }: { run: AdvisorRun }) {
 
 // ── Retirement Stats Banner (financial-plan skill) ────────────────────────────
 
+function computeLocalProjection(equity: number, profile: InvestorProfile) {
+  const years = Math.max(0, profile.retirementAge - profile.currentAge);
+  const annualContrib = profile.monthlyContribution * 12;
+  function fv(rate: number) {
+    if (years === 0) return equity;
+    const lump = equity * Math.pow(1 + rate, years);
+    const contrib = rate > 0 ? annualContrib * ((Math.pow(1 + rate, years) - 1) / rate) : annualContrib * years;
+    return lump + contrib;
+  }
+  const base = Math.round(fv(0.07));
+  return {
+    yearsToRetirement: years,
+    projectedBase: base,
+    projectedBear: Math.round(fv(0.04)),
+    projectedBull: Math.round(fv(0.10)),
+    monthlyIncome: Math.round(base * 0.04 / 12),
+    safeWithdrawalAnnual: Math.round(base * 0.04),
+    assumedReturnPct: 7,
+  };
+}
+
 function RetirementBanner({ run }: { run: AdvisorRun }) {
-  const proj = run.retirementProjection;
+  const [editing, setEditing] = useState(false);
+  const [proj, setProj] = useState(run.retirementProjection);
+  const [draft, setDraft] = useState<{ currentAge: string; retirementAge: string; monthlyContribution: string }>(() => {
+    const p = loadProfile();
+    return {
+      currentAge: String(p?.currentAge ?? 30),
+      retirementAge: String(p?.retirementAge ?? 65),
+      monthlyContribution: String(p?.monthlyContribution ?? 0),
+    };
+  });
+
   if (!proj) return null;
+
+  function saveGoals() {
+    const p = loadProfile();
+    if (!p) return;
+    const updated: InvestorProfile = {
+      ...p,
+      currentAge: parseInt(draft.currentAge) || p.currentAge,
+      retirementAge: parseInt(draft.retirementAge) || p.retirementAge,
+      monthlyContribution: parseFloat(draft.monthlyContribution) || 0,
+    };
+    saveProfile(updated);
+    const newProj = computeLocalProjection(proj!.currentPortfolioValue, updated);
+    setProj({ ...newProj, currentPortfolioValue: proj!.currentPortfolioValue });
+    setEditing(false);
+  }
 
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4">
@@ -577,7 +655,57 @@ function RetirementBanner({ run }: { run: AdvisorRun }) {
         <PiggyBank className="h-4 w-4 text-purple-400" />
         <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Retirement Projection</span>
         <span className="ml-auto text-xs text-zinc-600">{proj.assumedReturnPct}% base return · 4% safe withdrawal</span>
+        <button
+          onClick={() => setEditing(e => !e)}
+          className="ml-2 flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+        >
+          <Edit2 className="h-3 w-3" />
+          Edit goals
+        </button>
       </div>
+
+      {editing && (
+        <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-800 p-3 space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Current Age</label>
+              <input
+                type="number"
+                value={draft.currentAge}
+                onChange={e => setDraft(d => ({ ...d, currentAge: e.target.value }))}
+                className="w-full rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Retire at Age</label>
+              <input
+                type="number"
+                value={draft.retirementAge}
+                onChange={e => setDraft(d => ({ ...d, retirementAge: e.target.value }))}
+                className="w-full rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Monthly Contribution ($)</label>
+              <input
+                type="number"
+                value={draft.monthlyContribution}
+                onChange={e => setDraft(d => ({ ...d, monthlyContribution: e.target.value }))}
+                className="w-full rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={saveGoals} className="flex items-center gap-1 rounded px-3 py-1.5 bg-purple-700/40 text-purple-300 text-xs hover:bg-purple-700/60 transition-colors">
+              <Check className="h-3 w-3" /> Save
+            </button>
+            <button onClick={() => setEditing(false)} className="flex items-center gap-1 rounded px-3 py-1.5 bg-zinc-700/40 text-zinc-400 text-xs hover:bg-zinc-700/60 transition-colors">
+              <X className="h-3 w-3" /> Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
           <div className="text-xs text-zinc-500">Years to Retire</div>

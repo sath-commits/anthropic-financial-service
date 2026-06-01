@@ -111,6 +111,8 @@ export interface BuyCandidate {
   catalysts: string[];
   risks: string[];
   suggestedPortfolioWeightPct: number;
+  theme?: string | null; // macro/structural theme driving the thesis
+  priceTarget12m?: number | null; // analyst consensus 12-month price target
   analystConsensus?: string | null;
   analystPriceTarget?: number | null;
 }
@@ -166,6 +168,8 @@ export interface TLHOpportunity {
   unrealizedLossPct: number;
   holdingType: 'short-term' | 'long-term';
   estimatedTaxSavings: number;
+  currentPositionValue: number; // current market value of the position
+  effectiveSaleValue: number; // currentPositionValue + estimatedTaxSavings
   suggestedReplacement: string;
   replacementRationale: string;
   washSaleWindowEnd: string; // ISO YYYY-MM-DD — do not repurchase until after this date
