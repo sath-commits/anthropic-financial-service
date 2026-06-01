@@ -839,16 +839,28 @@ export default function AdvisorPage() {
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
       {/* Header */}
       <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors">
-            <TrendingUp className="h-5 w-5 text-blue-400" />
-            <span className="text-base font-semibold text-zinc-100">Beta than nothing</span>
-          </button>
-          <span className="text-zinc-700">/</span>
-          <div className="flex items-center gap-1.5">
-            <Zap className="h-4 w-4 text-amber-400" />
-            <span className="text-sm font-semibold text-zinc-200">Advisor</span>
-          </div>
+        <div className="flex items-center gap-2.5">
+          <TrendingUp className="h-5 w-5 text-blue-400" />
+          <span className="text-base font-semibold text-zinc-100">Beta than nothing</span>
+          <nav className="ml-3 flex items-center gap-0.5">
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            >
+              Dashboard
+            </button>
+            <span className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800">
+              <Zap className="h-3.5 w-3.5 text-amber-400" />
+              Advisor
+            </span>
+            <button
+              onClick={() => router.push('/retirement')}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            >
+              <PiggyBank className="h-3.5 w-3.5" />
+              Retirement
+            </button>
+          </nav>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -934,8 +946,25 @@ export default function AdvisorPage() {
               <p className="text-sm text-zinc-200 leading-relaxed">{run.executiveSummary}</p>
             </div>
 
-            {/* Retirement projection banner (financial-plan skill) */}
-            <RetirementBanner run={run} />
+            {/* Retirement snapshot — click to open full planning page */}
+            {run.retirementProjection && (
+              <button
+                onClick={() => router.push('/retirement')}
+                className="w-full text-left rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4 hover:bg-zinc-800/60 transition-colors group"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <PiggyBank className="h-4 w-4 text-purple-400" />
+                  <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Retirement Projection</span>
+                  <span className="ml-auto text-xs text-zinc-600 group-hover:text-zinc-400 transition-colors">View full plan →</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div><div className="text-xs text-zinc-500">Years to Retire</div><div className="text-2xl font-bold text-zinc-100">{run.retirementProjection.yearsToRetirement}</div></div>
+                  <div><div className="text-xs text-zinc-500">Base Case</div><div className="text-2xl font-bold text-purple-300">{fmtM(run.retirementProjection.projectedBase)}</div></div>
+                  <div><div className="text-xs text-zinc-500">Bull Case</div><div className="text-2xl font-bold text-emerald-400">{fmtM(run.retirementProjection.projectedBull)}</div></div>
+                  <div><div className="text-xs text-zinc-500">Monthly Income</div><div className="text-2xl font-bold text-zinc-100">{fmtM(run.retirementProjection.monthlyIncome)}</div></div>
+                </div>
+              </button>
+            )}
 
             {/* Market Events */}
             {run.marketEvents.length > 0 && (
