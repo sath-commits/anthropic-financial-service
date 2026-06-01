@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 import { callDataService } from '@/lib/data-service';
 import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
@@ -11,10 +11,10 @@ import type {
 
 export const maxDuration = 90;
 
-function getAnthropicClient() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured on this service');
-  return new Anthropic({ apiKey });
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured on this service');
+  return new OpenAI({ apiKey });
 }
 
 
@@ -357,22 +357,21 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
 
   let rawContent: string;
   try {
-    const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+    const openai = getOpenAIClient();
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      response_format: { type: 'json_object' },
       temperature: 0.3,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
     });
-    const block = response.content.find(b => b.type === 'text');
-    rawContent = block?.type === 'text' ? block.text : '{}';
-    // Strip markdown fences if Claude wraps the JSON
-    rawContent = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+    rawContent = response.choices[0].message.content ?? '{}';
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[advisor] Anthropic error:', msg);
-    return NextResponse.json({ error: `Anthropic: ${msg}` }, { status: 502 });
+    console.error('[advisor] OpenAI error:', msg);
+    return NextResponse.json({ error: `OpenAI: ${msg}` }, { status: 502 });
   }
 
   console.log('[advisor] Claude raw (first 300):', rawContent.slice(0, 300));
