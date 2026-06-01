@@ -549,8 +549,14 @@ function TLHCard({ opp }: { opp: TLHOpportunity }) {
 
 function TaxHarvestTab({ run }: { run: AdvisorRun }) {
   const opps = run.tlhOpportunities ?? [];
-  const totalSavings = opps.reduce((s, o) => s + o.estimatedTaxSavings, 0);
-  const totalLoss = opps.reduce((s, o) => s + o.unrealizedLoss, 0);
+  const stOpps = opps.filter(o => o.holdingType === 'short-term');
+  const ltOpps = opps.filter(o => o.holdingType === 'long-term');
+  const stLoss    = stOpps.reduce((s, o) => s + o.unrealizedLoss, 0);
+  const ltLoss    = ltOpps.reduce((s, o) => s + o.unrealizedLoss, 0);
+  const stSavings = stOpps.reduce((s, o) => s + o.estimatedTaxSavings, 0);
+  const ltSavings = ltOpps.reduce((s, o) => s + o.estimatedTaxSavings, 0);
+  const totalSavings = stSavings + ltSavings;
+  const totalLoss = stLoss + ltLoss;
 
   return (
     <div className="space-y-5">
@@ -558,26 +564,39 @@ function TaxHarvestTab({ run }: { run: AdvisorRun }) {
         <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-10 text-center">
           <Scissors className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
           <p className="text-sm text-zinc-400 mb-1">No harvesting opportunities right now</p>
-          <p className="text-xs text-zinc-600">Tax-loss harvesting candidates appear when taxable positions have unrealized losses {'>'} 2%. Check back after market moves.</p>
+          <p className="text-xs text-zinc-600">Tax-loss harvesting candidates appear when taxable positions have unrealized losses &gt; 2%. Check back after market moves.</p>
         </div>
       ) : (
         <>
-          {/* Summary stats */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-              <div className="text-xs text-zinc-500">Candidates</div>
-              <div className="text-xl font-bold text-zinc-100 mt-1">{opps.length}</div>
-              <div className="text-xs text-zinc-500">positions</div>
+          {/* Gain/loss budget — from tax-loss-harvesting skill Step 2 */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 space-y-3">
+            <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Gain/Loss Budget</div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <div className="text-xs text-zinc-500">ST Losses (22%)</div>
+                <div className="text-xl font-bold text-red-400 mt-1">{fmtM(stLoss)}</div>
+                <div className="text-xs text-emerald-500 mt-0.5">saves {fmtM(stSavings)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500">LT Losses (15%)</div>
+                <div className="text-xl font-bold text-red-300 mt-1">{fmtM(ltLoss)}</div>
+                <div className="text-xs text-emerald-500 mt-0.5">saves {fmtM(ltSavings)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500">Total Harvestable</div>
+                <div className="text-xl font-bold text-zinc-100 mt-1">{fmtM(totalLoss)}</div>
+                <div className="text-xs text-zinc-500 mt-0.5">{opps.length} positions</div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500">Est. Tax Saved</div>
+                <div className="text-xl font-bold text-emerald-400 mt-1">{fmtM(totalSavings)}</div>
+                <div className="text-xs text-zinc-600 mt-0.5">at blended rate</div>
+              </div>
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-              <div className="text-xs text-zinc-500">Total Losses</div>
-              <div className="text-xl font-bold text-red-400 mt-1">{fmtM(totalLoss)}</div>
-              <div className="text-xs text-zinc-500">harvestable</div>
-            </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-              <div className="text-xs text-zinc-500">Est. Tax Saved</div>
-              <div className="text-xl font-bold text-emerald-400 mt-1">{fmtM(totalSavings)}</div>
-              <div className="text-xs text-zinc-500">at marginal rate</div>
+            <div className="text-[10px] text-zinc-600 leading-relaxed border-t border-zinc-800 pt-2">
+              <span className="text-amber-400 font-semibold">Priority:</span> Harvest short-term losses first — they offset ordinary income (22%+) vs. long-term gains (15%).
+              {' '}Net losses up to <span className="text-zinc-300">$3,000/yr</span> deduct against ordinary income; excess <span className="text-zinc-300">carries forward</span> indefinitely.
+              Coordinate across IRA/Roth/spouse accounts to avoid wash sales.
             </div>
           </div>
 
@@ -586,7 +605,8 @@ function TaxHarvestTab({ run }: { run: AdvisorRun }) {
           </div>
 
           <div className="space-y-2">
-            {opps.map((opp, i) => <TLHCard key={i} opp={opp} />)}
+            {/* Short-term first per skill priority */}
+            {[...stOpps, ...ltOpps].map((opp, i) => <TLHCard key={i} opp={opp} />)}
           </div>
           <p className="text-xs text-zinc-600">
             * Tax estimates use 22% for short-term losses and 15% for long-term losses. Consult a tax advisor for your actual rates. Harvesting resets cost basis — more gains when you eventually sell the replacement.
@@ -597,150 +617,6 @@ function TaxHarvestTab({ run }: { run: AdvisorRun }) {
   );
 }
 
-// ── Retirement Stats Banner (financial-plan skill) ────────────────────────────
-
-function computeLocalProjection(equity: number, profile: InvestorProfile) {
-  const years = Math.max(0, profile.retirementAge - profile.currentAge);
-  const annualContrib = profile.monthlyContribution * 12;
-  function fv(rate: number) {
-    if (years === 0) return equity;
-    const lump = equity * Math.pow(1 + rate, years);
-    const contrib = rate > 0 ? annualContrib * ((Math.pow(1 + rate, years) - 1) / rate) : annualContrib * years;
-    return lump + contrib;
-  }
-  const base = Math.round(fv(0.07));
-  return {
-    yearsToRetirement: years,
-    projectedBase: base,
-    projectedBear: Math.round(fv(0.04)),
-    projectedBull: Math.round(fv(0.10)),
-    monthlyIncome: Math.round(base * 0.04 / 12),
-    safeWithdrawalAnnual: Math.round(base * 0.04),
-    assumedReturnPct: 7,
-  };
-}
-
-function RetirementBanner({ run }: { run: AdvisorRun }) {
-  const [editing, setEditing] = useState(false);
-
-  // Always derive projection from the current saved profile so edits survive
-  // advisor re-runs (run.retirementProjection uses stale server-side profile).
-  const [proj, setProj] = useState(() => {
-    const p = loadProfile();
-    const equity = run.retirementProjection?.currentPortfolioValue
-      ?? run.totalEquityAtAnalysis ?? 0;
-    if (p && equity) {
-      return { ...computeLocalProjection(equity, p), currentPortfolioValue: equity };
-    }
-    return run.retirementProjection;
-  });
-
-  const [draft, setDraft] = useState<{ currentAge: string; retirementAge: string; monthlyContribution: string }>(() => {
-    const p = loadProfile();
-    return {
-      currentAge: String(p?.currentAge ?? 30),
-      retirementAge: String(p?.retirementAge ?? 65),
-      monthlyContribution: String(p?.monthlyContribution ?? 0),
-    };
-  });
-
-  if (!proj) return null;
-
-  function saveGoals() {
-    const p = loadProfile();
-    if (!p) return;
-    const updated: InvestorProfile = {
-      ...p,
-      currentAge: parseInt(draft.currentAge) || p.currentAge,
-      retirementAge: parseInt(draft.retirementAge) || p.retirementAge,
-      monthlyContribution: parseFloat(draft.monthlyContribution) || 0,
-    };
-    saveProfile(updated);
-    const newProj = computeLocalProjection(proj!.currentPortfolioValue, updated);
-    setProj({ ...newProj, currentPortfolioValue: proj!.currentPortfolioValue });
-    setEditing(false);
-  }
-
-  return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4">
-      <div className="flex items-center gap-2 mb-3">
-        <PiggyBank className="h-4 w-4 text-purple-400" />
-        <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Retirement Projection</span>
-        <span className="ml-auto text-xs text-zinc-600">{proj.assumedReturnPct}% base return · 4% safe withdrawal</span>
-        <button
-          onClick={() => setEditing(e => !e)}
-          className="ml-2 flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-        >
-          <Edit2 className="h-3 w-3" />
-          Edit goals
-        </button>
-      </div>
-
-      {editing && (
-        <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-800 p-3 space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Current Age</label>
-              <input
-                type="number"
-                value={draft.currentAge}
-                onChange={e => setDraft(d => ({ ...d, currentAge: e.target.value }))}
-                className="w-full rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Retire at Age</label>
-              <input
-                type="number"
-                value={draft.retirementAge}
-                onChange={e => setDraft(d => ({ ...d, retirementAge: e.target.value }))}
-                className="w-full rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Monthly Contribution ($)</label>
-              <input
-                type="number"
-                value={draft.monthlyContribution}
-                onChange={e => setDraft(d => ({ ...d, monthlyContribution: e.target.value }))}
-                className="w-full rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={saveGoals} className="flex items-center gap-1 rounded px-3 py-1.5 bg-purple-700/40 text-purple-300 text-xs hover:bg-purple-700/60 transition-colors">
-              <Check className="h-3 w-3" /> Save
-            </button>
-            <button onClick={() => setEditing(false)} className="flex items-center gap-1 rounded px-3 py-1.5 bg-zinc-700/40 text-zinc-400 text-xs hover:bg-zinc-700/60 transition-colors">
-              <X className="h-3 w-3" /> Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div>
-          <div className="text-xs text-zinc-500">Years to Retire</div>
-          <div className="text-2xl font-bold text-zinc-100 mt-0.5">{proj.yearsToRetirement}</div>
-        </div>
-        <div>
-          <div className="text-xs text-zinc-500">Projected (Base)</div>
-          <div className="text-2xl font-bold text-purple-300 mt-0.5">{fmtM(proj.projectedBase)}</div>
-          <div className="text-xs text-zinc-600 mt-0.5">Bear: {fmtM(proj.projectedBear)}</div>
-        </div>
-        <div>
-          <div className="text-xs text-zinc-500">Bull Case</div>
-          <div className="text-2xl font-bold text-emerald-400 mt-0.5">{fmtM(proj.projectedBull)}</div>
-        </div>
-        <div>
-          <div className="text-xs text-zinc-500">Monthly Income</div>
-          <div className="text-2xl font-bold text-zinc-100 mt-0.5">{fmtM(proj.monthlyIncome)}</div>
-          <div className="text-xs text-zinc-600 mt-0.5">{fmtM(proj.safeWithdrawalAnnual)}/yr</div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -952,7 +828,7 @@ export default function AdvisorPage() {
               <p className="text-sm text-zinc-200 leading-relaxed">{run.executiveSummary}</p>
             </div>
 
-            {/* Retirement snapshot — click to open full planning page */}
+            {/* Retirement snapshot (financial-plan skill) — click to open full planning page */}
             {run.retirementProjection && (
               <button
                 onClick={() => router.push('/retirement')}
@@ -961,14 +837,51 @@ export default function AdvisorPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <PiggyBank className="h-4 w-4 text-purple-400" />
                   <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Retirement Projection</span>
+                  {run.retirementProjection.successProbability != null && (
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border ${
+                      run.retirementProjection.successProbability >= 85
+                        ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/40'
+                        : run.retirementProjection.successProbability >= 70
+                        ? 'bg-amber-900/40 text-amber-300 border-amber-700/40'
+                        : 'bg-red-900/40 text-red-300 border-red-700/40'
+                    }`}>
+                      {run.retirementProjection.successProbability}% success to 90
+                    </span>
+                  )}
                   <span className="ml-auto text-xs text-zinc-600 group-hover:text-zinc-400 transition-colors">View full plan →</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <div><div className="text-xs text-zinc-500">Years to Retire</div><div className="text-2xl font-bold text-zinc-100">{run.retirementProjection.yearsToRetirement}</div></div>
-                  <div><div className="text-xs text-zinc-500">Base Case</div><div className="text-2xl font-bold text-purple-300">{fmtM(run.retirementProjection.projectedBase)}</div></div>
-                  <div><div className="text-xs text-zinc-500">Bull Case</div><div className="text-2xl font-bold text-emerald-400">{fmtM(run.retirementProjection.projectedBull)}</div></div>
-                  <div><div className="text-xs text-zinc-500">Monthly Income</div><div className="text-2xl font-bold text-zinc-100">{fmtM(run.retirementProjection.monthlyIncome)}</div></div>
+                  <div><div className="text-xs text-zinc-500">Base Case</div><div className="text-2xl font-bold text-purple-300">{fmtM(run.retirementProjection.projectedBase)}</div><div className="text-xs text-zinc-600">Bear: {fmtM(run.retirementProjection.projectedBear)}</div></div>
+                  <div><div className="text-xs text-zinc-500">Monthly Income</div><div className="text-2xl font-bold text-zinc-100">{fmtM(run.retirementProjection.monthlyIncome)}</div><div className="text-xs text-zinc-600">{fmtM(run.retirementProjection.safeWithdrawalAnnual)}/yr</div></div>
+                  <div>
+                    <div className="text-xs text-zinc-500">Monte Carlo</div>
+                    <div className={`text-2xl font-bold ${
+                      (run.retirementProjection.successProbability ?? 0) >= 85 ? 'text-emerald-400'
+                      : (run.retirementProjection.successProbability ?? 0) >= 70 ? 'text-amber-400' : 'text-red-400'
+                    }`}>
+                      {run.retirementProjection.successProbability != null ? `${run.retirementProjection.successProbability}%` : '—'}
+                    </div>
+                    <div className="text-xs text-zinc-600">target &gt;85%</div>
+                  </div>
                 </div>
+                {/* Scenario comparison from financial-plan skill */}
+                {run.retirementProjection.scenarios && run.retirementProjection.scenarios.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-zinc-800 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {run.retirementProjection.scenarios.map((s, i) => (
+                      <div key={i} className="rounded-lg bg-zinc-800/60 border border-zinc-700/40 px-3 py-2">
+                        <div className="text-[10px] text-zinc-500 mb-1 truncate">{s.label}</div>
+                        <div className="text-sm font-bold text-zinc-200">{fmtM(s.portfolioAtRetirement)}</div>
+                        <div className="flex items-baseline gap-1.5 mt-0.5">
+                          <span className={`text-xs font-semibold ${
+                            s.successProbability >= 85 ? 'text-emerald-400' : s.successProbability >= 70 ? 'text-amber-400' : 'text-red-400'
+                          }`}>{s.successProbability}%</span>
+                          <span className="text-[10px] text-zinc-600">{fmtM(s.monthlyIncome)}/mo</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </button>
             )}
 

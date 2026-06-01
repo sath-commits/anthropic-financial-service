@@ -6,7 +6,7 @@ import { DEFAULT_USD_TO_SGD_RATE, positionCurrency, toUsd } from '@/lib/currency
 import type {
   UserPosition, InvestorProfile, AdvisorRun,
   RebalancePlan, DriftItem, RebalanceTrade,
-  TLHOpportunity, RetirementProjection,
+  TLHOpportunity, RetirementProjection, RetirementScenario,
 } from '@/lib/types';
 
 export const maxDuration = 90;
@@ -176,29 +176,88 @@ function computeTLH(positionData: PositionRow[]): TLHOpportunity[] {
 
 // ── Retirement Projection (financial-plan skill) ─────────────────────────────
 
+// Box-Muller Monte Carlo — 1500 sims, N(7%, 15% stddev). Returns % of runs that
+// survive drawdownYears without balance reaching zero.
+function runMonteCarlo(startingPortfolio: number, annualWithdrawal: number, drawdownYears: number): number {
+  const SIMS = 1500;
+  const MEAN = 0.07;
+  const STD  = 0.15;
+  let successes = 0;
+  for (let i = 0; i < SIMS; i++) {
+    let bal = startingPortfolio;
+    let survived = true;
+    for (let y = 0; y < drawdownYears; y++) {
+      const u1 = Math.max(1e-10, Math.random());
+      const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * Math.random());
+      bal = bal * (1 + MEAN + STD * z) - annualWithdrawal;
+      if (bal <= 0) { survived = false; break; }
+    }
+    if (survived) successes++;
+  }
+  return Math.round((successes / SIMS) * 100);
+}
+
 function computeRetirement(totalEquity: number, profile: InvestorProfile): RetirementProjection {
   const years = Math.max(0, profile.retirementAge - profile.currentAge);
   const annualContrib = profile.monthlyContribution * 12;
+  const drawdownYears = Math.max(20, 90 - profile.retirementAge); // plan to age 90
 
-  function fv(rate: number): number {
-    if (years === 0) return totalEquity;
-    const lump = totalEquity * Math.pow(1 + rate, years);
+  function fvAt(rate: number, y: number): number {
+    if (y <= 0) return totalEquity;
+    const lump = totalEquity * Math.pow(1 + rate, y);
     const contrib = rate > 0
-      ? annualContrib * ((Math.pow(1 + rate, years) - 1) / rate)
-      : annualContrib * years;
-    return lump + contrib;
+      ? annualContrib * ((Math.pow(1 + rate, y) - 1) / rate)
+      : annualContrib * y;
+    return Math.round(lump + contrib);
   }
 
-  const projectedBase = Math.round(fv(0.07));
+  const projectedBase  = fvAt(0.07, years);
+  const projectedBear  = fvAt(0.04, years);
+  const projectedBull  = fvAt(0.10, years);
+  const baseWithdrawal = Math.round(projectedBase * 0.04);
+
+  const successProbability = runMonteCarlo(projectedBase, baseWithdrawal, drawdownYears);
+
+  // Scenario modeling — retire early, crash year 1, higher spending
+  const earlyPortfolio = fvAt(0.07, Math.max(0, years - 2));
+  const scenarios: RetirementScenario[] = [
+    {
+      label: 'Base case',
+      portfolioAtRetirement: projectedBase,
+      monthlyIncome: Math.round(baseWithdrawal / 12),
+      successProbability,
+    },
+    {
+      label: 'Retire 2y early',
+      portfolioAtRetirement: earlyPortfolio,
+      monthlyIncome: Math.round(earlyPortfolio * 0.04 / 12),
+      successProbability: runMonteCarlo(earlyPortfolio, Math.round(earlyPortfolio * 0.04), drawdownYears + 2),
+    },
+    {
+      label: '20% crash yr 1',
+      portfolioAtRetirement: Math.round(projectedBase * 0.8),
+      monthlyIncome: Math.round(baseWithdrawal / 12),
+      successProbability: runMonteCarlo(Math.round(projectedBase * 0.8), baseWithdrawal, drawdownYears),
+    },
+    {
+      label: 'Spend 25% more',
+      portfolioAtRetirement: projectedBase,
+      monthlyIncome: Math.round(baseWithdrawal * 1.25 / 12),
+      successProbability: runMonteCarlo(projectedBase, Math.round(baseWithdrawal * 1.25), drawdownYears),
+    },
+  ];
+
   return {
     currentPortfolioValue: totalEquity,
     projectedBase,
-    projectedBear: Math.round(fv(0.04)),
-    projectedBull: Math.round(fv(0.10)),
+    projectedBear,
+    projectedBull,
     yearsToRetirement: years,
-    safeWithdrawalAnnual: Math.round(projectedBase * 0.04),
-    monthlyIncome: Math.round(projectedBase * 0.04 / 12),
+    safeWithdrawalAnnual: baseWithdrawal,
+    monthlyIncome: Math.round(baseWithdrawal / 12),
     assumedReturnPct: 7,
+    successProbability,
+    scenarios,
   };
 }
 

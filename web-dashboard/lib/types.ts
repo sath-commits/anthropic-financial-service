@@ -177,6 +177,13 @@ export interface TLHOpportunity {
 
 // ─── Retirement Projection types (from financial-plan skill) ─────────────────
 
+export interface RetirementScenario {
+  label: string;
+  portfolioAtRetirement: number;
+  monthlyIncome: number;
+  successProbability: number;
+}
+
 export interface RetirementProjection {
   currentPortfolioValue: number;
   projectedBase: number;
@@ -186,6 +193,8 @@ export interface RetirementProjection {
   safeWithdrawalAnnual: number;
   monthlyIncome: number;
   assumedReturnPct: number;
+  successProbability?: number;    // % of Monte Carlo runs that survive to age 90
+  scenarios?: RetirementScenario[];
 }
 
 // ─── Thesis Tracker types (from thesis-tracker skill) ────────────────────────
