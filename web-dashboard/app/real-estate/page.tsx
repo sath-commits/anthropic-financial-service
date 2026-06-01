@@ -24,6 +24,7 @@ interface Property {
   purchaseYear: number;     // e.g. 2018
   currentPrice: number;
   ownership: Ownership;
+  currentPriceUpdatedAt?: string; // ISO date — when current value was last entered
   // Mortgage fields (optional)
   originalLoan?: number;
   annualInterestRate?: number;  // e.g. 3.5 for 3.5%
@@ -237,6 +238,11 @@ function PropertyCard({
         <div>
           <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Current Value</div>
           <div className="text-sm font-semibold text-zinc-100 mt-0.5">{toDisp(prop.currentPrice)}</div>
+          {prop.currentPriceUpdatedAt && (
+            <div className="text-[10px] text-zinc-600 mt-0.5">
+              updated {new Date(prop.currentPriceUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          )}
         </div>
         <div>
           <div className="text-[10px] text-zinc-500 uppercase tracking-wide">P&L</div>
@@ -411,6 +417,12 @@ export default function RealEstatePage() {
     if (!draft.name.trim() || !draft.purchasePrice || !draft.currentPrice) return;
     const id = editingId ?? crypto.randomUUID();
     const prop = draftToProperty(draft, id);
+    const existing = editingId ? properties.find(p => p.id === editingId) : null;
+    // Stamp current value date only when the value actually changes (or is new)
+    const priceChanged = !existing || existing.currentPrice !== prop.currentPrice;
+    prop.currentPriceUpdatedAt = priceChanged
+      ? new Date().toISOString().slice(0, 10)
+      : existing?.currentPriceUpdatedAt;
     const next = editingId
       ? properties.map(p => p.id === editingId ? prop : p)
       : [...properties, prop];
