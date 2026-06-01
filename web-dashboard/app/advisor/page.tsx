@@ -622,7 +622,19 @@ function computeLocalProjection(equity: number, profile: InvestorProfile) {
 
 function RetirementBanner({ run }: { run: AdvisorRun }) {
   const [editing, setEditing] = useState(false);
-  const [proj, setProj] = useState(run.retirementProjection);
+
+  // Always derive projection from the current saved profile so edits survive
+  // advisor re-runs (run.retirementProjection uses stale server-side profile).
+  const [proj, setProj] = useState(() => {
+    const p = loadProfile();
+    const equity = run.retirementProjection?.currentPortfolioValue
+      ?? run.totalEquityAtAnalysis ?? 0;
+    if (p && equity) {
+      return { ...computeLocalProjection(equity, p), currentPortfolioValue: equity };
+    }
+    return run.retirementProjection;
+  });
+
   const [draft, setDraft] = useState<{ currentAge: string; retirementAge: string; monthlyContribution: string }>(() => {
     const p = loadProfile();
     return {
