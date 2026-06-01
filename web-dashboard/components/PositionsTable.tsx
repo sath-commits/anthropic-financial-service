@@ -102,8 +102,8 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
                 </div>
               </div>
             </div>
-            <div className="overflow-x-auto px-4">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto px-2 sm:px-4">
+              <table className="w-full min-w-[660px] text-sm">
                 <thead>
                   <tr className="border-b border-zinc-800 text-left">
                     {COLUMNS.map(column => (

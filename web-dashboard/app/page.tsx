@@ -383,52 +383,41 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
       {/* Top bar */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
-        <div className="flex items-center gap-2.5">
-          <TrendingUp className="h-5 w-5 text-blue-400" />
-          <span className="text-base font-semibold text-zinc-100">Beta than nothing</span>
-          <span className="ml-2 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500">
-            {isOwnPortfolio ? 'Your portfolio' : 'Demo portfolio · DRY_RUN=true'}
+      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
+          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
+          <span className="hidden sm:inline ml-2 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500 whitespace-nowrap">
+            {isOwnPortfolio ? 'Your portfolio' : 'Demo'}
           </span>
-          <nav className="ml-3 flex items-center gap-0.5">
-            <span className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800">
-              Dashboard
+          <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 text-xs font-medium text-zinc-300 bg-zinc-800 whitespace-nowrap flex-shrink-0">
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden text-[10px]">Dash</span>
             </span>
-            <Link
-              href="/advisor"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
+            <Link href="/advisor" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
               <Brain className="h-3.5 w-3.5" />
-              Advisor
+              <span className="hidden sm:inline">Advisor</span>
             </Link>
-            <Link
-              href="/retirement"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
+            <Link href="/retirement" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
               <PiggyBank className="h-3.5 w-3.5" />
-              Retirement
+              <span className="hidden sm:inline">Retirement</span>
             </Link>
-            <Link
-              href="/real-estate"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
+            <Link href="/real-estate" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
               <Home className="h-3.5 w-3.5" />
-              Real Estate
+              <span className="hidden sm:inline">Real Estate</span>
             </Link>
-            <Link
-              href="/other-assets"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
+            <Link href="/other-assets" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
               <Layers className="h-3.5 w-3.5" />
-              Other
+              <span className="hidden sm:inline">Other</span>
             </Link>
           </nav>
         </div>
-        <div className="flex items-center gap-3 text-xs text-zinc-500">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs text-zinc-500 flex-shrink-0">
           <select
             value={displayCurrency}
             onChange={event => setDisplayCurrency(event.target.value as Currency)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 outline-none"
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
             aria-label="Display currency"
           >
             <option value="USD">USD</option>
@@ -438,7 +427,7 @@ export default function Dashboard() {
             <select
               value={brokerageFilter}
               onChange={event => setBrokerageFilter(event.target.value)}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 outline-none"
+              className="hidden sm:block rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
               aria-label="Filter by brokerage"
             >
               <option value="All">All brokerages</option>
@@ -448,7 +437,7 @@ export default function Dashboard() {
           <select
             value={liquidityFilter}
             onChange={event => setLiquidityFilter(event.target.value as typeof liquidityFilter)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 outline-none"
+            className="hidden sm:block rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
             aria-label="Filter by liquidity"
           >
             <option value="All">All assets</option>
@@ -456,19 +445,18 @@ export default function Dashboard() {
             <option value="Illiquid">Illiquid only</option>
           </select>
           {displayCurrency === 'SGD' && summary && (
-            <span className={summary.hasLiveUsdToSgdRate ? 'text-zinc-500' : 'text-amber-400'}>
-              1 USD = {summary.usdToSgdRate.toFixed(4)} SGD{summary.hasLiveUsdToSgdRate ? '' : ' estimate'}
+            <span className="hidden md:inline text-zinc-500">
+              1 USD = {summary.usdToSgdRate.toFixed(4)} SGD
             </span>
           )}
-          {lastUpdated && <span>Updated {lastUpdated}</span>}
           <button
             type="button"
             onClick={() => downloadSettingsBackup(userPositions ?? [], profile)}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
             title="Download portfolio backup"
           >
             <Download className="h-3.5 w-3.5" />
-            Export
+            <span className="hidden md:inline">Export</span>
           </button>
           <input
             ref={restoreInputRef}
@@ -480,16 +468,16 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => restoreInputRef.current?.click()}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
             title="Restore portfolio backup"
           >
             <Upload className="h-3.5 w-3.5" />
-            Restore
+            <span className="hidden md:inline">Restore</span>
           </button>
           <button
             onClick={() => load()}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 sm:px-3 text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -668,7 +656,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <main className="flex-1 px-6 py-5 space-y-5">
+      <main className="flex-1 px-3 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-5">
         {summary && !hasCompleteLivePrices && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             Live prices are unavailable for {summary.missingPriceSymbols.join(', ')}. Values are temporarily estimated from cost basis.

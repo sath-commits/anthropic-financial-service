@@ -173,48 +173,31 @@ export default function RetirementPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
-        <div className="flex items-center gap-2.5">
-          <TrendingUp className="h-5 w-5 text-blue-400" />
-          <span className="text-base font-semibold text-zinc-100">Beta than nothing</span>
-          <nav className="ml-3 flex items-center gap-0.5">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
-              <LayoutDashboard className="h-3.5 w-3.5" />
-              Dashboard
+      <header className="flex items-center border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
+          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
+          <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+            <button onClick={() => router.push('/')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+              <LayoutDashboard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Dashboard</span>
             </button>
-            <button
-              onClick={() => router.push('/advisor')}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
-              <Brain className="h-3.5 w-3.5" />
-              Advisor
+            <button onClick={() => router.push('/advisor')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+              <Brain className="h-3.5 w-3.5" /><span className="hidden sm:inline">Advisor</span>
             </button>
-            <span className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800">
-              <PiggyBank className="h-3.5 w-3.5 text-purple-400" />
-              Retirement
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-800 flex-shrink-0">
+              <PiggyBank className="h-3.5 w-3.5 text-purple-400" /><span className="hidden sm:inline">Retirement</span>
             </span>
-            <button
-              onClick={() => router.push('/real-estate')}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
-              <Home className="h-3.5 w-3.5" />
-              Real Estate
+            <button onClick={() => router.push('/real-estate')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+              <Home className="h-3.5 w-3.5" /><span className="hidden sm:inline">Real Estate</span>
             </button>
-            <button
-              onClick={() => router.push('/other-assets')}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
-              <Layers className="h-3.5 w-3.5" />
-              Other
+            <button onClick={() => router.push('/other-assets')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+              <Layers className="h-3.5 w-3.5" /><span className="hidden sm:inline">Other</span>
             </button>
           </nav>
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-5 space-y-6 max-w-5xl mx-auto w-full">
+      <main className="flex-1 px-3 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-6 max-w-5xl mx-auto w-full">
 
         {/* No portfolio data warning */}
         {currentValue === 0 && (
@@ -243,7 +226,7 @@ export default function RetirementPage() {
         {/* Edit panel */}
         {editingInputs && (
           <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               {([
                 { label: 'Current Age', key: 'currentAge', prefix: '' },
                 { label: 'Retire at Age', key: 'retirementAge', prefix: '' },
@@ -385,7 +368,7 @@ export default function RetirementPage() {
         {/* Year-by-year table — key milestones */}
         <div>
           <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-3">Accumulation Milestones</h2>
-          <div className="rounded-xl border border-zinc-800 overflow-hidden">
+          <div className="rounded-xl border border-zinc-800 overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-900/60">

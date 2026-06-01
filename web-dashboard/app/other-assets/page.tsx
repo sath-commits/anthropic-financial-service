@@ -387,21 +387,21 @@ export default function OtherAssetsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
-        <div className="flex items-center gap-2.5">
-          <TrendingUp className="h-5 w-5 text-blue-400" />
-          <span className="text-base font-semibold text-zinc-100">Beta than nothing</span>
-          <nav className="ml-3 flex items-center gap-0.5">
+      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
+          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
+          <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
             {NAV.map(({ label, path, icon }) => (
               <button key={path} onClick={() => router.push(path)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0"
               >
-                {icon}{label}
+                {icon}<span className="hidden sm:inline">{label}</span>
               </button>
             ))}
-            <span className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800">
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-800 flex-shrink-0">
               <Layers className="h-3.5 w-3.5 text-teal-400" />
-              Other Assets
+              <span className="hidden sm:inline">Other Assets</span>
             </span>
           </nav>
         </div>
@@ -433,7 +433,7 @@ export default function OtherAssetsPage() {
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-5 space-y-5 max-w-5xl mx-auto w-full">
+      <main className="flex-1 px-3 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-5 max-w-5xl mx-auto w-full">
 
         {/* Summary */}
         {assets.length > 0 && (

@@ -387,7 +387,7 @@ function RebalanceTab({ run }: { run: AdvisorRun }) {
           <h3 className="text-sm font-semibold text-zinc-300">Allocation Drift  <span className="text-zinc-600 font-normal text-xs">·  ±{plan.bandPct}% rebalancing band</span></h3>
           {driftCount > 0 && <span className="text-xs text-amber-400">{driftCount} class{driftCount > 1 ? 'es' : ''} out of band</span>}
         </div>
-        <div className="rounded-xl border border-zinc-800 overflow-hidden">
+        <div className="rounded-xl border border-zinc-800 overflow-hidden overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-zinc-800 bg-zinc-900/60">
@@ -838,41 +838,30 @@ export default function AdvisorPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
-        <div className="flex items-center gap-2.5">
-          <TrendingUp className="h-5 w-5 text-blue-400" />
-          <span className="text-base font-semibold text-zinc-100">Beta than nothing</span>
-          <nav className="ml-3 flex items-center gap-0.5">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
-              Dashboard
+      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
+          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
+          <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+            <button onClick={() => router.push('/')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden text-[10px]">Dash</span>
             </button>
-            <span className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800">
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-800 flex-shrink-0">
               <Zap className="h-3.5 w-3.5 text-amber-400" />
-              Advisor
+              <span className="hidden sm:inline">Advisor</span>
             </span>
-            <button
-              onClick={() => router.push('/retirement')}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
+            <button onClick={() => router.push('/retirement')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
               <PiggyBank className="h-3.5 w-3.5" />
-              Retirement
+              <span className="hidden sm:inline">Retirement</span>
             </button>
-            <button
-              onClick={() => router.push('/real-estate')}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
+            <button onClick={() => router.push('/real-estate')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
               <Home className="h-3.5 w-3.5" />
-              Real Estate
+              <span className="hidden sm:inline">Real Estate</span>
             </button>
-            <button
-              onClick={() => router.push('/other-assets')}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            >
+            <button onClick={() => router.push('/other-assets')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
               <Layers className="h-3.5 w-3.5" />
-              Other
+              <span className="hidden sm:inline">Other</span>
             </button>
           </nav>
         </div>
@@ -903,7 +892,7 @@ export default function AdvisorPage() {
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-5 space-y-5 max-w-5xl mx-auto w-full">
+      <main className="flex-1 px-3 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-5 max-w-5xl mx-auto w-full">
         {/* Error */}
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-300">
@@ -1122,7 +1111,7 @@ export default function AdvisorPage() {
                       <div className="mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                         All {trackRecord.calls.length} Recommendations
                       </div>
-                      <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                      <div className="rounded-xl border border-zinc-800 overflow-hidden overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b border-zinc-800 bg-zinc-900/60">
