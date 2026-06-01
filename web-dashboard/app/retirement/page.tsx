@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, PiggyBank, Brain, Edit2, Check, X, LayoutDashboard } from 'lucide-react';
+import { TrendingUp, PiggyBank, Brain, Edit2, Check, X, LayoutDashboard, Home } from 'lucide-react';
 import { loadProfile, saveProfile, loadPortfolioCache } from '@/lib/storage';
 import type { InvestorProfile, PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 import {
@@ -196,6 +196,13 @@ export default function RetirementPage() {
               <PiggyBank className="h-3.5 w-3.5 text-purple-400" />
               Retirement
             </span>
+            <button
+              onClick={() => router.push('/real-estate')}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            >
+              <Home className="h-3.5 w-3.5" />
+              Real Estate
+            </button>
           </nav>
         </div>
       </header>

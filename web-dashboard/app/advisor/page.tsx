@@ -6,7 +6,7 @@ import {
   TrendingUp, RefreshCw, Clock, ChevronDown, ChevronUp,
   AlertTriangle, TrendingDown, Minus, ArrowUpRight, ArrowDownRight,
   Star, Calendar, BarChart3, Target, Zap, Scale, Scissors,
-  PiggyBank, Edit2, Check, X, BookOpen,
+  PiggyBank, Edit2, Check, X, BookOpen, Home,
 } from 'lucide-react';
 import {
   saveAdvisorRun, loadAdvisorHistory, shouldAutoRun, nextRunLabel,
@@ -859,6 +859,13 @@ export default function AdvisorPage() {
             >
               <PiggyBank className="h-3.5 w-3.5" />
               Retirement
+            </button>
+            <button
+              onClick={() => router.push('/real-estate')}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            >
+              <Home className="h-3.5 w-3.5" />
+              Real Estate
             </button>
           </nav>
         </div>
