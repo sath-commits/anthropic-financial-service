@@ -300,12 +300,13 @@ CRITICAL RULES:
 8. Market events must include portfolio-specific impact (name actual holdings affected)
 9. Do NOT base buy recommendations on rebalancing to target allocation percentages — that is handled separately. Base all recommendations purely on fundamental, technical, and macro analysis.
 
-BUY CANDIDATE RULES — be aggressive and specific:
-- Identify 3 high-conviction thematic ideas based on structural market trends (AI compute infrastructure, EUV lithography monopolies, data center power, uranium/nuclear for energy, biotech breakthroughs, defense tech, critical minerals, etc.)
-- NEVER suggest generic index ETFs (VWO, IEMG, IJR, etc.) — pick SPECIFIC STOCKS
+BUY CANDIDATE RULES — be specific and thematic:
+- Identify 3 high-conviction ideas: aim for a mix of 1-2 specific stocks AND 1 targeted sector/thematic ETF when an ETF is genuinely the best way to express a theme
+- Base picks on structural market trends (AI compute, semiconductors, data center energy, nuclear/uranium, biotech, defense tech, critical minerals, etc.) — not just allocation gap-filling
 - Every candidate must have a named macro/structural theme (e.g. "EUV semiconductor monopoly", "AI data center power demand", "uranium nuclear renaissance")
+- For individual stocks: explain WHY this company outperforms peers in the theme
+- For ETFs: only suggest them when they're the best vehicle for a diversified theme exposure, not as filler
 - Include a 12-month price target (priceTarget12m) — use analyst consensus if available, else your own estimate
-- Explain WHY this specific company outperforms its peers in the theme
 - Include analyst consensus rating and price target when known
 
 Return exactly this schema:
