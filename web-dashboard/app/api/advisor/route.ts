@@ -15,14 +15,6 @@ function getAnthropicClient() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
-// Known FOMC meeting dates (decision day = second day of 2-day meeting)
-const FOMC_DATES = [
-  '2026-06-18',
-  '2026-07-30',
-  '2026-09-17',
-  '2026-10-29',
-  '2026-12-10',
-];
 
 // ── Portfolio Rebalance (portfolio-rebalance skill) ─────────────────────────
 
@@ -268,15 +260,6 @@ export async function POST(req: Request) {
 
   const totalEquity = positionData.reduce((s, p) => s + p.equity, 0);
 
-  // ── Upcoming FOMC events ────────────────────────────────────────
-  const upcomingFomc = FOMC_DATES
-    .map(d => ({
-      date: d,
-      event: 'FOMC Rate Decision',
-      daysUntil: Math.round((new Date(d).getTime() - today.getTime()) / 86400000),
-    }))
-    .filter(e => e.daysUntil >= 0 && e.daysUntil <= 60);
-
   // ── Track record context for learning ──────────────────────────
   const historyContext = history.length > 0
     ? `Past ${Math.min(history.length, 5)} advisor runs:\n` +
@@ -296,7 +279,7 @@ CRITICAL RULES:
 5. Every recommendation must have a clear "why now" — not generic advice
 6. For trim/sell, specify exact % to reduce (trimPct field)
 7. Buy candidates MUST be bold and thematic — see rules below
-8. Market events must include portfolio-specific impact (name actual holdings affected)
+8. Market events: use your own knowledge to identify relevant upcoming events (Fed, CPI, earnings, geopolitical, sector-specific) — not just FOMC. Name actual holdings affected in the portfolioImpact field.
 9. Do NOT base buy recommendations on rebalancing to target allocation percentages — that is handled separately. Base all recommendations purely on fundamental, technical, and macro analysis.
 
 BUY CANDIDATE RULES — be specific and thematic:
@@ -359,8 +342,11 @@ ${JSON.stringify(positionData, null, 2)}
 ## Investor Profile
 ${profile ? JSON.stringify(profile, null, 2) : 'Unknown — assume moderate risk, growth goal, 30-year horizon'}
 
-## Upcoming Macro Events (next 60 days)
-${JSON.stringify(upcomingFomc, null, 2)}
+## Today's Date
+${today.toISOString().slice(0, 10)}
+
+## Macro Events — Use Your Own Knowledge
+Draw on your training knowledge to identify the 3–5 most important macro events in the next 60 days that are relevant to this portfolio. Consider: Fed meetings and rate decisions, CPI/PCE/jobs data releases, major earnings (for held symbols), geopolitical risks, sector-specific catalysts (AI chip export rules, pharma FDA dates, energy policy), currency and emerging-market risks. Populate the marketEvents array with your best assessment — do not limit yourself to FOMC only.
 
 ## Advisor History (learning context)
 ${historyContext}
