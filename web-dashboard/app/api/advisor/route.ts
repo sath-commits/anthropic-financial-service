@@ -3,16 +3,18 @@ import { NextResponse } from 'next/server';
 import { callDataService } from '@/lib/data-service';
 import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
 import { DEFAULT_USD_TO_SGD_RATE, positionCurrency, toUsd } from '@/lib/currency';
-
-export const maxDuration = 90;
 import type {
   UserPosition, InvestorProfile, AdvisorRun,
   RebalancePlan, DriftItem, RebalanceTrade,
   TLHOpportunity, RetirementProjection,
 } from '@/lib/types';
 
+export const maxDuration = 90;
+
 function getAnthropicClient() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured on this service');
+  return new Anthropic({ apiKey });
 }
 
 
@@ -368,8 +370,9 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
     // Strip markdown fences if Claude wraps the JSON
     rawContent = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Anthropic API error';
-    return NextResponse.json({ error: msg }, { status: 502 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[advisor] Anthropic error:', msg);
+    return NextResponse.json({ error: `Anthropic: ${msg}` }, { status: 502 });
   }
 
   let raw: { executiveSummary?: string; recommendations?: Array<Record<string, unknown>>; buyCandidates?: Array<Record<string, unknown>>; marketEvents?: Array<Record<string, unknown>> };
