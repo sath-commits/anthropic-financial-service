@@ -203,8 +203,8 @@ function PropertyCard({
               <span className="text-base font-bold text-[#1c1612]">{prop.name}</span>
               <span className={`text-[10px] rounded-full border px-2 py-0.5 font-medium ${
                 prop.ownership === 'mortgage'
-                  ? 'border-amber-700/50 bg-amber-950/40 text-amber-300'
-                  : 'border-emerald-700/50 bg-emerald-950/40 text-emerald-300'
+                  ? 'border-amber-400 bg-amber-50 text-amber-700'
+                  : 'border-emerald-400 bg-emerald-50 text-emerald-700'
               }`}>
                 {prop.ownership === 'mortgage' ? 'Mortgage' : 'Owned'}
               </span>

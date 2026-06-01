@@ -388,9 +388,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
           <span className="text-sm sm:text-base font-semibold text-[#1c1612] whitespace-nowrap">Beta than nothing</span>
-          <span className="hidden sm:inline ml-2 rounded-full bg-white px-2 py-0.5 text-xs text-[#9e9087] whitespace-nowrap">
-            {isOwnPortfolio ? 'Your portfolio' : 'Demo'}
-          </span>
+
           <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
             <Link href="/summary" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Wallet className="h-3.5 w-3.5" />
