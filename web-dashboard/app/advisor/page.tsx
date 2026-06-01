@@ -34,21 +34,21 @@ function fmtM(n: number) {
 const ACTION_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   buy:  { label: 'BUY',  color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: <ArrowUpRight className="h-3 w-3" /> },
   add:  { label: 'ADD',  color: 'bg-blue-500/20 text-blue-300 border-blue-500/40',         icon: <ArrowUpRight className="h-3 w-3" /> },
-  hold: { label: 'HOLD', color: 'bg-zinc-600/40 text-zinc-400 border-zinc-600',            icon: <Minus className="h-3 w-3" /> },
+  hold: { label: 'HOLD', color: 'bg-[#d4cfc8]/40 text-[#6e5f52] border-[#c8c0b5]',            icon: <Minus className="h-3 w-3" /> },
   trim: { label: 'TRIM', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40',      icon: <ArrowDownRight className="h-3 w-3" /> },
   sell: { label: 'SELL', color: 'bg-red-500/20 text-red-300 border-red-500/40',            icon: <TrendingDown className="h-3 w-3" /> },
 };
 
 const CONVICTION_DOTS: Record<string, React.ReactNode> = {
   high:   <span className="flex gap-0.5">{[0,1,2].map(i=><span key={i} className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>)}</span>,
-  medium: <span className="flex gap-0.5">{[0,1].map(i=><span key={i} className="h-1.5 w-1.5 rounded-full bg-amber-400"/>)}<span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/></span>,
-  low:    <span className="flex gap-0.5"><span className="h-1.5 w-1.5 rounded-full bg-red-400"/>{[0,1].map(i=><span key={i} className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>)}</span>,
+  medium: <span className="flex gap-0.5">{[0,1].map(i=><span key={i} className="h-1.5 w-1.5 rounded-full bg-amber-400"/>)}<span className="h-1.5 w-1.5 rounded-full bg-[#e0dbd4]"/></span>,
+  low:    <span className="flex gap-0.5"><span className="h-1.5 w-1.5 rounded-full bg-red-400"/>{[0,1].map(i=><span key={i} className="h-1.5 w-1.5 rounded-full bg-[#e0dbd4]"/>)}</span>,
 };
 
 const URGENCY_COLOR: Record<string, string> = {
-  high:   'border-red-500/40 bg-red-500/10',
+  high:   'border-red-500/40 bg-red-50',
   medium: 'border-amber-500/40 bg-amber-500/10',
-  low:    'border-zinc-700 bg-zinc-800/50',
+  low:    'border-[#d4c9bc] bg-[#ede8df]/50',
 };
 
 // ── Thesis Note (thesis-tracker skill) ───────────────────────────────────────
@@ -88,14 +88,14 @@ function ThesisNote({ symbol }: { symbol: string }) {
   }
 
   return (
-    <div className="mt-3 pt-3 border-t border-zinc-800">
+    <div className="mt-3 pt-3 border-t border-[#e5ddd3]">
       <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#9e9087] uppercase tracking-wide">
           <BookOpen className="h-3 w-3" />
           Your Thesis
         </div>
         {!editing && (
-          <button onClick={startEdit} className="flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+          <button onClick={startEdit} className="flex items-center gap-1 text-xs text-[#b8ad9e] hover:text-[#6e5f52] transition-colors">
             <Edit2 className="h-3 w-3" />
             {note ? 'Edit' : 'Add'}
           </button>
@@ -108,21 +108,21 @@ function ThesisNote({ symbol }: { symbol: string }) {
             onChange={e => setDraft(e.target.value)}
             placeholder="Why do you own this? What would make you sell?"
             rows={3}
-            className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-500"
+            className="w-full rounded-lg bg-white border border-[#d4c9bc] px-3 py-2 text-xs text-[#2d2218] placeholder-zinc-600 resize-none focus:outline-none focus:border-[#da7756]"
           />
           <div className="flex gap-2">
             <button onClick={save} className="flex items-center gap-1 rounded px-2 py-1 bg-emerald-700/40 text-emerald-300 text-xs hover:bg-emerald-700/60 transition-colors">
               <Check className="h-3 w-3" /> Save
             </button>
-            <button onClick={cancel} className="flex items-center gap-1 rounded px-2 py-1 bg-zinc-700/40 text-zinc-400 text-xs hover:bg-zinc-700/60 transition-colors">
+            <button onClick={cancel} className="flex items-center gap-1 rounded px-2 py-1 bg-[#e0dbd4]/40 text-[#6e5f52] text-xs hover:bg-[#e0dbd4]/60 transition-colors">
               <X className="h-3 w-3" /> Cancel
             </button>
           </div>
         </div>
       ) : note ? (
-        <p className="text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap">{note}</p>
+        <p className="text-xs text-[#6e5f52] leading-relaxed whitespace-pre-wrap">{note}</p>
       ) : (
-        <p className="text-xs text-zinc-600 italic">No thesis recorded — click Add to document your reasoning.</p>
+        <p className="text-xs text-[#b8ad9e] italic">No thesis recorded — click Add to document your reasoning.</p>
       )}
     </div>
   );
@@ -134,23 +134,23 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
   const [expanded, setExpanded] = useState(false);
   const meta = ACTION_META[rec.action] ?? ACTION_META.hold;
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div className="rounded-xl border border-[#e5ddd3] bg-white overflow-hidden">
       <button
-        className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-zinc-800/40 transition-colors"
+        className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-[#ede8df]/40 transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         <div className="flex-shrink-0 min-w-[80px]">
-          <div className="text-base font-bold text-zinc-100">{rec.symbol}</div>
+          <div className="text-base font-bold text-[#1c1612]">{rec.symbol}</div>
           <div className={`mt-1 inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-semibold ${meta.color}`}>
             {meta.icon}
             {meta.label}{rec.action === 'trim' && rec.trimPct ? ` ${rec.trimPct}%` : ''}
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm text-zinc-200 leading-snug">{rec.summary}</div>
+          <div className="text-sm text-[#2d2218] leading-snug">{rec.summary}</div>
           <div className="mt-1.5 flex items-center gap-2">
             {CONVICTION_DOTS[rec.conviction]}
-            <span className="text-xs text-zinc-500 capitalize">{rec.conviction} conviction</span>
+            <span className="text-xs text-[#9e9087] capitalize">{rec.conviction} conviction</span>
             {rec.taxNote && (
               <span className="flex items-center gap-1 text-xs text-amber-400">
                 <AlertTriangle className="h-3 w-3" /> Tax note
@@ -158,16 +158,16 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
             )}
           </div>
         </div>
-        <div className="flex-shrink-0 text-zinc-600">
+        <div className="flex-shrink-0 text-[#b8ad9e]">
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </button>
 
       {expanded && (
-        <div className="border-t border-zinc-800 px-5 py-4 space-y-3">
-          <p className="text-sm text-zinc-300 leading-relaxed">{rec.reasoning}</p>
+        <div className="border-t border-[#e5ddd3] px-5 py-4 space-y-3">
+          <p className="text-sm text-[#4a3d33] leading-relaxed">{rec.reasoning}</p>
           {rec.taxNote && (
-            <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+            <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-200 px-3 py-2">
               <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-300">{rec.taxNote}</p>
             </div>
@@ -178,7 +178,7 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
                 <div className="mb-1.5 text-xs font-semibold text-emerald-400 uppercase tracking-wide">Catalysts</div>
                 <ul className="space-y-1">
                   {rec.catalysts.map((c, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-xs text-zinc-300">
+                    <li key={i} className="flex items-start gap-1.5 text-xs text-[#4a3d33]">
                       <span className="text-emerald-500 mt-0.5">+</span>{c}
                     </li>
                   ))}
@@ -190,7 +190,7 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
                 <div className="mb-1.5 text-xs font-semibold text-red-400 uppercase tracking-wide">Risks</div>
                 <ul className="space-y-1">
                   {rec.risks.map((r, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-xs text-zinc-300">
+                    <li key={i} className="flex items-start gap-1.5 text-xs text-[#4a3d33]">
                       <span className="text-red-500 mt-0.5">-</span>{r}
                     </li>
                   ))}
@@ -199,13 +199,13 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
             )}
           </div>
           {(rec.analystConsensus || rec.analystPriceTarget) && (
-            <div className="flex gap-4 text-xs text-zinc-500">
-              {rec.analystConsensus && <span>Analyst consensus: <span className="text-zinc-300">{rec.analystConsensus}</span></span>}
-              {rec.analystPriceTarget && <span>Price target: <span className="text-zinc-300">${fmt(rec.analystPriceTarget)}</span></span>}
+            <div className="flex gap-4 text-xs text-[#9e9087]">
+              {rec.analystConsensus && <span>Analyst consensus: <span className="text-[#4a3d33]">{rec.analystConsensus}</span></span>}
+              {rec.analystPriceTarget && <span>Price target: <span className="text-[#4a3d33]">${fmt(rec.analystPriceTarget)}</span></span>}
             </div>
           )}
           {rec.priceAtAnalysis > 0 && (
-            <div className="text-xs text-zinc-600">Analysis price: ${fmt(rec.priceAtAnalysis)}</div>
+            <div className="text-xs text-[#b8ad9e]">Analysis price: ${fmt(rec.priceAtAnalysis)}</div>
           )}
           {/* thesis-tracker skill integration */}
           <ThesisNote symbol={rec.symbol} />
@@ -220,46 +220,46 @@ function RecommendationCard({ rec }: { rec: PositionRecommendation }) {
 function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="rounded-xl border border-emerald-900/40 bg-zinc-900 overflow-hidden">
+    <div className="rounded-xl border border-emerald-900/40 bg-white overflow-hidden">
       <button
-        className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-zinc-800/40 transition-colors"
+        className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-[#ede8df]/40 transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         <div className="flex-shrink-0 min-w-[80px]">
-          <div className="text-base font-bold text-zinc-100">{cand.symbol}</div>
+          <div className="text-base font-bold text-[#1c1612]">{cand.symbol}</div>
           <div className="mt-1 inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-semibold bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
             <ArrowUpRight className="h-3 w-3" /> BUY
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm text-zinc-200 leading-snug">{cand.summary}</div>
+          <div className="text-sm text-[#2d2218] leading-snug">{cand.summary}</div>
           <div className="mt-1.5 flex items-center gap-2">
             {CONVICTION_DOTS[cand.conviction]}
-            <span className="text-xs text-zinc-500 capitalize">{cand.conviction} conviction</span>
-            <span className="text-xs text-zinc-600">· {cand.suggestedPortfolioWeightPct}% weight</span>
+            <span className="text-xs text-[#9e9087] capitalize">{cand.conviction} conviction</span>
+            <span className="text-xs text-[#b8ad9e]">· {cand.suggestedPortfolioWeightPct}% weight</span>
           </div>
         </div>
-        <div className="flex-shrink-0 text-zinc-600">
+        <div className="flex-shrink-0 text-[#b8ad9e]">
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </button>
       {expanded && (
-        <div className="border-t border-zinc-800 px-5 py-4 space-y-3">
+        <div className="border-t border-[#e5ddd3] px-5 py-4 space-y-3">
           {cand.theme && (
-            <div className="rounded-lg bg-blue-950/40 border border-blue-800/30 px-3 py-2 text-xs text-blue-300 font-medium">
+            <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-300 font-medium">
               📡 {cand.theme}
             </div>
           )}
-          <p className="text-sm text-zinc-300 leading-relaxed">{cand.reasoning}</p>
+          <p className="text-sm text-[#4a3d33] leading-relaxed">{cand.reasoning}</p>
           {/* 12m price target strip */}
           {(cand.priceTarget12m || cand.analystPriceTarget || cand.analystConsensus) && (
-            <div className="flex flex-wrap gap-4 rounded-lg bg-zinc-800/60 border border-zinc-700/50 px-3 py-2">
+            <div className="flex flex-wrap gap-4 rounded-lg bg-white/60 border border-[#d4c9bc]/50 px-3 py-2">
               {cand.priceTarget12m && cand.priceAtAnalysis > 0 && (
                 <div>
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-wide">12m Price Target</div>
+                  <div className="text-[10px] text-[#9e9087] uppercase tracking-wide">12m Price Target</div>
                   <div className="text-sm font-bold text-emerald-400">
                     ${fmt(cand.priceTarget12m)}
-                    <span className="ml-1.5 text-xs font-normal text-zinc-400">
+                    <span className="ml-1.5 text-xs font-normal text-[#6e5f52]">
                       ({cand.priceTarget12m > cand.priceAtAnalysis ? '+' : ''}{fmt((cand.priceTarget12m / cand.priceAtAnalysis - 1) * 100, 0)}% upside)
                     </span>
                   </div>
@@ -267,14 +267,14 @@ function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
               )}
               {cand.analystConsensus && (
                 <div>
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Analyst Consensus</div>
-                  <div className="text-sm font-semibold text-zinc-200">{cand.analystConsensus}</div>
+                  <div className="text-[10px] text-[#9e9087] uppercase tracking-wide">Analyst Consensus</div>
+                  <div className="text-sm font-semibold text-[#2d2218]">{cand.analystConsensus}</div>
                 </div>
               )}
               {cand.priceAtAnalysis > 0 && (
                 <div>
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Current Price</div>
-                  <div className="text-sm font-semibold text-zinc-400">${fmt(cand.priceAtAnalysis)}</div>
+                  <div className="text-[10px] text-[#9e9087] uppercase tracking-wide">Current Price</div>
+                  <div className="text-sm font-semibold text-[#6e5f52]">${fmt(cand.priceAtAnalysis)}</div>
                 </div>
               )}
             </div>
@@ -284,7 +284,7 @@ function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
               <div>
                 <div className="mb-1.5 text-xs font-semibold text-emerald-400 uppercase tracking-wide">Catalysts</div>
                 <ul className="space-y-1">{cand.catalysts.map((c, i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-xs text-zinc-300"><span className="text-emerald-500 mt-0.5">+</span>{c}</li>
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-[#4a3d33]"><span className="text-emerald-500 mt-0.5">+</span>{c}</li>
                 ))}</ul>
               </div>
             )}
@@ -292,7 +292,7 @@ function BuyCandidateCard({ cand }: { cand: BuyCandidate }) {
               <div>
                 <div className="mb-1.5 text-xs font-semibold text-red-400 uppercase tracking-wide">Risks</div>
                 <ul className="space-y-1">{cand.risks.map((r, i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-xs text-zinc-300"><span className="text-red-500 mt-0.5">-</span>{r}</li>
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-[#4a3d33]"><span className="text-red-500 mt-0.5">-</span>{r}</li>
                 ))}</ul>
               </div>
             )}
@@ -310,30 +310,30 @@ function MarketEventCard({ event }: { event: MarketEvent }) {
   return (
     <div className={`rounded-xl border ${URGENCY_COLOR[event.urgency]} overflow-hidden`}>
       <button
-        className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-white/5 transition-colors"
+        className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-black/5 transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         <div className="flex-shrink-0 text-center min-w-[48px]">
-          <div className="text-xs text-zinc-500">{event.daysUntil === 0 ? 'Today' : `${event.daysUntil}d`}</div>
-          <div className="text-xs font-medium text-zinc-400">{event.date.slice(5)}</div>
+          <div className="text-xs text-[#9e9087]">{event.daysUntil === 0 ? 'Today' : `${event.daysUntil}d`}</div>
+          <div className="text-xs font-medium text-[#6e5f52]">{event.date.slice(5)}</div>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-zinc-200">{event.event}</div>
-          <div className="text-xs text-zinc-400 mt-0.5 truncate">{event.marketExpectation}</div>
+          <div className="text-sm font-semibold text-[#2d2218]">{event.event}</div>
+          <div className="text-xs text-[#6e5f52] mt-0.5 truncate">{event.marketExpectation}</div>
         </div>
-        <div className="flex-shrink-0 text-zinc-600">
+        <div className="flex-shrink-0 text-[#b8ad9e]">
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </button>
       {expanded && (
         <div className="border-t border-white/5 px-4 py-3 space-y-2">
           <div>
-            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">Portfolio Impact</div>
-            <p className="text-sm text-zinc-300">{event.portfolioImpact}</p>
+            <div className="text-xs font-semibold text-[#9e9087] uppercase tracking-wide mb-1">Portfolio Impact</div>
+            <p className="text-sm text-[#4a3d33]">{event.portfolioImpact}</p>
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">Suggested Action</div>
-            <p className="text-sm text-zinc-300">{event.suggestedAction}</p>
+            <div className="text-xs font-semibold text-[#9e9087] uppercase tracking-wide mb-1">Suggested Action</div>
+            <p className="text-sm text-[#4a3d33]">{event.suggestedAction}</p>
           </div>
         </div>
       )}
@@ -354,10 +354,10 @@ function RebalanceTab({ run }: { run: AdvisorRun }) {
 
   if (!plan) {
     return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-10 text-center">
-        <Scale className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
-        <p className="text-sm text-zinc-400 mb-1">No target allocation configured</p>
-        <p className="text-xs text-zinc-600">Set a target allocation in your investor profile during onboarding to enable automated drift analysis.</p>
+      <div className="rounded-xl border border-[#e5ddd3] bg-white px-6 py-10 text-center">
+        <Scale className="h-8 w-8 text-[#c8c0b5] mx-auto mb-3" />
+        <p className="text-sm text-[#6e5f52] mb-1">No target allocation configured</p>
+        <p className="text-xs text-[#b8ad9e]">Set a target allocation in your investor profile during onboarding to enable automated drift analysis.</p>
       </div>
     );
   }
@@ -369,48 +369,48 @@ function RebalanceTab({ run }: { run: AdvisorRun }) {
       {/* Tax note banner */}
       <div className={`rounded-xl border px-4 py-3 flex items-start gap-2 ${
         plan.estimatedTaxNote.includes('short-term') || plan.estimatedTaxNote.includes('Short-term')
-          ? 'border-amber-500/30 bg-amber-500/10'
+          ? 'border-amber-300 bg-amber-500/10'
           : plan.trades.length === 0
-            ? 'border-emerald-700/40 bg-emerald-900/20'
-            : 'border-blue-700/40 bg-blue-900/20'
+            ? 'border-emerald-300 bg-emerald-50'
+            : 'border-blue-200 bg-blue-50'
       }`}>
         <AlertTriangle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${
           plan.estimatedTaxNote.includes('hort-term') ? 'text-amber-400'
           : plan.trades.length === 0 ? 'text-emerald-400' : 'text-blue-400'
         }`} />
-        <p className="text-xs text-zinc-300">{plan.estimatedTaxNote}</p>
+        <p className="text-xs text-[#4a3d33]">{plan.estimatedTaxNote}</p>
       </div>
 
       {/* Drift analysis table */}
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-300">Allocation Drift  <span className="text-zinc-600 font-normal text-xs">·  ±{plan.bandPct}% rebalancing band</span></h3>
+          <h3 className="text-sm font-semibold text-[#4a3d33]">Allocation Drift  <span className="text-[#b8ad9e] font-normal text-xs">·  ±{plan.bandPct}% rebalancing band</span></h3>
           {driftCount > 0 && <span className="text-xs text-amber-400">{driftCount} class{driftCount > 1 ? 'es' : ''} out of band</span>}
         </div>
-        <div className="rounded-xl border border-zinc-800 overflow-hidden overflow-x-auto">
+        <div className="rounded-xl border border-[#e5ddd3] overflow-hidden overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-zinc-800 bg-zinc-900/60">
-                <th className="px-4 py-2.5 text-left text-zinc-500 font-medium">Asset Class</th>
-                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Target</th>
-                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Current</th>
-                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Drift</th>
-                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">$ Delta</th>
-                <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Status</th>
+              <tr className="border-b border-[#e5ddd3] bg-[#f0ebe1]/80">
+                <th className="px-4 py-2.5 text-left text-[#9e9087] font-medium">Asset Class</th>
+                <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Target</th>
+                <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Current</th>
+                <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Drift</th>
+                <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">$ Delta</th>
+                <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
               {plan.driftItems.map((item, i) => (
-                <tr key={i} className={`border-b border-zinc-800/50 ${item.status !== 'ok' ? 'bg-amber-900/10' : 'bg-zinc-900'}`}>
-                  <td className="px-4 py-2.5 font-medium text-zinc-200">{item.assetClass}</td>
-                  <td className="px-4 py-2.5 text-right text-zinc-400">{item.targetPct.toFixed(1)}%</td>
-                  <td className="px-4 py-2.5 text-right text-zinc-400">{item.currentPct.toFixed(1)}%</td>
+                <tr key={i} className={`border-b border-[#e5ddd3]/50 ${item.status !== 'ok' ? 'bg-amber-50' : 'bg-white'}`}>
+                  <td className="px-4 py-2.5 font-medium text-[#2d2218]">{item.assetClass}</td>
+                  <td className="px-4 py-2.5 text-right text-[#6e5f52]">{item.targetPct.toFixed(1)}%</td>
+                  <td className="px-4 py-2.5 text-right text-[#6e5f52]">{item.currentPct.toFixed(1)}%</td>
                   <td className={`px-4 py-2.5 text-right font-semibold ${
-                    item.driftPct > 0 ? 'text-amber-400' : item.driftPct < 0 ? 'text-blue-400' : 'text-zinc-500'
+                    item.driftPct > 0 ? 'text-amber-400' : item.driftPct < 0 ? 'text-blue-400' : 'text-[#9e9087]'
                   }`}>
                     {item.driftPct > 0 ? '+' : ''}{item.driftPct.toFixed(1)}%
                   </td>
-                  <td className={`px-4 py-2.5 text-right ${item.dollarDelta > 0 ? 'text-amber-400' : item.dollarDelta < 0 ? 'text-blue-400' : 'text-zinc-500'}`}>
+                  <td className={`px-4 py-2.5 text-right ${item.dollarDelta > 0 ? 'text-amber-400' : item.dollarDelta < 0 ? 'text-blue-400' : 'text-[#9e9087]'}`}>
                     {item.dollarDelta > 0 ? '+' : ''}{fmtM(item.dollarDelta)}
                   </td>
                   <td className="px-4 py-2.5 text-right"><DriftStatusBadge status={item.status} /></td>
@@ -425,18 +425,18 @@ function RebalanceTab({ run }: { run: AdvisorRun }) {
       {plan.trades.length > 0 ? (
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-zinc-300">Rebalancing Trade Plan</h3>
-            <span className="text-xs text-zinc-500">Total volume: {fmtM(plan.totalRebalanceVolume)}</span>
+            <h3 className="text-sm font-semibold text-[#4a3d33]">Rebalancing Trade Plan</h3>
+            <span className="text-xs text-[#9e9087]">Total volume: {fmtM(plan.totalRebalanceVolume)}</span>
           </div>
           <div className="space-y-2">
             {plan.trades.map((trade, i) => <RebalanceTradeCard key={i} trade={trade} />)}
           </div>
-          <p className="mt-3 text-xs text-zinc-600">
+          <p className="mt-3 text-xs text-[#b8ad9e]">
             * Share counts are estimates based on current prices. Verify exact quantities before placing orders.
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-emerald-700/30 bg-emerald-900/10 px-5 py-4 text-center">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center">
           <p className="text-sm text-emerald-400">Portfolio is within the ±{plan.bandPct}% rebalancing band — no trades needed.</p>
         </div>
       )}
@@ -447,7 +447,7 @@ function RebalanceTab({ run }: { run: AdvisorRun }) {
 function RebalanceTradeCard({ trade }: { trade: RebalanceTrade }) {
   const isBuy = trade.action === 'buy';
   return (
-    <div className={`rounded-xl border px-4 py-3 ${isBuy ? 'border-emerald-800/40 bg-emerald-900/10' : 'border-red-800/40 bg-red-900/10'}`}>
+    <div className={`rounded-xl border px-4 py-3 ${isBuy ? 'border-emerald-300 bg-emerald-50' : 'border-red-200 bg-red-50'}`}>
       <div className="flex items-start gap-3">
         <div className={`flex-shrink-0 rounded border px-2 py-0.5 text-xs font-bold ${
           isBuy ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-red-500/20 text-red-300 border-red-500/40'
@@ -456,22 +456,22 @@ function RebalanceTradeCard({ trade }: { trade: RebalanceTrade }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="font-bold text-zinc-100">{trade.symbol}</span>
-            <span className="text-xs text-zinc-400 truncate">{trade.name}</span>
+            <span className="font-bold text-[#1c1612]">{trade.symbol}</span>
+            <span className="text-xs text-[#6e5f52] truncate">{trade.name}</span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
-            {trade.shares > 0 && <span><span className="text-zinc-300 font-semibold">~{trade.shares} shares</span><span className="text-zinc-600 ml-1">(est.)</span></span>}
-            <span><span className="text-zinc-300 font-semibold">{fmtM(trade.dollarAmount)}</span></span>
-            <span className="text-zinc-600 capitalize">{trade.accountType.replace('_', ' ')}</span>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#6e5f52]">
+            {trade.shares > 0 && <span><span className="text-[#4a3d33] font-semibold">~{trade.shares} shares</span><span className="text-[#b8ad9e] ml-1">(est.)</span></span>}
+            <span><span className="text-[#4a3d33] font-semibold">{fmtM(trade.dollarAmount)}</span></span>
+            <span className="text-[#b8ad9e] capitalize">{trade.accountType.replace('_', ' ')}</span>
           </div>
-          <p className="mt-1 text-xs text-zinc-500">{trade.reason}</p>
+          <p className="mt-1 text-xs text-[#9e9087]">{trade.reason}</p>
         </div>
       </div>
       {trade.taxImpact && (
         <div className={`mt-2 flex items-start gap-1.5 text-xs rounded px-2 py-1.5 ${
-          trade.taxImpact.includes('TLH') ? 'bg-emerald-900/30 text-emerald-400'
-          : trade.taxImpact.includes('Short-term') ? 'bg-amber-900/30 text-amber-400'
-          : 'bg-zinc-800/60 text-zinc-400'
+          trade.taxImpact.includes('TLH') ? 'bg-emerald-50 text-emerald-400'
+          : trade.taxImpact.includes('Short-term') ? 'bg-amber-100 text-amber-400'
+          : 'bg-[#ede8df]/60 text-[#6e5f52]'
         }`}>
           <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
           {trade.taxImpact}
@@ -486,60 +486,60 @@ function RebalanceTradeCard({ trade }: { trade: RebalanceTrade }) {
 function TLHCard({ opp }: { opp: TLHOpportunity }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div className="rounded-xl border border-[#e5ddd3] bg-white overflow-hidden">
       <button
-        className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-zinc-800/40 transition-colors"
+        className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-[#ede8df]/40 transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         <div className="flex-shrink-0 min-w-[80px]">
-          <div className="text-base font-bold text-zinc-100">{opp.symbol}</div>
+          <div className="text-base font-bold text-[#1c1612]">{opp.symbol}</div>
           <div className="mt-1 inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-semibold bg-amber-500/20 text-amber-300 border-amber-500/40">
             <Scissors className="h-3 w-3" /> Harvest
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm text-zinc-200">
+          <div className="text-sm text-[#2d2218]">
             <span className="text-red-400 font-semibold">{fmtM(opp.unrealizedLoss)}</span>
-            <span className="text-zinc-500"> unrealized loss</span>
-            <span className="text-zinc-600 text-xs ml-2">({opp.unrealizedLossPct.toFixed(1)}%)</span>
+            <span className="text-[#9e9087]"> unrealized loss</span>
+            <span className="text-[#b8ad9e] text-xs ml-2">({opp.unrealizedLossPct.toFixed(1)}%)</span>
           </div>
-          <div className="mt-1 text-xs text-zinc-400">
+          <div className="mt-1 text-xs text-[#6e5f52]">
             Est. tax savings: <span className="text-emerald-400 font-semibold">{fmtM(opp.estimatedTaxSavings)}</span>
-            <span className="ml-2 text-zinc-600 capitalize">· {opp.holdingType}</span>
+            <span className="ml-2 text-[#b8ad9e] capitalize">· {opp.holdingType}</span>
           </div>
           {opp.effectiveSaleValue > 0 && (
             <div className="mt-1 text-xs">
-              <span className="text-zinc-500">Effective proceeds: </span>
+              <span className="text-[#9e9087]">Effective proceeds: </span>
               <span className="text-emerald-400 font-semibold">{fmtM(opp.effectiveSaleValue)}</span>
-              <span className="text-zinc-600"> ({fmtM(opp.currentPositionValue)} market + {fmtM(opp.estimatedTaxSavings)} tax credit)</span>
+              <span className="text-[#b8ad9e]"> ({fmtM(opp.currentPositionValue)} market + {fmtM(opp.estimatedTaxSavings)} tax credit)</span>
             </div>
           )}
         </div>
-        <div className="flex-shrink-0 text-zinc-600">
+        <div className="flex-shrink-0 text-[#b8ad9e]">
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </button>
       {expanded && (
-        <div className="border-t border-zinc-800 px-5 py-4 space-y-3">
+        <div className="border-t border-[#e5ddd3] px-5 py-4 space-y-3">
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <div className="text-zinc-500 mb-1">Sell</div>
+              <div className="text-[#9e9087] mb-1">Sell</div>
               <div className="font-semibold text-red-300">{opp.symbol} — {opp.name}</div>
-              <div className="text-zinc-400">{fmtM(opp.unrealizedLoss)} loss</div>
+              <div className="text-[#6e5f52]">{fmtM(opp.unrealizedLoss)} loss</div>
             </div>
             <div>
-              <div className="text-zinc-500 mb-1">Replace With</div>
+              <div className="text-[#9e9087] mb-1">Replace With</div>
               <div className="font-semibold text-emerald-300">{opp.suggestedReplacement}</div>
-              <div className="text-zinc-400">{opp.replacementRationale}</div>
+              <div className="text-[#6e5f52]">{opp.replacementRationale}</div>
             </div>
           </div>
-          <div className="rounded-lg bg-amber-900/20 border border-amber-800/30 px-3 py-2 text-xs text-amber-300">
+          <div className="rounded-lg bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-300">
             <span className="font-semibold">Wash Sale Window:</span> Do not repurchase {opp.symbol} before {opp.washSaleWindowEnd}
           </div>
-          <div className="text-xs text-zinc-500">
-            Account: <span className="text-zinc-300">{opp.accountType.replace('_', ' ')}</span>
+          <div className="text-xs text-[#9e9087]">
+            Account: <span className="text-[#4a3d33]">{opp.accountType.replace('_', ' ')}</span>
             {' · '}
-            Tax rate applied: <span className="text-zinc-300">{opp.holdingType === 'short-term' ? '22% (ordinary income)' : '15% (long-term capital gains)'}</span>
+            Tax rate applied: <span className="text-[#4a3d33]">{opp.holdingType === 'short-term' ? '22% (ordinary income)' : '15% (long-term capital gains)'}</span>
           </div>
         </div>
       )}
@@ -561,46 +561,46 @@ function TaxHarvestTab({ run }: { run: AdvisorRun }) {
   return (
     <div className="space-y-5">
       {opps.length === 0 ? (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-10 text-center">
-          <Scissors className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
-          <p className="text-sm text-zinc-400 mb-1">No harvesting opportunities right now</p>
-          <p className="text-xs text-zinc-600">Tax-loss harvesting candidates appear when taxable positions have unrealized losses &gt; 2%. Check back after market moves.</p>
+        <div className="rounded-xl border border-[#e5ddd3] bg-white px-6 py-10 text-center">
+          <Scissors className="h-8 w-8 text-[#c8c0b5] mx-auto mb-3" />
+          <p className="text-sm text-[#6e5f52] mb-1">No harvesting opportunities right now</p>
+          <p className="text-xs text-[#b8ad9e]">Tax-loss harvesting candidates appear when taxable positions have unrealized losses &gt; 2%. Check back after market moves.</p>
         </div>
       ) : (
         <>
           {/* Gain/loss budget — from tax-loss-harvesting skill Step 2 */}
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 space-y-3">
-            <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Gain/Loss Budget</div>
+          <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3 space-y-3">
+            <div className="text-xs font-semibold text-[#6e5f52] uppercase tracking-wide">Gain/Loss Budget</div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
-                <div className="text-xs text-zinc-500">ST Losses (22%)</div>
+                <div className="text-xs text-[#9e9087]">ST Losses (22%)</div>
                 <div className="text-xl font-bold text-red-400 mt-1">{fmtM(stLoss)}</div>
                 <div className="text-xs text-emerald-500 mt-0.5">saves {fmtM(stSavings)}</div>
               </div>
               <div>
-                <div className="text-xs text-zinc-500">LT Losses (15%)</div>
+                <div className="text-xs text-[#9e9087]">LT Losses (15%)</div>
                 <div className="text-xl font-bold text-red-300 mt-1">{fmtM(ltLoss)}</div>
                 <div className="text-xs text-emerald-500 mt-0.5">saves {fmtM(ltSavings)}</div>
               </div>
               <div>
-                <div className="text-xs text-zinc-500">Total Harvestable</div>
-                <div className="text-xl font-bold text-zinc-100 mt-1">{fmtM(totalLoss)}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">{opps.length} positions</div>
+                <div className="text-xs text-[#9e9087]">Total Harvestable</div>
+                <div className="text-xl font-bold text-[#1c1612] mt-1">{fmtM(totalLoss)}</div>
+                <div className="text-xs text-[#9e9087] mt-0.5">{opps.length} positions</div>
               </div>
               <div>
-                <div className="text-xs text-zinc-500">Est. Tax Saved</div>
+                <div className="text-xs text-[#9e9087]">Est. Tax Saved</div>
                 <div className="text-xl font-bold text-emerald-400 mt-1">{fmtM(totalSavings)}</div>
-                <div className="text-xs text-zinc-600 mt-0.5">at blended rate</div>
+                <div className="text-xs text-[#b8ad9e] mt-0.5">at blended rate</div>
               </div>
             </div>
-            <div className="text-[10px] text-zinc-600 leading-relaxed border-t border-zinc-800 pt-2">
+            <div className="text-[10px] text-[#b8ad9e] leading-relaxed border-t border-[#e5ddd3] pt-2">
               <span className="text-amber-400 font-semibold">Priority:</span> Harvest short-term losses first — they offset ordinary income (22%+) vs. long-term gains (15%).
-              {' '}Net losses up to <span className="text-zinc-300">$3,000/yr</span> deduct against ordinary income; excess <span className="text-zinc-300">carries forward</span> indefinitely.
+              {' '}Net losses up to <span className="text-[#4a3d33]">$3,000/yr</span> deduct against ordinary income; excess <span className="text-[#4a3d33]">carries forward</span> indefinitely.
               Coordinate across IRA/Roth/spouse accounts to avoid wash sales.
             </div>
           </div>
 
-          <div className="rounded-xl border border-amber-800/30 bg-amber-900/10 px-4 py-3 text-xs text-amber-300">
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-300">
             <span className="font-semibold">Wash sale rule:</span> After selling to harvest, wait 30 days before repurchasing the same or substantially identical security. Coordinate across all accounts (IRA, Roth, spouse).
           </div>
 
@@ -608,7 +608,7 @@ function TaxHarvestTab({ run }: { run: AdvisorRun }) {
             {/* Short-term first per skill priority */}
             {[...stOpps, ...ltOpps].map((opp, i) => <TLHCard key={i} opp={opp} />)}
           </div>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-[#b8ad9e]">
             * Tax estimates use 22% for short-term losses and 15% for long-term losses. Consult a tax advisor for your actual rates. Harvesting resets cost basis — more gains when you eventually sell the replacement.
           </p>
         </>
@@ -621,7 +621,7 @@ function TaxHarvestTab({ run }: { run: AdvisorRun }) {
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-zinc-800 ${className}`} />;
+  return <div className={`animate-pulse rounded bg-[#ede8df] ${className}`} />;
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -712,58 +712,58 @@ export default function AdvisorPage() {
   const recCount        = (run?.recommendations.length ?? 0) + (run?.buyCandidates.length ?? 0);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
+    <div className="flex min-h-screen flex-col bg-[#f7f2eb]">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+      <header className="flex items-center justify-between border-b border-[#e5ddd3] px-3 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
-          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
+          <span className="text-sm sm:text-base font-semibold text-[#1c1612] whitespace-nowrap">Beta than nothing</span>
           <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
-            <button onClick={() => router.push('/summary')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/summary')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Net Worth</span>
             </button>
-            <button onClick={() => router.push('/')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden text-[10px]">Dash</span>
             </button>
-            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-800 flex-shrink-0">
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#4a3d33] bg-[#ede8df] flex-shrink-0">
               <Zap className="h-3.5 w-3.5 text-amber-400" />
               <span className="hidden sm:inline">Advisor</span>
             </span>
-            <button onClick={() => router.push('/retirement')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/retirement')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <PiggyBank className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Retirement</span>
             </button>
-            <button onClick={() => router.push('/real-estate')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/real-estate')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Home className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Real Estate</span>
             </button>
-            <button onClick={() => router.push('/other-assets')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/other-assets')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Layers className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Other</span>
             </button>
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-xs text-zinc-500">
+          <div className="flex items-center gap-2 text-xs text-[#9e9087]">
             <Clock className="h-3.5 w-3.5" />
             <button
               onClick={toggleAutoRun}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1 border transition-colors ${
                 autoRunEnabled
-                  ? 'border-emerald-700 bg-emerald-900/30 text-emerald-400'
-                  : 'border-zinc-700 bg-zinc-900 text-zinc-500'
+                  ? 'border-emerald-700 bg-emerald-50 text-emerald-400'
+                  : 'border-[#d4c9bc] bg-white text-[#9e9087]'
               }`}
             >
-              <span className={`h-1.5 w-1.5 rounded-full ${autoRunEnabled ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${autoRunEnabled ? 'bg-emerald-400' : 'bg-[#b8ad9e]'}`} />
               {autoRunEnabled ? 'Auto-run on' : 'Auto-run off'}
             </button>
-            {runLabel && <span className="text-zinc-600">{runLabel}</span>}
+            {runLabel && <span className="text-[#b8ad9e]">{runLabel}</span>}
           </div>
           <button
             onClick={analyze}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-3 py-1.5 text-xs text-[#4a3d33] hover:bg-[#ede8df] transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Analyzing…' : 'Run Now'}
@@ -774,7 +774,7 @@ export default function AdvisorPage() {
       <main className="flex-1 px-3 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-5 max-w-5xl mx-auto w-full">
         {/* Error */}
         {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-300">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-300">
             {error}
           </div>
         )}
@@ -782,9 +782,9 @@ export default function AdvisorPage() {
         {/* Loading state */}
         {loading && !run && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-blue-900/40 bg-blue-950/20 px-5 py-4 flex items-center gap-3">
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 flex items-center gap-3">
               <RefreshCw className="h-4 w-4 text-blue-400 animate-spin flex-shrink-0" />
-              <span className="text-sm text-zinc-300">Analyzing your portfolio with GPT-4o…</span>
+              <span className="text-sm text-[#4a3d33]">Analyzing your portfolio with GPT-4o…</span>
             </div>
             <Skeleton className="h-20" />
             <div className="grid grid-cols-3 gap-3">
@@ -796,10 +796,10 @@ export default function AdvisorPage() {
 
         {/* Empty state */}
         {!loading && !run && !error && (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-12 text-center">
+          <div className="rounded-xl border border-[#e5ddd3] bg-white px-6 py-12 text-center">
             <Zap className="h-10 w-10 text-amber-400/40 mx-auto mb-4" />
-            <p className="text-base font-semibold text-zinc-300 mb-2">No analysis yet</p>
-            <p className="text-sm text-zinc-500 mb-6">
+            <p className="text-base font-semibold text-[#4a3d33] mb-2">No analysis yet</p>
+            <p className="text-sm text-[#9e9087] mb-6">
               {autoRunEnabled
                 ? 'Auto-run is on — the advisor will run automatically on the next market day.'
                 : 'Auto-run is off. Click Run Now to get your first portfolio analysis.'}
@@ -817,66 +817,66 @@ export default function AdvisorPage() {
         {run && (
           <>
             {/* Executive Summary */}
-            <div className="rounded-xl border border-blue-900/40 bg-blue-950/20 px-5 py-4">
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
               <div className="flex items-center gap-2 mb-2">
                 <Star className="h-4 w-4 text-blue-400" />
                 <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Portfolio Assessment</span>
-                <span className="ml-auto text-xs text-zinc-600">
+                <span className="ml-auto text-xs text-[#b8ad9e]">
                   {new Date(run.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-              <p className="text-sm text-zinc-200 leading-relaxed">{run.executiveSummary}</p>
+              <p className="text-sm text-[#2d2218] leading-relaxed">{run.executiveSummary}</p>
             </div>
 
             {/* Retirement snapshot (financial-plan skill) — click to open full planning page */}
             {run.retirementProjection && (
               <button
                 onClick={() => router.push('/retirement')}
-                className="w-full text-left rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4 hover:bg-zinc-800/60 transition-colors group"
+                className="w-full text-left rounded-xl border border-[#e5ddd3] bg-white px-5 py-4 hover:bg-[#ede8df]/60 transition-colors group"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <PiggyBank className="h-4 w-4 text-purple-400" />
-                  <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Retirement Projection</span>
+                  <PiggyBank className="h-4 w-4 text-[#da7756]" />
+                  <span className="text-xs font-semibold text-[#da7756] uppercase tracking-wide">Retirement Projection</span>
                   {run.retirementProjection.successProbability != null && (
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border ${
                       run.retirementProjection.successProbability >= 85
-                        ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/40'
+                        ? 'bg-emerald-100 text-emerald-300 border-emerald-300'
                         : run.retirementProjection.successProbability >= 70
-                        ? 'bg-amber-900/40 text-amber-300 border-amber-700/40'
+                        ? 'bg-amber-900/40 text-amber-300 border-amber-300'
                         : 'bg-red-900/40 text-red-300 border-red-700/40'
                     }`}>
                       {run.retirementProjection.successProbability}% success to 90
                     </span>
                   )}
-                  <span className="ml-auto text-xs text-zinc-600 group-hover:text-zinc-400 transition-colors">View full plan →</span>
+                  <span className="ml-auto text-xs text-[#b8ad9e] group-hover:text-[#6e5f52] transition-colors">View full plan →</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div><div className="text-xs text-zinc-500">Years to Retire</div><div className="text-2xl font-bold text-zinc-100">{run.retirementProjection.yearsToRetirement}</div></div>
-                  <div><div className="text-xs text-zinc-500">Base Case</div><div className="text-2xl font-bold text-purple-300">{fmtM(run.retirementProjection.projectedBase)}</div><div className="text-xs text-zinc-600">Bear: {fmtM(run.retirementProjection.projectedBear)}</div></div>
-                  <div><div className="text-xs text-zinc-500">Monthly Income</div><div className="text-2xl font-bold text-zinc-100">{fmtM(run.retirementProjection.monthlyIncome)}</div><div className="text-xs text-zinc-600">{fmtM(run.retirementProjection.safeWithdrawalAnnual)}/yr</div></div>
+                  <div><div className="text-xs text-[#9e9087]">Years to Retire</div><div className="text-2xl font-bold text-[#1c1612]">{run.retirementProjection.yearsToRetirement}</div></div>
+                  <div><div className="text-xs text-[#9e9087]">Base Case</div><div className="text-2xl font-bold text-[#da7756]">{fmtM(run.retirementProjection.projectedBase)}</div><div className="text-xs text-[#b8ad9e]">Bear: {fmtM(run.retirementProjection.projectedBear)}</div></div>
+                  <div><div className="text-xs text-[#9e9087]">Monthly Income</div><div className="text-2xl font-bold text-[#1c1612]">{fmtM(run.retirementProjection.monthlyIncome)}</div><div className="text-xs text-[#b8ad9e]">{fmtM(run.retirementProjection.safeWithdrawalAnnual)}/yr</div></div>
                   <div>
-                    <div className="text-xs text-zinc-500">Monte Carlo</div>
+                    <div className="text-xs text-[#9e9087]">Monte Carlo</div>
                     <div className={`text-2xl font-bold ${
                       (run.retirementProjection.successProbability ?? 0) >= 85 ? 'text-emerald-400'
                       : (run.retirementProjection.successProbability ?? 0) >= 70 ? 'text-amber-400' : 'text-red-400'
                     }`}>
                       {run.retirementProjection.successProbability != null ? `${run.retirementProjection.successProbability}%` : '—'}
                     </div>
-                    <div className="text-xs text-zinc-600">target &gt;85%</div>
+                    <div className="text-xs text-[#b8ad9e]">target &gt;85%</div>
                   </div>
                 </div>
                 {/* Scenario comparison from financial-plan skill */}
                 {run.retirementProjection.scenarios && run.retirementProjection.scenarios.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-zinc-800 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="mt-3 pt-3 border-t border-[#e5ddd3] grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {run.retirementProjection.scenarios.map((s, i) => (
-                      <div key={i} className="rounded-lg bg-zinc-800/60 border border-zinc-700/40 px-3 py-2">
-                        <div className="text-[10px] text-zinc-500 mb-1 truncate">{s.label}</div>
-                        <div className="text-sm font-bold text-zinc-200">{fmtM(s.portfolioAtRetirement)}</div>
+                      <div key={i} className="rounded-lg bg-white/60 border border-[#d4c9bc]/40 px-3 py-2">
+                        <div className="text-[10px] text-[#9e9087] mb-1 truncate">{s.label}</div>
+                        <div className="text-sm font-bold text-[#2d2218]">{fmtM(s.portfolioAtRetirement)}</div>
                         <div className="flex items-baseline gap-1.5 mt-0.5">
                           <span className={`text-xs font-semibold ${
                             s.successProbability >= 85 ? 'text-emerald-400' : s.successProbability >= 70 ? 'text-amber-400' : 'text-red-400'
                           }`}>{s.successProbability}%</span>
-                          <span className="text-[10px] text-zinc-600">{fmtM(s.monthlyIncome)}/mo</span>
+                          <span className="text-[10px] text-[#b8ad9e]">{fmtM(s.monthlyIncome)}/mo</span>
                         </div>
                       </div>
                     ))}
@@ -889,8 +889,8 @@ export default function AdvisorPage() {
             {run.marketEvents.length > 0 && (
               <div>
                 <div className="mb-3 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-zinc-500" />
-                  <h2 className="text-sm font-semibold text-zinc-300">Upcoming Market Events</h2>
+                  <Calendar className="h-4 w-4 text-[#9e9087]" />
+                  <h2 className="text-sm font-semibold text-[#4a3d33]">Upcoming Market Events</h2>
                 </div>
                 <div className="space-y-2">
                   {run.marketEvents.sort((a, b) => a.daysUntil - b.daysUntil).map((e, i) => (
@@ -901,7 +901,7 @@ export default function AdvisorPage() {
             )}
 
             {/* Tab navigation */}
-            <div className="flex flex-wrap gap-1 rounded-lg bg-zinc-900 p-1 w-fit border border-zinc-800">
+            <div className="flex flex-wrap gap-1 rounded-lg bg-white p-1 w-fit border border-[#e5ddd3]">
               <TabButton id="recommendations" active={activeTab} onClick={setActiveTab} icon={<Target className="h-3.5 w-3.5" />} label="Recommendations" count={recCount} />
               <TabButton id="rebalance"       active={activeTab} onClick={setActiveTab} icon={<Scale className="h-3.5 w-3.5" />}  label="Rebalance"       count={rebalanceCount} alert={rebalanceCount > 0} />
               <TabButton id="tax-harvest"     active={activeTab} onClick={setActiveTab} icon={<Scissors className="h-3.5 w-3.5" />} label="Tax & Harvest" count={tlhCount} alert={tlhCount > 0} />
@@ -911,7 +911,7 @@ export default function AdvisorPage() {
             {activeTab === 'recommendations' && (
               <div className="space-y-5">
                 <div>
-                  <h2 className="mb-3 text-sm font-semibold text-zinc-400 uppercase tracking-wide">
+                  <h2 className="mb-3 text-sm font-semibold text-[#6e5f52] uppercase tracking-wide">
                     Your Positions — {run.recommendations.length} calls
                   </h2>
                   <div className="space-y-2">
@@ -926,7 +926,7 @@ export default function AdvisorPage() {
                 </div>
                 {run.buyCandidates.length > 0 && (
                   <div>
-                    <h2 className="mb-3 text-sm font-semibold text-zinc-400 uppercase tracking-wide">
+                    <h2 className="mb-3 text-sm font-semibold text-[#6e5f52] uppercase tracking-wide">
                       New Ideas — {run.buyCandidates.length} candidates
                     </h2>
                     <div className="space-y-2">
@@ -944,46 +944,46 @@ export default function AdvisorPage() {
             {activeTab === 'track-record' && (
               <div className="space-y-5">
                 {history.length < 2 ? (
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-8 text-center">
-                    <BarChart3 className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-zinc-400 mb-1">Track record starts building tomorrow</p>
-                    <p className="text-xs text-zinc-600">
+                  <div className="rounded-xl border border-[#e5ddd3] bg-white px-5 py-8 text-center">
+                    <BarChart3 className="h-8 w-8 text-[#c8c0b5] mx-auto mb-3" />
+                    <p className="text-sm font-medium text-[#6e5f52] mb-1">Track record starts building tomorrow</p>
+                    <p className="text-xs text-[#b8ad9e]">
                       After the second analysis run, returns are computed by comparing recommendation prices to current prices.
                       {history.length === 1 && ` Today's analysis is logged — check back after the next market day.`}
                     </p>
                   </div>
                 ) : !trackRecord || trackRecord.totalCalls === 0 ? (
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-8 text-center text-sm text-zinc-500">
+                  <div className="rounded-xl border border-[#e5ddd3] bg-white px-5 py-8 text-center text-sm text-[#9e9087]">
                     No recommendations to track yet.
                   </div>
                 ) : (
                   <>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-                        <div className="text-xs text-zinc-500">Total Calls</div>
-                        <div className="text-xl font-bold text-zinc-100 mt-1">{trackRecord.totalCalls}</div>
-                        <div className="text-xs text-zinc-500">{trackRecord.goodCalls} good</div>
+                      <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+                        <div className="text-xs text-[#9e9087]">Total Calls</div>
+                        <div className="text-xl font-bold text-[#1c1612] mt-1">{trackRecord.totalCalls}</div>
+                        <div className="text-xs text-[#9e9087]">{trackRecord.goodCalls} good</div>
                       </div>
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-                        <div className="text-xs text-zinc-500">Accuracy</div>
+                      <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+                        <div className="text-xs text-[#9e9087]">Accuracy</div>
                         <div className={`text-xl font-bold mt-1 ${(trackRecord.accuracyPct ?? 0) >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {trackRecord.accuracyPct != null ? `${fmt(trackRecord.accuracyPct, 0)}%` : '—'}
                         </div>
-                        <div className="text-xs text-zinc-500">correct direction</div>
+                        <div className="text-xs text-[#9e9087]">correct direction</div>
                       </div>
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-                        <div className="text-xs text-zinc-500">Ghost Portfolio</div>
+                      <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+                        <div className="text-xs text-[#9e9087]">Ghost Portfolio</div>
                         <div className={`text-xl font-bold mt-1 ${(trackRecord.ghostPortfolioReturnPct ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {trackRecord.ghostPortfolioReturnPct != null ? fmtPct(trackRecord.ghostPortfolioReturnPct) : '—'}
                         </div>
-                        <div className="text-xs text-zinc-500">avg buy return</div>
+                        <div className="text-xs text-[#9e9087]">avg buy return</div>
                       </div>
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-                        <div className="text-xs text-zinc-500">Actual Portfolio</div>
+                      <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+                        <div className="text-xs text-[#9e9087]">Actual Portfolio</div>
                         <div className={`text-xl font-bold mt-1 ${(trackRecord.actualPortfolioReturnPct ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {trackRecord.actualPortfolioReturnPct != null ? fmtPct(trackRecord.actualPortfolioReturnPct) : '—'}
                         </div>
-                        <div className="text-xs text-zinc-500">since tracking started</div>
+                        <div className="text-xs text-[#9e9087]">since tracking started</div>
                       </div>
                     </div>
 
@@ -992,10 +992,10 @@ export default function AdvisorPage() {
                         <div className="mb-2 text-xs font-semibold text-emerald-400 uppercase tracking-wide">Best Calls</div>
                         <div className="space-y-1">
                           {trackRecord.topWins.map((c, i) => (
-                            <div key={i} className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5">
-                              <span className="text-sm font-bold text-zinc-200 w-14">{c.symbol}</span>
+                            <div key={i} className="flex items-center gap-3 rounded-lg border border-[#e5ddd3] bg-white px-4 py-2.5">
+                              <span className="text-sm font-bold text-[#2d2218] w-14">{c.symbol}</span>
                               <span className={`text-xs rounded border px-1.5 py-0.5 font-semibold ${ACTION_META[c.action]?.color ?? ''}`}>{c.action.toUpperCase()}</span>
-                              <span className="text-xs text-zinc-400 flex-1 truncate">{c.summary}</span>
+                              <span className="text-xs text-[#6e5f52] flex-1 truncate">{c.summary}</span>
                               <span className={`text-sm font-semibold ${(c.returnPct ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {c.returnPct != null ? fmtPct(c.returnPct) : '—'}
                               </span>
@@ -1010,10 +1010,10 @@ export default function AdvisorPage() {
                         <div className="mb-2 text-xs font-semibold text-red-400 uppercase tracking-wide">Learning Opportunities</div>
                         <div className="space-y-1">
                           {trackRecord.topMisses.map((c, i) => (
-                            <div key={i} className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5">
-                              <span className="text-sm font-bold text-zinc-200 w-14">{c.symbol}</span>
+                            <div key={i} className="flex items-center gap-3 rounded-lg border border-[#e5ddd3] bg-white px-4 py-2.5">
+                              <span className="text-sm font-bold text-[#2d2218] w-14">{c.symbol}</span>
                               <span className={`text-xs rounded border px-1.5 py-0.5 font-semibold ${ACTION_META[c.action]?.color ?? ''}`}>{c.action.toUpperCase()}</span>
-                              <span className="text-xs text-zinc-400 flex-1 truncate">{c.summary}</span>
+                              <span className="text-xs text-[#6e5f52] flex-1 truncate">{c.summary}</span>
                               <span className={`text-sm font-semibold ${(c.returnPct ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {c.returnPct != null ? fmtPct(c.returnPct) : '—'}
                               </span>
@@ -1024,34 +1024,34 @@ export default function AdvisorPage() {
                     )}
 
                     <div>
-                      <div className="mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+                      <div className="mb-2 text-xs font-semibold text-[#9e9087] uppercase tracking-wide">
                         All {trackRecord.calls.length} Recommendations
                       </div>
-                      <div className="rounded-xl border border-zinc-800 overflow-hidden overflow-x-auto">
+                      <div className="rounded-xl border border-[#e5ddd3] overflow-hidden overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="border-b border-zinc-800 bg-zinc-900/60">
-                              <th className="px-4 py-2.5 text-left text-zinc-500 font-medium">Date</th>
-                              <th className="px-4 py-2.5 text-left text-zinc-500 font-medium">Symbol</th>
-                              <th className="px-4 py-2.5 text-left text-zinc-500 font-medium">Action</th>
-                              <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Rec Price</th>
-                              <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Now</th>
-                              <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Return</th>
-                              <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Call</th>
+                            <tr className="border-b border-[#e5ddd3] bg-[#f0ebe1]/80">
+                              <th className="px-4 py-2.5 text-left text-[#9e9087] font-medium">Date</th>
+                              <th className="px-4 py-2.5 text-left text-[#9e9087] font-medium">Symbol</th>
+                              <th className="px-4 py-2.5 text-left text-[#9e9087] font-medium">Action</th>
+                              <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Rec Price</th>
+                              <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Now</th>
+                              <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Return</th>
+                              <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Call</th>
                             </tr>
                           </thead>
                           <tbody>
                             {trackRecord.calls.map((c, i) => (
-                              <tr key={i} className="border-b border-zinc-800/50 bg-zinc-900 hover:bg-zinc-800/40">
-                                <td className="px-4 py-2 text-zinc-500">{c.timestamp.slice(0, 10)}</td>
-                                <td className="px-4 py-2 font-semibold text-zinc-200">{c.symbol}</td>
+                              <tr key={i} className="border-b border-[#e5ddd3]/50 bg-white hover:bg-[#ede8df]/40">
+                                <td className="px-4 py-2 text-[#9e9087]">{c.timestamp.slice(0, 10)}</td>
+                                <td className="px-4 py-2 font-semibold text-[#2d2218]">{c.symbol}</td>
                                 <td className="px-4 py-2">
                                   <span className={`rounded border px-1.5 py-0.5 font-semibold ${ACTION_META[c.action]?.color ?? ''}`}>
                                     {c.action.toUpperCase()}
                                   </span>
                                 </td>
-                                <td className="px-4 py-2 text-right text-zinc-400">${fmt(c.priceAtRec)}</td>
-                                <td className="px-4 py-2 text-right text-zinc-400">
+                                <td className="px-4 py-2 text-right text-[#6e5f52]">${fmt(c.priceAtRec)}</td>
+                                <td className="px-4 py-2 text-right text-[#6e5f52]">
                                   {c.currentPrice != null ? `$${fmt(c.currentPrice)}` : '—'}
                                 </td>
                                 <td className={`px-4 py-2 text-right font-semibold ${(c.returnPct ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -1060,7 +1060,7 @@ export default function AdvisorPage() {
                                 <td className="px-4 py-2 text-right">
                                   {c.isGoodCall === true && <span className="text-emerald-400">✓</span>}
                                   {c.isGoodCall === false && <span className="text-red-400">✗</span>}
-                                  {c.isGoodCall === null && <span className="text-zinc-600">—</span>}
+                                  {c.isGoodCall === null && <span className="text-[#b8ad9e]">—</span>}
                                 </td>
                               </tr>
                             ))}
@@ -1092,13 +1092,13 @@ function TabButton({
     <button
       onClick={() => onClick(id)}
       className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-        isActive ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+        isActive ? 'bg-[#e0dbd4] text-[#1c1612]' : 'text-[#9e9087] hover:text-[#4a3d33]'
       }`}
     >
       {icon}
       {label}
       <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
-        alert && count > 0 ? 'bg-amber-600/60 text-amber-200' : 'bg-zinc-600 text-zinc-300'
+        alert && count > 0 ? 'bg-amber-500/20 text-amber-700' : 'bg-[#e0dbd4] text-[#4a3d33]'
       }`}>
         {count}
       </span>

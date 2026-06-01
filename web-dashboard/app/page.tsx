@@ -139,7 +139,7 @@ function fmt(n: number) {
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-zinc-800 ${className}`} />;
+  return <div className={`animate-pulse rounded bg-[#ede8df] ${className}`} />;
 }
 
 export default function Dashboard() {
@@ -381,38 +381,38 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
+    <div className="flex min-h-screen flex-col bg-[#f7f2eb]">
       {/* Top bar */}
-      <header className="border-b border-zinc-800">
+      <header className="border-b border-[#e5ddd3]">
       <div className="flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
-          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
-          <span className="hidden sm:inline ml-2 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500 whitespace-nowrap">
+          <span className="text-sm sm:text-base font-semibold text-[#1c1612] whitespace-nowrap">Beta than nothing</span>
+          <span className="hidden sm:inline ml-2 rounded-full bg-white px-2 py-0.5 text-xs text-[#9e9087] whitespace-nowrap">
             {isOwnPortfolio ? 'Your portfolio' : 'Demo'}
           </span>
           <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
-            <Link href="/summary" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <Link href="/summary" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Wallet className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Net Worth</span>
             </Link>
-            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 text-xs font-medium text-zinc-300 bg-zinc-800 whitespace-nowrap flex-shrink-0">
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 text-xs font-medium text-[#4a3d33] bg-[#ede8df] whitespace-nowrap flex-shrink-0">
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden text-[10px]">Dash</span>
             </span>
-            <Link href="/advisor" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <Link href="/advisor" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Brain className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Advisor</span>
             </Link>
-            <Link href="/retirement" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <Link href="/retirement" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <PiggyBank className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Retirement</span>
             </Link>
-            <Link href="/real-estate" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <Link href="/real-estate" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Home className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Real Estate</span>
             </Link>
-            <Link href="/other-assets" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <Link href="/other-assets" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Layers className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Other</span>
             </Link>
@@ -423,14 +423,14 @@ export default function Dashboard() {
           <button
             onClick={() => load()}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-2.5 py-1.5 text-xs text-[#4a3d33] hover:bg-[#ede8df] transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
           <button
             onClick={openAddHolding}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-2.5 py-1.5 text-xs text-[#6e5f52] hover:bg-white hover:text-[#2d2218] transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Add holding</span>
@@ -439,11 +439,11 @@ export default function Dashboard() {
       </div>
 
       {/* Filters row */}
-      <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/60 px-3 py-2 sm:px-6 text-xs text-zinc-500">
+      <div className="flex flex-wrap items-center gap-2 border-t border-[#e5ddd3]/60 px-3 py-2 sm:px-6 text-xs text-[#9e9087]">
         <select
           value={displayCurrency}
           onChange={event => setDisplayCurrency(event.target.value as Currency)}
-          className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
+          className="rounded-lg border border-[#d4c9bc] bg-white px-2 py-1.5 text-[#4a3d33] outline-none"
           aria-label="Display currency"
         >
           <option value="USD">USD</option>
@@ -453,7 +453,7 @@ export default function Dashboard() {
           <select
             value={brokerageFilter}
             onChange={event => setBrokerageFilter(event.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
+            className="rounded-lg border border-[#d4c9bc] bg-white px-2 py-1.5 text-[#4a3d33] outline-none"
             aria-label="Filter by brokerage"
           >
             <option value="All">All brokerages</option>
@@ -463,7 +463,7 @@ export default function Dashboard() {
         <select
           value={liquidityFilter}
           onChange={event => setLiquidityFilter(event.target.value as typeof liquidityFilter)}
-          className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
+          className="rounded-lg border border-[#d4c9bc] bg-white px-2 py-1.5 text-[#4a3d33] outline-none"
           aria-label="Filter by liquidity"
         >
           <option value="All">All assets</option>
@@ -471,7 +471,7 @@ export default function Dashboard() {
           <option value="Illiquid">Illiquid only</option>
         </select>
         {displayCurrency === 'SGD' && summary && (
-          <span className={summary.hasLiveUsdToSgdRate ? 'text-zinc-500' : 'text-amber-400'}>
+          <span className={summary.hasLiveUsdToSgdRate ? 'text-[#9e9087]' : 'text-amber-400'}>
             1 USD = {summary.usdToSgdRate.toFixed(4)} SGD
           </span>
         )}
@@ -479,7 +479,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => downloadSettingsBackup(userPositions ?? [], profile)}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-2.5 py-1.5 text-[#4a3d33] hover:bg-[#ede8df] transition-colors"
             title="Download portfolio backup"
           >
             <Download className="h-3.5 w-3.5" />
@@ -490,7 +490,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => restoreInputRef.current?.click()}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-2.5 py-1.5 text-[#4a3d33] hover:bg-[#ede8df] transition-colors"
             title="Restore portfolio backup"
           >
             <Upload className="h-3.5 w-3.5" />
@@ -502,26 +502,26 @@ export default function Dashboard() {
 
       {editingAllocation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl border border-[#d4c9bc] bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-zinc-100">Target Allocation</h2>
-              <button onClick={() => setEditingAllocation(false)} className="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200">
+              <h2 className="text-lg font-semibold text-[#1c1612]">Target Allocation</h2>
+              <button onClick={() => setEditingAllocation(false)} className="rounded p-1 text-[#9e9087] hover:bg-white hover:text-[#2d2218]">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="mt-1 text-xs text-zinc-500">Set target percentages. Must total 100%.</p>
+            <p className="mt-1 text-xs text-[#9e9087]">Set target percentages. Must total 100%.</p>
             <div className="mt-4 space-y-2 max-h-[50vh] overflow-y-auto">
               {ASSET_CLASSES.map(cls => (
                 <label key={cls} className="flex items-center justify-between gap-4">
-                  <span className="text-sm text-zinc-300 truncate">{cls}</span>
+                  <span className="text-sm text-[#4a3d33] truncate">{cls}</span>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <input
                       type="number" min="0" max="100" step="1"
                       value={allocationDraft[cls] ?? '0'}
                       onChange={e => setAllocationDraft(d => ({ ...d, [cls]: e.target.value }))}
-                      className="w-14 rounded bg-zinc-800 px-2 py-1 text-right text-sm text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600"
+                      className="w-14 rounded bg-white px-2 py-1 text-right text-sm text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600"
                     />
-                    <span className="text-sm text-zinc-500">%</span>
+                    <span className="text-sm text-[#9e9087]">%</span>
                   </div>
                 </label>
               ))}
@@ -539,7 +539,7 @@ export default function Dashboard() {
               <button onClick={saveAllocation} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">
                 Save
               </button>
-              <button onClick={() => setEditingAllocation(false)} className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 hover:bg-zinc-800">
+              <button onClick={() => setEditingAllocation(false)} className="rounded-lg border border-[#d4c9bc] px-4 py-2 text-sm text-[#6e5f52] hover:bg-[#ede8df]">
                 Cancel
               </button>
             </div>
@@ -549,17 +549,17 @@ export default function Dashboard() {
 
       {addingPortfolio && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-2xl border border-[#d4c9bc] bg-white p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-zinc-100">Add holdings</h2>
-                <p className="mt-1 text-sm text-zinc-500">
+                <h2 className="text-lg font-semibold text-[#1c1612]">Add holdings</h2>
+                <p className="mt-1 text-sm text-[#9e9087]">
                   Import brokerage holdings, review the rows, then add them to your portfolio.
                 </p>
               </div>
               <button
                 onClick={() => setAddingPortfolio(false)}
-                className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+                className="rounded-lg p-1.5 text-[#9e9087] transition-colors hover:bg-white hover:text-[#2d2218]"
                 aria-label="Close add holdings"
               >
                 <X className="h-5 w-5" />
@@ -572,82 +572,82 @@ export default function Dashboard() {
 
       {holding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-xl rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div className="w-full max-w-xl rounded-2xl border border-[#d4c9bc] bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-zinc-100">Edit {holding.symbol}</h2>
-              <button onClick={() => setHolding(null)} className="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200">
+              <h2 className="text-lg font-semibold text-[#1c1612]">Edit {holding.symbol}</h2>
+              <button onClick={() => setHolding(null)} className="rounded p-1 text-[#9e9087] hover:bg-white hover:text-[#2d2218]">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Ticker</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Ticker</span>
                 <input value={holding.symbol} onChange={e => setHolding({ ...holding, symbol: e.target.value.toUpperCase() })}
                   placeholder="AAPL" maxLength={10}
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Name optional</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Name optional</span>
                 <input value={holding.name} onChange={e => setHolding({ ...holding, name: e.target.value })}
                   placeholder="Apple Inc."
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Shares</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Shares</span>
                 <input type="number" value={holding.shares} onChange={e => setHolding({ ...holding, shares: e.target.value })}
                   min="0" step="any"
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Average cost</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Average cost</span>
                 <input type="number" value={holding.avgCost} onChange={e => setHolding({ ...holding, avgCost: e.target.value })}
                   min="0" step="any"
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Account</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Account</span>
                 <select value={holding.accountType} onChange={e => {
                   const accountType = e.target.value as UserPosition['accountType'];
                   setHolding({ ...holding, accountType, currency: accountType === 'cpf' ? 'SGD' : holding.currency });
                 }}
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#4a3d33] outline-none focus:ring-1 focus:ring-zinc-600">
                   {ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                 </select>
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Currency</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Currency</span>
                 <select value={holding.currency} onChange={e => setHolding({ ...holding, currency: e.target.value as Currency })}
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#4a3d33] outline-none focus:ring-1 focus:ring-zinc-600">
                   <option value="USD">USD</option>
                   <option value="SGD">SGD</option>
                   <option value="INR">INR (₹)</option>
                 </select>
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Asset class</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Asset class</span>
                 <select value={holding.assetClass} onChange={e => setHolding({ ...holding, assetClass: e.target.value })}
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#4a3d33] outline-none focus:ring-1 focus:ring-zinc-600">
                   {ASSET_CLASSES.map(assetClass => <option key={assetClass} value={assetClass}>{assetClass}</option>)}
                 </select>
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Purchase date optional</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Purchase date optional</span>
                 <input type="date" value={holding.purchaseDate} onChange={e => setHolding({ ...holding, purchaseDate: e.target.value })}
                   max={new Date().toISOString().slice(0, 10)}
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600" />
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#4a3d33] outline-none focus:ring-1 focus:ring-zinc-600" />
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Brokerage</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Brokerage</span>
                 <input value={holding.brokerage} onChange={e => setHolding({ ...holding, brokerage: e.target.value })}
                   placeholder="Fidelity"
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
               </label>
               <label className="space-y-1.5 sm:col-span-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Current market value optional</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Current market value optional</span>
                 <input type="number" value={holding.currentValue} onChange={e => setHolding({ ...holding, currentValue: e.target.value })}
                   placeholder="For real estate, gold — overrides live price"
                   min="0" step="any"
-                  className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+                  className="w-full rounded-lg bg-white px-3 py-2 text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
               </label>
             </div>
             {holdingError && <p className="mt-4 text-sm text-red-400">{holdingError}</p>}
@@ -655,7 +655,7 @@ export default function Dashboard() {
               <button onClick={saveHolding} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500">
                 Save changes
               </button>
-              <button onClick={() => setHolding(null)} className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200">
+              <button onClick={() => setHolding(null)} className="rounded-lg border border-[#d4c9bc] px-4 py-2 text-sm text-[#6e5f52] transition-colors hover:bg-white hover:text-[#2d2218]">
                 Cancel
               </button>
             </div>
@@ -665,7 +665,7 @@ export default function Dashboard() {
 
       <main className="flex-1 px-3 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-5">
         {summary && !hasCompleteLivePrices && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <div className="rounded-lg border border-amber-300 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             Live prices are unavailable for {summary.missingPriceSymbols.join(', ')}. Values are temporarily estimated from cost basis.
             Check that <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_URL</code> and
             <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_TOKEN</code> are configured on the dashboard service,
@@ -712,11 +712,11 @@ export default function Dashboard() {
           {/* Left column */}
           <div className="space-y-5">
             {/* Positions table */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-[#e5ddd3] bg-white p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-zinc-200">Positions</h2>
+                <h2 className="text-sm font-semibold text-[#2d2218]">Positions</h2>
                 <button onClick={openAddHolding}
-                  className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200">
+                  className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] px-3 py-1.5 text-xs text-[#6e5f52] transition-colors hover:bg-white hover:text-[#2d2218]">
                   <Plus className="h-3.5 w-3.5" /> Add holding
                 </button>
               </div>
@@ -727,12 +727,12 @@ export default function Dashboard() {
               ) : summary ? (
                 summary.positions.length
                   ? <PositionsTable positions={filteredPositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
-                  : <p className="py-8 text-center text-sm text-zinc-500">No holdings yet. Add your first position to start tracking your portfolio.</p>
+                  : <p className="py-8 text-center text-sm text-[#9e9087]">No holdings yet. Add your first position to start tracking your portfolio.</p>
               ) : null}
             </div>
 
             {/* Price chart */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-[#e5ddd3] bg-white p-5">
               <div className="mb-3 flex flex-wrap gap-2">
                 {(summary?.positions ?? []).slice(0, 8).map(p => (
                   <button
@@ -741,7 +741,7 @@ export default function Dashboard() {
                     className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                       chartSymbol === p.symbol
                         ? 'bg-blue-600 text-white'
-                        : 'border border-zinc-700 text-zinc-400 hover:text-zinc-200'
+                        : 'border border-[#d4c9bc] text-[#6e5f52] hover:text-[#2d2218]'
                     }`}
                   >
                     {p.symbol}
@@ -760,12 +760,12 @@ export default function Dashboard() {
           {/* Right column */}
           <div className="flex flex-col gap-5">
             {/* Allocation */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-[#e5ddd3] bg-white p-5">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-zinc-200">Asset Allocation</h2>
+                <h2 className="text-sm font-semibold text-[#2d2218]">Asset Allocation</h2>
                 <button
                   onClick={openAllocationEditor}
-                  className="rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                  className="rounded p-1 text-[#b8ad9e] transition-colors hover:bg-white hover:text-[#4a3d33]"
                   title="Edit target allocation"
                 >
                   <Edit2 className="h-3.5 w-3.5" />
@@ -786,10 +786,10 @@ export default function Dashboard() {
         </div>
 
         {/* Earnings strip */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4">
+        <div className="rounded-xl border border-[#e5ddd3] bg-white px-5 py-4">
           <div className="mb-3 flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-zinc-500" />
-            <h2 className="text-sm font-semibold text-zinc-200">Upcoming Earnings</h2>
+            <Calendar className="h-4 w-4 text-[#9e9087]" />
+            <h2 className="text-sm font-semibold text-[#2d2218]">Upcoming Earnings</h2>
           </div>
           {loading ? (
             <div className="flex gap-2">
@@ -802,7 +802,7 @@ export default function Dashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800 px-6 py-3 text-xs text-zinc-600">
+      <footer className="border-t border-[#e5ddd3] px-6 py-3 text-xs text-[#b8ad9e]">
         <div className="flex items-center justify-between">
           <span>Market data via Yahoo Finance (unofficial). Not financial advice.</span>
           <div className="flex items-center gap-1.5">

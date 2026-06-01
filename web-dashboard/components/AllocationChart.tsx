@@ -20,10 +20,10 @@ function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload as AllocationItem;
   return (
-    <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs shadow-xl">
-      <p className="font-semibold text-zinc-100">{d.name}</p>
-      <p className="text-zinc-400">Target: <span className="text-zinc-200">{(d.target * 100).toFixed(1)}%</span></p>
-      <p className="text-zinc-400">Current: <span className="text-zinc-200">{(d.current * 100).toFixed(1)}%</span></p>
+    <div className="rounded-lg border border-[#d4c9bc] bg-white p-3 text-xs shadow-xl">
+      <p className="font-semibold text-[#1c1612]">{d.name}</p>
+      <p className="text-[#6e5f52]">Target: <span className="text-[#2d2218]">{(d.target * 100).toFixed(1)}%</span></p>
+      <p className="text-[#6e5f52]">Current: <span className="text-[#2d2218]">{(d.current * 100).toFixed(1)}%</span></p>
       <p className={d.drift > 0 ? 'text-amber-400' : 'text-sky-400'}>
         Drift: {d.drift > 0 ? '+' : ''}{(d.drift * 100).toFixed(1)}%
       </p>
@@ -48,15 +48,15 @@ export default function AllocationChart({ allocation }: Props) {
         return (
           <div key={a.name}>
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-zinc-300 font-medium">{a.name}</span>
-              <div className="flex gap-3 text-zinc-500">
-                <span>{(a.current * 100).toFixed(1)}% <span className="text-zinc-600">/ {(a.target * 100).toFixed(0)}% target</span></span>
-                <span className={breached ? (overweight ? 'text-amber-400 font-semibold' : 'text-sky-400 font-semibold') : 'text-zinc-600'}>
+              <span className="text-[#4a3d33] font-medium">{a.name}</span>
+              <div className="flex gap-3 text-[#1c1612]0">
+                <span>{(a.current * 100).toFixed(1)}% <span className="text-[#b8ad9e]">/ {(a.target * 100).toFixed(0)}% target</span></span>
+                <span className={breached ? (overweight ? 'text-amber-400 font-semibold' : 'text-sky-400 font-semibold') : 'text-[#b8ad9e]'}>
                   {overweight ? '+' : ''}{driftPct}%
                 </span>
               </div>
             </div>
-            <div className="h-2 w-full rounded-full bg-zinc-800 overflow-hidden">
+            <div className="h-2 w-full rounded-full bg-[#ede8df] overflow-hidden">
               <div
                 className="h-full rounded-full transition-all"
                 style={{
@@ -86,7 +86,7 @@ export default function AllocationChart({ allocation }: Props) {
               <YAxis tick={{ fill: '#71717a', fontSize: 10 }} tickLine={false} axisLine={false}
                 tickFormatter={v => `${v}%`} />
               <Tooltip content={<CustomTooltip />} />
-              <ReferenceLine y={0} stroke="#3f3f46" />
+              <ReferenceLine y={0} stroke="#d4c9bc" />
               <Bar dataKey="driftPct" radius={[3, 3, 0, 0]}>
                 {data.map(d => (
                   <Cell key={d.name} fill={d.driftPct > 0 ? '#f59e0b' : '#3b82f6'} />
@@ -95,7 +95,7 @@ export default function AllocationChart({ allocation }: Props) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-center text-xs text-zinc-600 mt-1">Allocation drift (current − target)</p>
+        <p className="text-center text-xs text-[#b8ad9e] mt-1">Allocation drift (current − target)</p>
       </div>
     </div>
   );

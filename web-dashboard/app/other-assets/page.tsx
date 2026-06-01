@@ -95,14 +95,14 @@ function fmt(n: number, display: Currency): string {
 }
 
 const CATEGORY_COLORS: Record<Category, string> = {
-  'Gold / Precious Metals':   'border-yellow-700/50 bg-yellow-950/30 text-yellow-300',
-  'Vehicle / Car':            'border-blue-700/50 bg-blue-950/30 text-blue-300',
-  'Insurance (Cash Value)':   'border-teal-700/50 bg-teal-950/30 text-teal-300',
-  'Cryptocurrency':           'border-orange-700/50 bg-orange-950/30 text-orange-300',
-  'Art / Collectibles':       'border-purple-700/50 bg-purple-950/30 text-purple-300',
-  'Business Equity':          'border-emerald-700/50 bg-emerald-950/30 text-emerald-300',
-  'Jewellery':                'border-pink-700/50 bg-pink-950/30 text-pink-300',
-  'Other':                    'border-zinc-600 bg-zinc-800/50 text-zinc-400',
+  'Gold / Precious Metals':   'border-yellow-400 bg-yellow-50 text-yellow-700',
+  'Vehicle / Car':            'border-blue-300 bg-blue-50 text-blue-700',
+  'Insurance (Cash Value)':   'border-teal-400 bg-teal-50 text-teal-700',
+  'Cryptocurrency':           'border-orange-400 bg-orange-50 text-orange-700',
+  'Art / Collectibles':       'border-[#da7756]/40 bg-[#da7756]/10 text-[#da7756]',
+  'Business Equity':          'border-emerald-300 bg-emerald-50 text-emerald-700',
+  'Jewellery':                'border-pink-400 bg-pink-50 text-pink-700',
+  'Other':                    'border-[#c8c0b5] bg-[#ede8df]/50 text-[#6e5f52]',
 };
 
 // ── Draft helpers ─────────────────────────────────────────────────────────────
@@ -141,11 +141,11 @@ function Field({ label, value, onChange, type = 'text', placeholder = '' }: {
 }) {
   return (
     <div>
-      <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">{label}</label>
+      <label className="block text-[10px] text-[#9e9087] uppercase tracking-wide mb-1">{label}</label>
       <input
         type={type} value={value} placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
-        className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+        className="w-full rounded bg-white border border-[#d4c9bc] px-2 py-1.5 text-sm text-[#2d2218] placeholder-zinc-600 focus:outline-none focus:border-[#da7756]"
       />
     </div>
   );
@@ -166,28 +166,28 @@ function AssetCard({ asset, display, rates, onEdit, onDelete }: {
   const toDisp = (n: number) => fmt(fromUsd(toUsd(n, asset.currency, rates), display, rates), display);
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div className="rounded-xl border border-[#e5ddd3] bg-white overflow-hidden">
       <div className="px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-base font-bold text-zinc-100">{asset.name}</span>
+              <span className="text-base font-bold text-[#1c1612]">{asset.name}</span>
               <span className={`text-[10px] rounded-full border px-2 py-0.5 font-medium ${CATEGORY_COLORS[asset.category]}`}>
                 {asset.category}
               </span>
-              <span className="text-[10px] rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-zinc-400">
+              <span className="text-[10px] rounded border border-[#d4c9bc] bg-white px-2 py-0.5 text-[#6e5f52]">
                 {asset.currency}
               </span>
             </div>
             {asset.notes && (
-              <p className="text-xs text-zinc-500 mt-1 truncate">{asset.notes}</p>
+              <p className="text-xs text-[#9e9087] mt-1 truncate">{asset.notes}</p>
             )}
           </div>
           <div className="flex gap-1 flex-shrink-0">
-            <button onClick={onEdit} className="rounded p-1.5 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+            <button onClick={onEdit} className="rounded p-1.5 text-[#b8ad9e] hover:text-[#4a3d33] hover:bg-[#ede8df] transition-colors">
               <Edit2 className="h-3.5 w-3.5" />
             </button>
-            <button onClick={onDelete} className="rounded p-1.5 text-zinc-600 hover:text-red-400 hover:bg-zinc-800 transition-colors">
+            <button onClick={onDelete} className="rounded p-1.5 text-[#b8ad9e] hover:text-red-400 hover:bg-[#ede8df] transition-colors">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -195,21 +195,21 @@ function AssetCard({ asset, display, rates, onEdit, onDelete }: {
 
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
           <div>
-            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Purchase Price</div>
-            <div className="text-sm font-semibold text-zinc-300 mt-0.5">{toDisp(asset.purchasePrice)}</div>
-            <div className="text-[10px] text-zinc-600">{asset.purchaseYear} · {years}y ago</div>
+            <div className="text-[10px] text-[#9e9087] uppercase tracking-wide">Purchase Price</div>
+            <div className="text-sm font-semibold text-[#4a3d33] mt-0.5">{toDisp(asset.purchasePrice)}</div>
+            <div className="text-[10px] text-[#b8ad9e]">{asset.purchaseYear} · {years}y ago</div>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Current Value</div>
-            <div className="text-sm font-semibold text-zinc-100 mt-0.5">{toDisp(asset.currentValue)}</div>
+            <div className="text-[10px] text-[#9e9087] uppercase tracking-wide">Current Value</div>
+            <div className="text-sm font-semibold text-[#1c1612] mt-0.5">{toDisp(asset.currentValue)}</div>
             {asset.currentValueUpdatedAt && (
-              <div className="text-[10px] text-zinc-600 mt-0.5">
+              <div className="text-[10px] text-[#b8ad9e] mt-0.5">
                 updated {new Date(asset.currentValueUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
             )}
           </div>
           <div>
-            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">P&L</div>
+            <div className="text-[10px] text-[#9e9087] uppercase tracking-wide">P&L</div>
             <div className={`text-sm font-semibold mt-0.5 flex items-center gap-1 ${pnlPos ? 'text-emerald-400' : 'text-red-400'}`}>
               {pnlPos ? <TrendUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
               {pnlPos ? '+' : ''}{toDisp(pnl)}
@@ -219,11 +219,11 @@ function AssetCard({ asset, display, rates, onEdit, onDelete }: {
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Annual Growth</div>
+            <div className="text-[10px] text-[#9e9087] uppercase tracking-wide">Annual Growth</div>
             <div className={`text-sm font-bold mt-0.5 ${cagr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {cagr >= 0 ? '+' : ''}{cagr.toFixed(1)}% / yr
             </div>
-            <div className="text-[10px] text-zinc-600">CAGR</div>
+            <div className="text-[10px] text-[#b8ad9e]">CAGR</div>
           </div>
         </div>
       </div>
@@ -242,10 +242,10 @@ function AssetModal({ draft, setDraft, onSave, onClose, editing }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-zinc-900 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-          <h2 className="text-sm font-semibold text-zinc-100">{editing ? 'Edit Asset' : 'Add Asset'}</h2>
-          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300"><X className="h-4 w-4" /></button>
+      <div className="w-full max-w-lg rounded-2xl border border-[#d4c9bc] bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5ddd3]">
+          <h2 className="text-sm font-semibold text-[#1c1612]">{editing ? 'Edit Asset' : 'Add Asset'}</h2>
+          <button onClick={onClose} className="text-[#b8ad9e] hover:text-[#4a3d33]"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="px-6 py-5 space-y-4">
@@ -253,21 +253,21 @@ function AssetModal({ draft, setDraft, onSave, onClose, editing }: {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Category</label>
+              <label className="block text-[10px] text-[#9e9087] uppercase tracking-wide mb-1">Category</label>
               <select
                 value={draft.category}
                 onChange={e => setDraft(d => ({ ...d, category: e.target.value as Category }))}
-                className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+                className="w-full rounded bg-white border border-[#d4c9bc] px-2 py-1.5 text-sm text-[#2d2218] focus:outline-none focus:border-[#da7756]"
               >
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Currency</label>
+              <label className="block text-[10px] text-[#9e9087] uppercase tracking-wide mb-1">Currency</label>
               <select
                 value={draft.currency}
                 onChange={e => setDraft(d => ({ ...d, currency: e.target.value as Currency }))}
-                className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+                className="w-full rounded bg-white border border-[#d4c9bc] px-2 py-1.5 text-sm text-[#2d2218] focus:outline-none focus:border-[#da7756]"
               >
                 <option value="USD">USD ($)</option>
                 <option value="SGD">SGD (S$)</option>
@@ -281,22 +281,22 @@ function AssetModal({ draft, setDraft, onSave, onClose, editing }: {
           <Field label="Current Value" value={draft.currentValue} onChange={set('currentValue')} type="number" placeholder="0" />
 
           <div>
-            <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Notes (optional)</label>
+            <label className="block text-[10px] text-[#9e9087] uppercase tracking-wide mb-1">Notes (optional)</label>
             <textarea
               value={draft.notes}
               onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))}
               placeholder="e.g. Policy #12345, coverage $500K · 100g bar stored at UOB · 2020 model, 45K miles"
               rows={2}
-              className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-500"
+              className="w-full rounded bg-white border border-[#d4c9bc] px-2 py-1.5 text-sm text-[#2d2218] placeholder-zinc-600 resize-none focus:outline-none focus:border-[#da7756]"
             />
           </div>
         </div>
 
-        <div className="flex gap-2 px-6 py-4 border-t border-zinc-800">
+        <div className="flex gap-2 px-6 py-4 border-t border-[#e5ddd3]">
           <button onClick={onSave} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500 transition-colors">
             <Check className="h-3.5 w-3.5" /> {editing ? 'Save Changes' : 'Add Asset'}
           </button>
-          <button onClick={onClose} className="rounded-lg border border-zinc-700 px-4 py-2 text-xs text-zinc-400 hover:bg-zinc-800 transition-colors">Cancel</button>
+          <button onClick={onClose} className="rounded-lg border border-[#d4c9bc] px-4 py-2 text-xs text-[#6e5f52] hover:bg-[#ede8df] transition-colors">Cancel</button>
         </div>
       </div>
     </div>
@@ -386,21 +386,21 @@ export default function OtherAssetsPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
+    <div className="flex min-h-screen flex-col bg-[#f7f2eb]">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+      <header className="flex items-center justify-between border-b border-[#e5ddd3] px-3 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
-          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
+          <span className="text-sm sm:text-base font-semibold text-[#1c1612] whitespace-nowrap">Beta than nothing</span>
           <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
             {NAV.map(({ label, path, icon }) => (
               <button key={path} onClick={() => router.push(path)}
-                className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0"
+                className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0"
               >
                 {icon}<span className="hidden sm:inline">{label}</span>
               </button>
             ))}
-            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-800 flex-shrink-0">
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#4a3d33] bg-[#ede8df] flex-shrink-0">
               <Layers className="h-3.5 w-3.5 text-teal-400" />
               <span className="hidden sm:inline">Other Assets</span>
             </span>
@@ -411,7 +411,7 @@ export default function OtherAssetsPage() {
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 outline-none"
+              className="rounded-lg border border-[#d4c9bc] bg-white px-2.5 py-1.5 text-[#4a3d33] outline-none"
             >
               <option value="All">All categories</option>
               {usedCategories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -420,14 +420,14 @@ export default function OtherAssetsPage() {
           <select
             value={display}
             onChange={e => setDisplay(e.target.value as Currency)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 outline-none"
+            className="rounded-lg border border-[#d4c9bc] bg-white px-2.5 py-1.5 text-[#4a3d33] outline-none"
           >
             <option value="USD">USD ($)</option>
             <option value="SGD">SGD (S$)</option>
             <option value="INR">INR (₹)</option>
           </select>
           <button onClick={openAdd}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-3 py-1.5 text-[#4a3d33] hover:bg-[#ede8df] transition-colors"
           >
             <Plus className="h-3.5 w-3.5" /> Add Asset
           </button>
@@ -439,13 +439,13 @@ export default function OtherAssetsPage() {
         {/* Summary */}
         {assets.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-              <div className="text-xs text-zinc-500">Total Value</div>
-              <div className="text-2xl font-bold text-zinc-100 mt-1">{fmtDisp(totalValue)}</div>
-              <div className="text-xs text-zinc-600 mt-0.5">{assets.length} asset{assets.length !== 1 ? 's' : ''}</div>
+            <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+              <div className="text-xs text-[#9e9087]">Total Value</div>
+              <div className="text-2xl font-bold text-[#1c1612] mt-1">{fmtDisp(totalValue)}</div>
+              <div className="text-xs text-[#b8ad9e] mt-0.5">{assets.length} asset{assets.length !== 1 ? 's' : ''}</div>
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-              <div className="text-xs text-zinc-500">Total P&L</div>
+            <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+              <div className="text-xs text-[#9e9087]">Total P&L</div>
               <div className={`text-2xl font-bold mt-1 ${totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {totalPnl >= 0 ? '+' : ''}{fmtDisp(totalPnl)}
               </div>
@@ -453,20 +453,20 @@ export default function OtherAssetsPage() {
                 {totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(1)}% vs purchase
               </div>
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-              <div className="text-xs text-zinc-500">Total Cost Basis</div>
-              <div className="text-2xl font-bold text-zinc-400 mt-1">{fmtDisp(totalCost)}</div>
-              <div className="text-xs text-zinc-600 mt-0.5">what you paid</div>
+            <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+              <div className="text-xs text-[#9e9087]">Total Cost Basis</div>
+              <div className="text-2xl font-bold text-[#6e5f52] mt-1">{fmtDisp(totalCost)}</div>
+              <div className="text-xs text-[#b8ad9e] mt-0.5">what you paid</div>
             </div>
           </div>
         )}
 
         {/* Asset list */}
         {assets.length === 0 ? (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-16 text-center">
-            <Layers className="h-10 w-10 text-zinc-700 mx-auto mb-4" />
-            <p className="text-base font-semibold text-zinc-300 mb-2">No other assets yet</p>
-            <p className="text-sm text-zinc-500 mb-6">Track gold, vehicles, insurance cash value, crypto, collectibles, and more.</p>
+          <div className="rounded-xl border border-[#e5ddd3] bg-white px-6 py-16 text-center">
+            <Layers className="h-10 w-10 text-[#c8c0b5] mx-auto mb-4" />
+            <p className="text-base font-semibold text-[#4a3d33] mb-2">No other assets yet</p>
+            <p className="text-sm text-[#9e9087] mb-6">Track gold, vehicles, insurance cash value, crypto, collectibles, and more.</p>
             <button onClick={openAdd}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
             >
@@ -481,7 +481,7 @@ export default function OtherAssetsPage() {
               />
             ))}
             {filtered.length === 0 && (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-8 text-center text-sm text-zinc-500">
+              <div className="rounded-xl border border-[#e5ddd3] bg-white px-6 py-8 text-center text-sm text-[#9e9087]">
                 No assets in this category.
               </div>
             )}

@@ -93,12 +93,12 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="flex flex-col rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div className="flex flex-col rounded-xl border border-[#e5ddd3] bg-white overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-[#e5ddd3] px-4 py-3">
         <Bot className="h-4 w-4 text-blue-400" />
-        <span className="text-sm font-semibold text-zinc-200">Beta than nothing</span>
-        <span className="ml-auto text-xs text-zinc-600">gpt-4o</span>
+        <span className="text-sm font-semibold text-[#2d2218]">Beta than nothing</span>
+        <span className="ml-auto text-xs text-[#b8ad9e]">gpt-4o</span>
       </div>
 
       {/* Messages — compact when empty, scrollable once conversation starts */}
@@ -113,16 +113,16 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
               )}
               <div
                 className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
-                  m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-200'
+                  m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-[#ede8df] text-[#2d2218]'
                 }`}
               >
                 {m.content || (loading && i === messages.length - 1 ? (
-                  <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />
+                  <Loader2 className="h-3 w-3 animate-spin text-[#1c1612]0" />
                 ) : '')}
               </div>
               {m.role === 'user' && (
-                <div className="mt-0.5 flex-shrink-0 rounded-full bg-zinc-700 p-1">
-                  <User className="h-3 w-3 text-zinc-300" />
+                <div className="mt-0.5 flex-shrink-0 rounded-full bg-[#e0dbd4] p-1">
+                  <User className="h-3 w-3 text-[#4a3d33]" />
                 </div>
               )}
             </div>
@@ -131,13 +131,13 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
         </div>
       ) : (
         <div className="px-4 pt-4 pb-2 space-y-3">
-          <p className="text-xs text-zinc-600 text-center">Ask anything about your portfolio</p>
+          <p className="text-xs text-[#b8ad9e] text-center">Ask anything about your portfolio</p>
           <div className="flex flex-wrap gap-2">
             {QUICK_PROMPTS.map(p => (
               <button
                 key={p}
                 onClick={() => send(p)}
-                className="rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+                className="rounded-full border border-[#d4c9bc] bg-[#ede8df] px-3 py-1.5 text-xs text-[#4a3d33] hover:bg-[#e0dbd4] transition-colors"
               >
                 {p}
               </button>
@@ -147,7 +147,7 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
       )}
 
       {/* Input */}
-      <div className="border-t border-zinc-800 px-3 py-3">
+      <div className="border-t border-[#e5ddd3] px-3 py-3">
         <div className="flex items-end gap-2">
           <textarea
             value={input}
@@ -155,7 +155,7 @@ export default function ChatPanel({ portfolioContext, profileContext }: ChatPane
             onKeyDown={handleKeyDown}
             placeholder="Ask about your portfolio..."
             rows={1}
-            className="flex-1 resize-none rounded-lg bg-zinc-800 px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:ring-1 focus:ring-zinc-600 max-h-24"
+            className="flex-1 resize-none rounded-lg bg-[#ede8df] px-3 py-2 text-xs text-[#2d2218] placeholder-zinc-600 outline-none focus:ring-1 focus:ring-zinc-600 max-h-24"
             style={{ minHeight: '34px' }}
           />
           <button

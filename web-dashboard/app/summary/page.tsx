@@ -78,14 +78,14 @@ function loadOtherAssets(): OtherAsset[] {
 
 // ── Row component ─────────────────────────────────────────────────────────────
 
-function Row({ label, value, sub, color = 'text-zinc-100', indent = false }: {
+function Row({ label, value, sub, color = 'text-[#1c1612]', indent = false }: {
   label: string; value: string; sub?: string; color?: string; indent?: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between py-2 ${indent ? 'pl-4 border-l border-zinc-800' : ''}`}>
+    <div className={`flex items-center justify-between py-2 ${indent ? 'pl-4 border-l border-[#e5ddd3]' : ''}`}>
       <div>
-        <div className={`text-sm ${indent ? 'text-zinc-400' : 'text-zinc-300 font-medium'}`}>{label}</div>
-        {sub && <div className="text-xs text-zinc-600 mt-0.5">{sub}</div>}
+        <div className={`text-sm ${indent ? 'text-[#6e5f52]' : 'text-[#4a3d33] font-medium'}`}>{label}</div>
+        {sub && <div className="text-xs text-[#b8ad9e] mt-0.5">{sub}</div>}
       </div>
       <div className={`text-sm font-semibold ${color}`}>{value}</div>
     </div>
@@ -93,7 +93,7 @@ function Row({ label, value, sub, color = 'text-zinc-100', indent = false }: {
 }
 
 function Divider() {
-  return <div className="border-t border-zinc-800 my-1" />;
+  return <div className="border-t border-[#e5ddd3] my-1" />;
 }
 
 // ── Section card ──────────────────────────────────────────────────────────────
@@ -102,15 +102,15 @@ function Section({ title, icon, onClick, children }: {
   title: string; icon: React.ReactNode; onClick: () => void; children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div className="rounded-xl border border-[#e5ddd3] bg-white overflow-hidden">
       <button
         onClick={onClick}
-        className="w-full flex items-center justify-between px-5 py-3 border-b border-zinc-800 hover:bg-zinc-800/40 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3 border-b border-[#e5ddd3] hover:bg-[#ede8df]/40 transition-colors"
       >
-        <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#2d2218]">
           {icon}{title}
         </div>
-        <ChevronRight className="h-4 w-4 text-zinc-600" />
+        <ChevronRight className="h-4 w-4 text-[#b8ad9e]" />
       </button>
       <div className="px-5 divide-y divide-zinc-800/50">{children}</div>
     </div>
@@ -187,20 +187,20 @@ export default function SummaryPage() {
   const pnlColor = (n: number) => n >= 0 ? 'text-emerald-400' : 'text-red-400';
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
+    <div className="flex min-h-screen flex-col bg-[#f7f2eb]">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+      <header className="flex items-center justify-between border-b border-[#e5ddd3] px-3 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
-          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
+          <span className="text-sm sm:text-base font-semibold text-[#1c1612] whitespace-nowrap">Beta than nothing</span>
           <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
-            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-800 flex-shrink-0">
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#4a3d33] bg-[#ede8df] flex-shrink-0">
               <Wallet className="h-3.5 w-3.5 text-blue-400" />
               <span className="hidden sm:inline">Net Worth</span>
             </span>
             {NAV.map(({ label, path, icon }) => (
               <button key={path} onClick={() => router.push(path)}
-                className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0"
+                className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0"
               >
                 {icon}<span className="hidden sm:inline">{label}</span>
               </button>
@@ -210,7 +210,7 @@ export default function SummaryPage() {
         <select
           value={display}
           onChange={e => setDisplay(e.target.value as Currency)}
-          className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-300 outline-none flex-shrink-0"
+          className="rounded-lg border border-[#d4c9bc] bg-white px-2 py-1.5 text-xs text-[#4a3d33] outline-none flex-shrink-0"
         >
           <option value="USD">USD</option>
           <option value="SGD">SGD</option>
@@ -221,11 +221,11 @@ export default function SummaryPage() {
       <main className="flex-1 px-3 py-4 sm:px-6 sm:py-5 space-y-5 max-w-4xl mx-auto w-full">
 
         {/* Net Worth hero */}
-        <div className="rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-5 sm:px-8 sm:py-6">
-          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-1">Total Net Worth</div>
-          <div className="text-4xl sm:text-5xl font-bold text-zinc-100">{fmt(netWorth, display)}</div>
-          <div className="mt-3 flex flex-wrap gap-4 text-xs text-zinc-500">
-            <span>Total assets: <span className="text-zinc-300 font-semibold">{fmt(totalAssets, display)}</span></span>
+        <div className="rounded-2xl border border-[#d4c9bc] bg-white px-5 py-5 sm:px-8 sm:py-6">
+          <div className="text-xs font-semibold text-[#9e9087] uppercase tracking-widest mb-1">Total Net Worth</div>
+          <div className="text-4xl sm:text-5xl font-bold text-[#1c1612]">{fmt(netWorth, display)}</div>
+          <div className="mt-3 flex flex-wrap gap-4 text-xs text-[#9e9087]">
+            <span>Total assets: <span className="text-[#4a3d33] font-semibold">{fmt(totalAssets, display)}</span></span>
             <span>Liabilities: <span className="text-red-400 font-semibold">{fmt(-totalLiabilities, display)}</span></span>
           </div>
         </div>
@@ -238,10 +238,10 @@ export default function SummaryPage() {
             { label: 'Other Assets', value: fmt(otherValue, display), sub: 'gold, vehicles, etc.', color: 'text-teal-400' },
             { label: 'Outstanding Loans', value: fmt(-reLoans, display), sub: 'mortgage principal', color: 'text-red-400' },
           ].map(({ label, value, sub, color }) => (
-            <div key={label} className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wide">{label}</div>
+            <div key={label} className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+              <div className="text-[10px] text-[#9e9087] uppercase tracking-wide">{label}</div>
               <div className={`text-xl font-bold mt-1 ${color}`}>{value}</div>
-              <div className="text-[10px] text-zinc-600 mt-0.5">{sub}</div>
+              <div className="text-[10px] text-[#b8ad9e] mt-0.5">{sub}</div>
             </div>
           ))}
         </div>
@@ -250,14 +250,14 @@ export default function SummaryPage() {
         <Section title="Investment Portfolio" icon={<LayoutDashboard className="h-4 w-4 text-blue-400" />} onClick={() => router.push('/')}>
           <Row label="Market Value" value={fmt(portfolioValueD, display)} color="text-blue-400" />
           <Row label="Total P&L" value={`${portfolioPnlD >= 0 ? '+' : ''}${fmt(portfolioPnlD, display)}`} color={pnlColor(portfolioPnlD)} sub="vs cost basis" />
-          <Row label="Cash & Equivalents" value={fmt(toD(cashEquivalents), display)} color="text-zinc-400" indent sub="money market, SGOV, etc." />
+          <Row label="Cash & Equivalents" value={fmt(toD(cashEquivalents), display)} color="text-[#6e5f52]" indent sub="money market, SGOV, etc." />
         </Section>
 
         {/* Real estate section */}
         <Section title="Real Estate" icon={<Home className="h-4 w-4 text-orange-400" />} onClick={() => router.push('/real-estate')}>
           <Row label="Portfolio Value" value={fmt(reTotal, display)} color="text-orange-400" />
           <Row label="Outstanding Loans" value={fmt(-reLoans, display)} color="text-red-400" />
-          <Row label="Net Equity" value={fmt(reEquity, display)} color="text-zinc-100" />
+          <Row label="Net Equity" value={fmt(reEquity, display)} color="text-[#1c1612]" />
           <Row label="Unrealised P&L" value={`${rePnl >= 0 ? '+' : ''}${fmt(rePnl, display)}`} color={pnlColor(rePnl)} sub="current value vs purchase price" />
           {properties.length > 0 && <Divider />}
           {properties.map(p => (
@@ -266,7 +266,7 @@ export default function SummaryPage() {
               label={p.name}
               value={fmt(toD(p.currentPrice - remainingLoan(p), p.currency), display)}
               sub={`${p.location} · equity`}
-              color="text-zinc-400"
+              color="text-[#6e5f52]"
               indent
             />
           ))}
@@ -283,7 +283,7 @@ export default function SummaryPage() {
                 label={a.name}
                 value={fmt(toD(a.currentValue, a.currency), display)}
                 sub={a.category}
-                color="text-zinc-400"
+                color="text-[#6e5f52]"
                 indent
               />
             ))}
@@ -291,31 +291,31 @@ export default function SummaryPage() {
         )}
 
         {/* Balance sheet summary */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
-          <div className="px-5 py-3 border-b border-zinc-800">
-            <h2 className="text-sm font-semibold text-zinc-200">Balance Sheet</h2>
+        <div className="rounded-xl border border-[#e5ddd3] bg-white overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#e5ddd3]">
+            <h2 className="text-sm font-semibold text-[#2d2218]">Balance Sheet</h2>
           </div>
           <div className="px-5 divide-y divide-zinc-800/50">
             <div className="py-2">
-              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Assets</div>
+              <div className="text-xs font-semibold text-[#9e9087] uppercase tracking-wide mb-2">Assets</div>
               <Row label="Investment portfolio" value={fmt(portfolioValueD, display)} indent />
               <Row label="Real estate (gross)" value={fmt(reTotal, display)} indent />
               {otherValue > 0 && <Row label="Other assets" value={fmt(otherValue, display)} indent />}
             </div>
             <div className="py-2">
-              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Liabilities</div>
+              <div className="text-xs font-semibold text-[#9e9087] uppercase tracking-wide mb-2">Liabilities</div>
               {reLoans > 0
                 ? <Row label="Mortgage loans" value={fmt(-reLoans, display)} color="text-red-400" indent />
-                : <div className="py-1 pl-4 text-sm text-zinc-600">No outstanding loans</div>}
+                : <div className="py-1 pl-4 text-sm text-[#b8ad9e]">No outstanding loans</div>}
             </div>
             <div className="py-3 flex items-center justify-between">
-              <span className="text-base font-bold text-zinc-100">Net Worth</span>
-              <span className="text-xl font-bold text-zinc-100">{fmt(netWorth, display)}</span>
+              <span className="text-base font-bold text-[#1c1612]">Net Worth</span>
+              <span className="text-xl font-bold text-[#1c1612]">{fmt(netWorth, display)}</span>
             </div>
           </div>
         </div>
 
-        <p className="text-xs text-zinc-700 pb-4">
+        <p className="text-xs text-[#c8c0b5] pb-4">
           Investment values from last portfolio refresh. Real estate and other assets are manually updated.
         </p>
       </main>

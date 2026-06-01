@@ -177,23 +177,23 @@ export default function PortfolioEditor({ initialPositions = [], onSubmit, submi
         ].map(option => {
           const Icon = option.icon;
           return <button key={option.id} type="button" onClick={() => setImportMode(option.id as typeof importMode)}
-            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm ${importMode === option.id ? 'border-blue-500 bg-blue-500/10 text-blue-200' : 'border-zinc-800 text-zinc-500'}`}>
+            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm ${importMode === option.id ? 'border-blue-500 bg-blue-500/10 text-blue-200' : 'border-[#e5ddd3] text-[#1c1612]0'}`}>
             <Icon className="h-4 w-4" /> {option.label}
           </button>;
         })}
       </div>
-      {importMode === 'screenshot' && <div className="rounded-lg border border-dashed border-zinc-700 bg-zinc-950/30 p-4">
+      {importMode === 'screenshot' && <div className="rounded-lg border border-dashed border-[#d4c9bc] bg-[#f0ebe1]/60 p-4">
         <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={e => importScreenshots(e.target.files)} />
         <button type="button" disabled={importing} onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
           {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
           {importing ? `Reading ${screenshotCount} screenshot${screenshotCount === 1 ? '' : 's'}...` : 'Choose brokerage screenshots'}
         </button>
-        <p className="mt-3 text-xs text-zinc-500">Upload up to 5 PNG, JPEG, or WEBP screenshots, 8 MB each and 24 MB combined. Crop out account numbers and personal details. Contents are sent securely to OpenAI for extraction and are not stored as screenshots.</p>
+        <p className="mt-3 text-xs text-[#1c1612]0">Upload up to 5 PNG, JPEG, or WEBP screenshots, 8 MB each and 24 MB combined. Crop out account numbers and personal details. Contents are sent securely to OpenAI for extraction and are not stored as screenshots.</p>
       </div>}
-      {importMode === 'paste' && <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/30 p-4">
+      {importMode === 'paste' && <div className="space-y-3 rounded-lg border border-[#e5ddd3] bg-[#f0ebe1]/60 p-4">
         <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} rows={5}
           placeholder={'Paste a brokerage table, CSV rows, or a list such as:\nAAPL | 10 shares | avg cost $150 | taxable'}
-          className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none" />
+          className="w-full rounded-lg bg-[#ede8df] px-3 py-2 text-sm text-[#1c1612] placeholder-zinc-600 outline-none" />
         <button type="button" disabled={importing || !pasteText.trim()} onClick={() => importPortfolio({ text: pasteText })}
           className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
           {importing && <Loader2 className="h-4 w-4 animate-spin" />} Extract holdings
@@ -205,30 +205,30 @@ export default function PortfolioEditor({ initialPositions = [], onSubmit, submi
       </div>}
       <div className="max-h-[45vh] overflow-x-auto overflow-y-auto">
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-zinc-800 text-left">{['Ticker', 'Name', 'Shares', 'Avg Cost', 'Account', 'Currency', 'Asset Class', 'Purchase Date', 'Brokerage', ''].map(header => <th key={header} className="pb-2 pr-3 text-xs uppercase tracking-wider text-zinc-500">{header}</th>)}</tr></thead>
-          <tbody>{rows.map((row, index) => <tr key={index} className="border-b border-zinc-800/40">
-            <td className="py-2 pr-3"><input value={row.symbol} onChange={e => update(index, 'symbol', e.target.value.toUpperCase())} placeholder="AAPL" className="w-20 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
-            <td className="py-2 pr-3"><input value={row.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Apple Inc." className="w-32 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
-            <td className="py-2 pr-3"><input type="number" value={row.shares} onChange={e => update(index, 'shares', e.target.value)} placeholder="10" className="w-20 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
-            <td className="py-2 pr-3"><input type="number" value={row.avgCost} onChange={e => update(index, 'avgCost', e.target.value)} placeholder="150" className="w-24 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
+          <thead><tr className="border-b border-[#e5ddd3] text-left">{['Ticker', 'Name', 'Shares', 'Avg Cost', 'Account', 'Currency', 'Asset Class', 'Purchase Date', 'Brokerage', ''].map(header => <th key={header} className="pb-2 pr-3 text-xs uppercase tracking-wider text-[#1c1612]0">{header}</th>)}</tr></thead>
+          <tbody>{rows.map((row, index) => <tr key={index} className="border-b border-[#e5ddd3]/40">
+            <td className="py-2 pr-3"><input value={row.symbol} onChange={e => update(index, 'symbol', e.target.value.toUpperCase())} placeholder="AAPL" className="w-20 rounded bg-[#ede8df] px-2 py-1.5 text-[#1c1612]" /></td>
+            <td className="py-2 pr-3"><input value={row.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Apple Inc." className="w-32 rounded bg-[#ede8df] px-2 py-1.5 text-[#1c1612]" /></td>
+            <td className="py-2 pr-3"><input type="number" value={row.shares} onChange={e => update(index, 'shares', e.target.value)} placeholder="10" className="w-20 rounded bg-[#ede8df] px-2 py-1.5 text-[#1c1612]" /></td>
+            <td className="py-2 pr-3"><input type="number" value={row.avgCost} onChange={e => update(index, 'avgCost', e.target.value)} placeholder="150" className="w-24 rounded bg-[#ede8df] px-2 py-1.5 text-[#1c1612]" /></td>
             <td className="py-2 pr-3"><select value={row.accountType} onChange={e => {
               const accountType = e.target.value as RowDraft['accountType'];
               update(index, 'accountType', accountType);
               if (accountType === 'cpf') update(index, 'currency', 'SGD');
-            }} className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300"><option value="">Choose account</option>{ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}</select></td>
-            <td className="py-2 pr-3"><select value={row.currency} onChange={e => update(index, 'currency', e.target.value as Currency)} className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300"><option value="USD">USD</option><option value="SGD">SGD</option><option value="INR">INR (₹)</option></select></td>
-            <td className="py-2 pr-3"><select value={row.assetClass} onChange={e => update(index, 'assetClass', e.target.value)} className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-300"><option value="">Choose class</option>{ASSET_CLASSES.map(assetClass => <option key={assetClass} value={assetClass}>{assetClass}</option>)}</select></td>
-            <td className="py-2 pr-3"><input type="date" value={row.purchaseDate} onChange={e => update(index, 'purchaseDate', e.target.value)} max={today} className="rounded bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300" /></td>
-            <td className="py-2 pr-3"><input value={row.brokerage} onChange={e => update(index, 'brokerage', e.target.value)} placeholder="Fidelity" className="w-24 rounded bg-zinc-800 px-2 py-1.5 text-zinc-100" /></td>
-            <td className="py-2"><button onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="text-zinc-600 hover:text-red-400"><Trash2 className="h-4 w-4" /></button></td>
+            }} className="rounded bg-[#ede8df] px-2 py-1.5 text-[#4a3d33]"><option value="">Choose account</option>{ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}</select></td>
+            <td className="py-2 pr-3"><select value={row.currency} onChange={e => update(index, 'currency', e.target.value as Currency)} className="rounded bg-[#ede8df] px-2 py-1.5 text-[#4a3d33]"><option value="USD">USD</option><option value="SGD">SGD</option><option value="INR">INR (₹)</option></select></td>
+            <td className="py-2 pr-3"><select value={row.assetClass} onChange={e => update(index, 'assetClass', e.target.value)} className="rounded bg-[#ede8df] px-2 py-1.5 text-[#4a3d33]"><option value="">Choose class</option>{ASSET_CLASSES.map(assetClass => <option key={assetClass} value={assetClass}>{assetClass}</option>)}</select></td>
+            <td className="py-2 pr-3"><input type="date" value={row.purchaseDate} onChange={e => update(index, 'purchaseDate', e.target.value)} max={today} className="rounded bg-[#ede8df] px-2 py-1.5 text-xs text-[#4a3d33]" /></td>
+            <td className="py-2 pr-3"><input value={row.brokerage} onChange={e => update(index, 'brokerage', e.target.value)} placeholder="Fidelity" className="w-24 rounded bg-[#ede8df] px-2 py-1.5 text-[#1c1612]" /></td>
+            <td className="py-2"><button onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="text-[#b8ad9e] hover:text-red-400"><Trash2 className="h-4 w-4" /></button></td>
           </tr>)}</tbody>
         </table>
       </div>
-      <button onClick={() => setRows(current => [...current, blankRow()])} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300"><Plus className="h-4 w-4" /> Add position</button>
+      <button onClick={() => setRows(current => [...current, blankRow()])} className="flex items-center gap-1.5 text-sm text-[#1c1612]0 hover:text-[#4a3d33]"><Plus className="h-4 w-4" /> Add position</button>
       {error && <p className="text-sm text-red-400">{error}</p>}
       <div className="flex flex-wrap gap-3">
         <button onClick={() => validate(onSubmit)} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500">{submitLabel}</button>
-        {secondaryAction && <button onClick={() => validate(secondaryAction.onSubmit)} className="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800">{secondaryAction.label}</button>}
+        {secondaryAction && <button onClick={() => validate(secondaryAction.onSubmit)} className="rounded-lg border border-[#d4c9bc] px-5 py-2.5 text-sm text-[#6e5f52] hover:bg-[#ede8df]">{secondaryAction.label}</button>}
       </div>
     </div>
   );

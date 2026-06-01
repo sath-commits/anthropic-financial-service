@@ -81,37 +81,37 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
         const accountPnl = accountPositions.reduce((total, position) => total + position.unrealizedPnl, 0);
         const accountPnlPositive = accountPnl >= 0;
         return (
-          <section key={accountType} className="overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-950/30">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-700/80 bg-zinc-800/50 px-4 py-3">
+          <section key={accountType} className="overflow-hidden rounded-xl border border-[#d4c9bc]/80 bg-[#f0ebe1]/60">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d4c9bc]/80 bg-[#ede8df]/50 px-4 py-3">
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-200">{ACCOUNT_LABELS[accountType]}</h3>
-                <p className="mt-1 text-xs text-zinc-500">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#2d2218]">{ACCOUNT_LABELS[accountType]}</h3>
+                <p className="mt-1 text-xs text-[#1c1612]0">
                   {accountPositions.length} holding{accountPositions.length === 1 ? '' : 's'} · {fmt(accountWeight, 1)}% of portfolio
                 </p>
               </div>
               <div className="flex items-center gap-5 text-right">
                 <div>
-                  <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Category P&amp;L</div>
-                  <div className={`mt-0.5 text-sm font-medium ${hasCompleteLivePrices ? accountPnlPositive ? 'text-emerald-400' : 'text-red-400' : 'text-zinc-500'}`}>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-[#1c1612]0">Category P&amp;L</div>
+                  <div className={`mt-0.5 text-sm font-medium ${hasCompleteLivePrices ? accountPnlPositive ? 'text-emerald-400' : 'text-red-400' : 'text-[#1c1612]0'}`}>
                     {hasCompleteLivePrices ? `${accountPnlPositive ? '+' : '-'}${money(accountPnl)}` : 'Unavailable'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Category Total</div>
-                  <div className="mt-0.5 text-sm font-semibold text-zinc-100">{money(accountValue)}</div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-[#1c1612]0">Category Total</div>
+                  <div className="mt-0.5 text-sm font-semibold text-[#1c1612]">{money(accountValue)}</div>
                 </div>
               </div>
             </div>
             <div className="overflow-x-auto px-2 sm:px-4">
               <table className="w-full min-w-[660px] text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-800 text-left">
+                  <tr className="border-b border-[#e5ddd3] text-left">
                     {COLUMNS.map(column => (
-                      <th key={column.key} className="py-2.5 pr-4 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                      <th key={column.key} className="py-2.5 pr-4 text-xs font-medium uppercase tracking-wider text-[#1c1612]0">
                         <button
                           type="button"
                           onClick={() => changeSort(column.key)}
-                          className="flex items-center gap-1 transition-colors hover:text-zinc-200"
+                          className="flex items-center gap-1 transition-colors hover:text-[#2d2218]"
                           aria-label={`Sort by ${column.label}`}
                         >
                           {column.label}
@@ -123,40 +123,40 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
                         </button>
                       </th>
                     ))}
-                    <th className="py-2.5 text-xs font-medium uppercase tracking-wider text-zinc-500" />
+                    <th className="py-2.5 text-xs font-medium uppercase tracking-wider text-[#1c1612]0" />
                   </tr>
                 </thead>
                 <tbody>
                   {sortPositions(accountPositions).map((p, index) => {
                     const gain = p.unrealizedPnl >= 0;
                     return (
-                      <tr key={`${p.symbol}-${p.accountType}-${index}`} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                      <tr key={`${p.symbol}-${p.accountType}-${index}`} className="border-b border-[#e5ddd3]/50 hover:bg-[#ede8df]/30">
                         <td className="py-2.5 pr-4">
-                          <div className="font-semibold text-zinc-100">{p.symbol}</div>
-                          <div className="text-xs text-zinc-500 truncate max-w-[140px]">{p.name}</div>
+                          <div className="font-semibold text-[#1c1612]">{p.symbol}</div>
+                          <div className="text-xs text-[#1c1612]0 truncate max-w-[140px]">{p.name}</div>
                         </td>
-                        <td className="py-2.5 pr-4 text-zinc-300">{fmt(p.shares)}</td>
-                        <td className="py-2.5 pr-4 text-zinc-300">{p.accountType === 'cpf' ? <span className="text-zinc-600">—</span> : money(p.avgCost)}</td>
-                        <td className="py-2.5 pr-4 text-zinc-100 font-medium">
+                        <td className="py-2.5 pr-4 text-[#4a3d33]">{fmt(p.shares)}</td>
+                        <td className="py-2.5 pr-4 text-[#4a3d33]">{p.accountType === 'cpf' ? <span className="text-[#b8ad9e]">—</span> : money(p.avgCost)}</td>
+                        <td className="py-2.5 pr-4 text-[#1c1612] font-medium">
                           {p.hasLivePrice ? money(p.currentPrice) : <span className="text-amber-300">Unavailable</span>}
                         </td>
-                        <td className="py-2.5 pr-4 text-zinc-100">{money(p.equity)}</td>
+                        <td className="py-2.5 pr-4 text-[#1c1612]">{money(p.equity)}</td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {p.hasLivePrice ? `${gain ? '+' : '-'}${money(p.unrealizedPnl)}` : <span className="text-zinc-500">—</span>}
+                          {p.hasLivePrice ? `${gain ? '+' : '-'}${money(p.unrealizedPnl)}` : <span className="text-[#1c1612]0">—</span>}
                         </td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {p.hasLivePrice ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-zinc-500">—</span>}
+                          {p.hasLivePrice ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-[#1c1612]0">—</span>}
                         </td>
-                        <td className="py-2.5 pr-4 text-zinc-400">{fmt(p.portfolioWeightPct, 1)}%</td>
-                        <td className="py-2.5 pr-4 text-zinc-500 text-xs">{p.brokerage}</td>
+                        <td className="py-2.5 pr-4 text-[#6e5f52]">{fmt(p.portfolioWeightPct, 1)}%</td>
+                        <td className="py-2.5 pr-4 text-[#1c1612]0 text-xs">{p.brokerage}</td>
                         <td className="py-2.5 pl-3">
                           <div className="flex items-center gap-1">
                             <button onClick={() => onEdit(p)} title={`Edit ${p.symbol}`}
-                              className="rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-300">
+                              className="rounded p-1 text-[#b8ad9e] transition-colors hover:bg-[#ede8df] hover:text-[#4a3d33]">
                               <Edit2 className="h-3.5 w-3.5" />
                             </button>
                             <button onClick={() => onDelete(p)} title={`Delete ${p.symbol}`}
-                              className="rounded p-1 text-zinc-600 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                              className="rounded p-1 text-[#b8ad9e] transition-colors hover:bg-red-50 hover:text-red-400">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>

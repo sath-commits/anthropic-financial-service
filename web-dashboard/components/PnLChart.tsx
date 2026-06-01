@@ -31,9 +31,9 @@ function writeHistoryCache(symbol: string, period: string, data: HistoryPoint[])
 function CustomTooltip({ active, payload, label, currency, usdToSgdRate }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs shadow-xl">
-      <p className="text-zinc-400">{label}</p>
-      <p className="font-semibold text-zinc-100">{formatCurrency(payload[0].value, currency, usdToSgdRate)}</p>
+    <div className="rounded-lg border border-[#d4c9bc] bg-white px-3 py-2 text-xs shadow-xl">
+      <p className="text-[#6e5f52]">{label}</p>
+      <p className="font-semibold text-[#1c1612]">{formatCurrency(payload[0].value, currency, usdToSgdRate)}</p>
     </div>
   );
 }
@@ -87,14 +87,14 @@ export default function PnLChart({ symbol = 'VOO', holdingCurrency = 'USD', disp
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-zinc-300">{symbol} Price History</h3>
+        <h3 className="text-sm font-medium text-[#4a3d33]">{symbol} Price History</h3>
         <div className="flex gap-1">
           {periods.map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                period === p ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+                period === p ? 'bg-[#e0dbd4] text-[#1c1612]' : 'text-[#1c1612]0 hover:text-[#4a3d33]'
               }`}
             >
               {p}
@@ -104,10 +104,10 @@ export default function PnLChart({ symbol = 'VOO', holdingCurrency = 'USD', disp
       </div>
       {loading ? (
         <div className="flex h-40 items-center justify-center">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-600 border-t-zinc-300" />
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#c8c0b5] border-t-zinc-300" />
         </div>
       ) : data.length === 0 ? (
-        <div className="flex h-40 items-center justify-center text-xs text-zinc-600">No data available</div>
+        <div className="flex h-40 items-center justify-center text-xs text-[#b8ad9e]">No data available</div>
       ) : (
         <ResponsiveContainer width="100%" height={160}>
           <AreaChart data={displayData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>

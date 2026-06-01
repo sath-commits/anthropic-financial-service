@@ -144,8 +144,8 @@ function fmtAge(age: number) { return `${age}`; }
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs shadow-xl space-y-1">
-      <p className="text-zinc-400 font-medium">Age {label}</p>
+    <div className="rounded-lg border border-[#d4c9bc] bg-white px-3 py-2 text-xs shadow-xl space-y-1">
+      <p className="text-[#6e5f52] font-medium">Age {label}</p>
       {payload.map((entry: { name: string; value: number; color: string }) => (
         <p key={entry.name} style={{ color: entry.color }}>
           {entry.name}: {fmtM(entry.value)}
@@ -157,12 +157,12 @@ function ChartTooltip({ active, payload, label }: any) {
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
-function Stat({ label, value, sub, color = 'text-zinc-100' }: { label: string; value: string; sub?: string; color?: string }) {
+function Stat({ label, value, sub, color = 'text-[#1c1612]' }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-      <div className="text-xs text-zinc-500 mb-0.5">{label}</div>
+    <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+      <div className="text-xs text-[#9e9087] mb-0.5">{label}</div>
       <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      {sub && <div className="text-xs text-zinc-600 mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-[#b8ad9e] mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -241,29 +241,29 @@ export default function RetirementPage() {
   const hasCpf = cpfInputs.cpfBalanceSgd > 0;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
+    <div className="flex min-h-screen flex-col bg-[#f7f2eb]">
       {/* Header */}
-      <header className="flex items-center border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+      <header className="flex items-center border-b border-[#e5ddd3] px-3 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
-          <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
+          <span className="text-sm sm:text-base font-semibold text-[#1c1612] whitespace-nowrap">Beta than nothing</span>
           <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
-            <button onClick={() => router.push('/summary')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/summary')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Net Worth</span>
             </button>
-            <button onClick={() => router.push('/')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <LayoutDashboard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Dashboard</span>
             </button>
-            <button onClick={() => router.push('/advisor')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/advisor')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Brain className="h-3.5 w-3.5" /><span className="hidden sm:inline">Advisor</span>
             </button>
-            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-800 flex-shrink-0">
-              <PiggyBank className="h-3.5 w-3.5 text-purple-400" /><span className="hidden sm:inline">Retirement</span>
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#4a3d33] bg-[#ede8df] flex-shrink-0">
+              <PiggyBank className="h-3.5 w-3.5 text-[#da7756]" /><span className="hidden sm:inline">Retirement</span>
             </span>
-            <button onClick={() => router.push('/real-estate')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/real-estate')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Home className="h-3.5 w-3.5" /><span className="hidden sm:inline">Real Estate</span>
             </button>
-            <button onClick={() => router.push('/other-assets')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/other-assets')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Layers className="h-3.5 w-3.5" /><span className="hidden sm:inline">Other</span>
             </button>
           </nav>
@@ -274,7 +274,7 @@ export default function RetirementPage() {
 
         {/* No portfolio data warning */}
         {currentValue === 0 && (
-          <div className="rounded-xl border border-amber-700/40 bg-amber-900/20 px-4 py-3 text-xs text-amber-300">
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-300">
             Portfolio value not loaded — visit the <button onClick={() => router.push('/')} className="underline">Dashboard</button> first to load live prices, then return here.
           </div>
         )}
@@ -282,18 +282,18 @@ export default function RetirementPage() {
         {/* Page title + edit buttons */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl font-bold text-zinc-100">Retirement Planning</h1>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <h1 className="text-xl font-bold text-[#1c1612]">Retirement Planning</h1>
+            <p className="text-xs text-[#9e9087] mt-0.5">
               Projection from age {inputs.currentAge} → {inputs.retirementAge} · {yearsToRetire} years to retire
             </p>
           </div>
           <div className="flex gap-2">
             <button onClick={() => { setDraft(inputs); setEditingInputs(e => !e); setEditingCpf(false); }}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+              className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-3 py-1.5 text-xs text-[#6e5f52] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors">
               <Edit2 className="h-3 w-3" /> Edit assumptions
             </button>
             <button onClick={() => { setCpfDraft(cpfInputs); setEditingCpf(e => !e); setEditingInputs(false); }}
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-800/50 bg-emerald-950/30 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-900/40 transition-colors">
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-800/50 bg-emerald-100 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-100 transition-colors">
               <Edit2 className="h-3 w-3" /> CPF settings
             </button>
           </div>
@@ -301,7 +301,7 @@ export default function RetirementPage() {
 
         {/* Investment assumptions edit panel */}
         {editingInputs && (
-          <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-4 space-y-4">
+          <div className="rounded-xl border border-[#d4c9bc] bg-white p-4 space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               {([
                 { label: 'Current Age', key: 'currentAge' },
@@ -311,18 +311,18 @@ export default function RetirementPage() {
                 { label: 'Annual 401k ($)', key: 'annual401k' },
               ] as { label: string; key: keyof Inputs }[]).map(({ label, key }) => (
                 <div key={key}>
-                  <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">{label}</label>
+                  <label className="block text-[10px] text-[#9e9087] uppercase tracking-wide mb-1">{label}</label>
                   <input type="number" value={draft[key]}
                     onChange={e => setDraft(d => ({ ...d, [key]: Number(e.target.value) || 0 }))}
-                    className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500" />
+                    className="w-full rounded bg-white border border-[#d4c9bc] px-2 py-1.5 text-sm text-[#2d2218] focus:outline-none focus:border-[#da7756]" />
                 </div>
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={saveInputs} className="flex items-center gap-1 rounded px-3 py-1.5 bg-purple-700/40 text-purple-300 text-xs hover:bg-purple-700/60 transition-colors">
+              <button onClick={saveInputs} className="flex items-center gap-1 rounded px-3 py-1.5 bg-[#da7756]/20 text-[#da7756] text-xs hover:bg-[#da7756]/30 transition-colors">
                 <Check className="h-3 w-3" /> Save
               </button>
-              <button onClick={() => setEditingInputs(false)} className="flex items-center gap-1 rounded px-3 py-1.5 bg-zinc-700/40 text-zinc-400 text-xs hover:bg-zinc-700/60 transition-colors">
+              <button onClick={() => setEditingInputs(false)} className="flex items-center gap-1 rounded px-3 py-1.5 bg-[#e0dbd4]/40 text-[#6e5f52] text-xs hover:bg-[#e0dbd4]/60 transition-colors">
                 <X className="h-3 w-3" /> Cancel
               </button>
             </div>
@@ -331,7 +331,7 @@ export default function RetirementPage() {
 
         {/* CPF edit panel */}
         {editingCpf && (
-          <div className="rounded-xl border border-emerald-800/40 bg-emerald-950/20 p-4 space-y-4">
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 space-y-4">
             <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">CPF & Singapore Retirement Settings</div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               {([
@@ -343,21 +343,21 @@ export default function RetirementPage() {
                 { label: 'Monthly Payout (SGD)', key: 'cpfMonthlyPayoutSgd' },
               ] as { label: string; key: keyof CpfInputs }[]).map(({ label, key }) => (
                 <div key={key}>
-                  <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">{label}</label>
+                  <label className="block text-[10px] text-[#9e9087] uppercase tracking-wide mb-1">{label}</label>
                   <input type="number" value={cpfDraft[key]}
                     onChange={e => setCpfDraft(d => ({ ...d, [key]: Number(e.target.value) || 0 }))}
-                    className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500" />
+                    className="w-full rounded bg-white border border-[#d4c9bc] px-2 py-1.5 text-sm text-[#2d2218] focus:outline-none focus:border-[#da7756]" />
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-zinc-600">
+            <p className="text-[10px] text-[#b8ad9e]">
               CPF balance auto-filled from portfolio. Annual contrib: employee + employer (e.g. S$30,600/yr at wage ceiling, age &lt;35). RA created at 55 (OA+SA → RA). CPF Life payout age: 65–70 (later = higher). Monthly payout: BRS ~S$900, FRS ~S$1,800, ERS ~S$3,300 (2024 est).
             </p>
             <div className="flex gap-2">
               <button onClick={saveCpf} className="flex items-center gap-1 rounded px-3 py-1.5 bg-emerald-700/40 text-emerald-300 text-xs hover:bg-emerald-700/60 transition-colors">
                 <Check className="h-3 w-3" /> Save
               </button>
-              <button onClick={() => setEditingCpf(false)} className="flex items-center gap-1 rounded px-3 py-1.5 bg-zinc-700/40 text-zinc-400 text-xs hover:bg-zinc-700/60 transition-colors">
+              <button onClick={() => setEditingCpf(false)} className="flex items-center gap-1 rounded px-3 py-1.5 bg-[#e0dbd4]/40 text-[#6e5f52] text-xs hover:bg-[#e0dbd4]/60 transition-colors">
                 <X className="h-3 w-3" /> Cancel
               </button>
             </div>
@@ -365,48 +365,48 @@ export default function RetirementPage() {
         )}
 
         {/* Contribution summary */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-          <div className="text-xs text-zinc-500 uppercase tracking-wide mb-2 font-semibold">Annual Contributions (Investment Portfolio)</div>
+        <div className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-3">
+          <div className="text-xs text-[#9e9087] uppercase tracking-wide mb-2 font-semibold">Annual Contributions (Investment Portfolio)</div>
           <div className="flex flex-wrap gap-6 text-xs">
-            <div><span className="text-zinc-500">After-tax taxable </span><span className="text-zinc-200 font-semibold">{fmtM(inputs.annualTaxable)}</span></div>
-            <div><span className="text-zinc-500">Stock grants </span><span className="text-zinc-200 font-semibold">{fmtM(inputs.annualStockGrants)}</span></div>
-            <div><span className="text-zinc-500">401k (pre-tax) </span><span className="text-zinc-200 font-semibold">{fmtM(inputs.annual401k)}</span></div>
-            <div className="border-l border-zinc-700 pl-6">
-              <span className="text-zinc-500">Total / year </span>
-              <span className="text-purple-300 font-bold">{fmtM(totalAnnualContrib)}</span>
+            <div><span className="text-[#9e9087]">After-tax taxable </span><span className="text-[#2d2218] font-semibold">{fmtM(inputs.annualTaxable)}</span></div>
+            <div><span className="text-[#9e9087]">Stock grants </span><span className="text-[#2d2218] font-semibold">{fmtM(inputs.annualStockGrants)}</span></div>
+            <div><span className="text-[#9e9087]">401k (pre-tax) </span><span className="text-[#2d2218] font-semibold">{fmtM(inputs.annual401k)}</span></div>
+            <div className="border-l border-[#d4c9bc] pl-6">
+              <span className="text-[#9e9087]">Total / year </span>
+              <span className="text-[#da7756] font-bold">{fmtM(totalAnnualContrib)}</span>
             </div>
           </div>
         </div>
 
         {/* CPF milestones card */}
         {hasCpf && (
-          <div className="rounded-xl border border-emerald-800/40 bg-emerald-950/10 px-5 py-4">
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">🇸🇬 CPF & Singapore Retirement</span>
-              <span className="ml-auto text-xs text-zinc-600">
+              <span className="ml-auto text-xs text-[#b8ad9e]">
                 Current balance: S${(cpfInputs.cpfBalanceSgd).toLocaleString()} · {cpfInputs.cpfGrowthRate}%/yr
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-xs">
-              <div className="rounded-lg bg-zinc-900/60 border border-zinc-800 px-3 py-2">
-                <div className="text-zinc-500 mb-1">Age {cpfInputs.cpfRaAge} — RA Created</div>
+              <div className="rounded-lg bg-[#f0ebe1]/80 border border-[#e5ddd3] px-3 py-2">
+                <div className="text-[#9e9087] mb-1">Age {cpfInputs.cpfRaAge} — RA Created</div>
                 <div className="font-bold text-emerald-300 text-sm">S${Math.round(plan.cpf.cpfAtRa * usdToSgd).toLocaleString()}</div>
-                <div className="text-zinc-600 mt-0.5">OA+SA → Retirement Account</div>
+                <div className="text-[#b8ad9e] mt-0.5">OA+SA → Retirement Account</div>
               </div>
-              <div className="rounded-lg bg-zinc-900/60 border border-zinc-800 px-3 py-2">
-                <div className="text-zinc-500 mb-1">Age {cpfInputs.cpfPayoutAge} — CPF Life Starts</div>
+              <div className="rounded-lg bg-[#f0ebe1]/80 border border-[#e5ddd3] px-3 py-2">
+                <div className="text-[#9e9087] mb-1">Age {cpfInputs.cpfPayoutAge} — CPF Life Starts</div>
                 <div className="font-bold text-emerald-300 text-sm">S${Math.round(plan.cpf.cpfAtPayout * usdToSgd).toLocaleString()}</div>
-                <div className="text-zinc-600 mt-0.5">Projected RA balance</div>
+                <div className="text-[#b8ad9e] mt-0.5">Projected RA balance</div>
               </div>
-              <div className="rounded-lg bg-zinc-900/60 border border-zinc-800 px-3 py-2">
-                <div className="text-zinc-500 mb-1">CPF Life Monthly</div>
+              <div className="rounded-lg bg-[#f0ebe1]/80 border border-[#e5ddd3] px-3 py-2">
+                <div className="text-[#9e9087] mb-1">CPF Life Monthly</div>
                 <div className="font-bold text-emerald-400 text-sm">S${cpfInputs.cpfMonthlyPayoutSgd.toLocaleString()}</div>
-                <div className="text-zinc-600 mt-0.5">{fmtM(plan.cpf.cpfMonthlyUsd)} USD/mo</div>
+                <div className="text-[#b8ad9e] mt-0.5">{fmtM(plan.cpf.cpfMonthlyUsd)} USD/mo</div>
               </div>
-              <div className="rounded-lg bg-zinc-900/60 border border-zinc-800 px-3 py-2">
-                <div className="text-zinc-500 mb-1">CPF Life Annual</div>
+              <div className="rounded-lg bg-[#f0ebe1]/80 border border-[#e5ddd3] px-3 py-2">
+                <div className="text-[#9e9087] mb-1">CPF Life Annual</div>
                 <div className="font-bold text-emerald-400 text-sm">{fmtM(plan.cpf.cpfAnnualUsd)}</div>
-                <div className="text-zinc-600 mt-0.5">reduces portfolio drawdown</div>
+                <div className="text-[#b8ad9e] mt-0.5">reduces portfolio drawdown</div>
               </div>
             </div>
           </div>
@@ -414,15 +414,15 @@ export default function RetirementPage() {
 
         {/* At-retirement stats */}
         <div>
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-3">At Retirement (Age {inputs.retirementAge})</h2>
+          <h2 className="text-sm font-semibold text-[#6e5f52] uppercase tracking-wide mb-3">At Retirement (Age {inputs.retirementAge})</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label="Base Case Portfolio" value={fmtM(plan.ret.base)} sub={`${fmtM(plan.monthly.base)}/mo from investments`} color="text-purple-300" />
+            <Stat label="Base Case Portfolio" value={fmtM(plan.ret.base)} sub={`${fmtM(plan.monthly.base)}/mo from investments`} color="text-[#da7756]" />
             <Stat label="Bear Case (4%/yr)" value={fmtM(plan.ret.bear)} sub={`${fmtM(plan.monthly.bear)}/mo from investments`} color="text-blue-400" />
             <Stat label="Bull Case (10%/yr)" value={fmtM(plan.ret.bull)} sub={`${fmtM(plan.monthly.bull)}/mo from investments`} color="text-emerald-400" />
             <Stat label="Current Portfolio" value={fmtM(currentValue)} sub={`${yearsToRetire}y of growth ahead`} />
           </div>
           {hasCpf && cpfInputs.cpfMonthlyPayoutSgd > 0 && (
-            <div className="mt-3 rounded-lg border border-emerald-800/30 bg-emerald-950/20 px-4 py-2.5 text-xs text-emerald-300">
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-300">
               <span className="font-semibold">Total income at age {cpfInputs.cpfPayoutAge}+:</span>{' '}
               Investments {fmtM(plan.monthly.base)}/mo + CPF Life {fmtM(plan.cpf.cpfMonthlyUsd)}/mo
               {' = '}<span className="font-bold">{fmtM(plan.monthly.base + plan.cpf.cpfMonthlyUsd)}/mo</span> combined (base case)
@@ -431,14 +431,14 @@ export default function RetirementPage() {
         </div>
 
         {/* Accumulation chart */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4">
+        <div className="rounded-xl border border-[#e5ddd3] bg-white px-5 py-4">
           <div className="mb-4">
-            <h2 className="text-sm font-semibold text-zinc-200">Investment Portfolio Growth — Now to Retirement</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Age {inputs.currentAge} → {inputs.retirementAge} · {fmtM(totalAnnualContrib)}/yr contributions · CPF tracked separately</p>
+            <h2 className="text-sm font-semibold text-[#2d2218]">Investment Portfolio Growth — Now to Retirement</h2>
+            <p className="text-xs text-[#9e9087] mt-0.5">Age {inputs.currentAge} → {inputs.retirementAge} · {fmtM(totalAnnualContrib)}/yr contributions · CPF tracked separately</p>
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={plan.acc} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5ddd3" />
               <XAxis dataKey="age" tickFormatter={fmtAge} tick={{ fontSize: 11, fill: '#71717a' }}
                 label={{ value: 'Age', position: 'insideBottomRight', offset: -4, fontSize: 11, fill: '#71717a' }} />
               <YAxis tickFormatter={v => fmtM(v as number)} tick={{ fontSize: 11, fill: '#71717a' }} width={60} />
@@ -459,28 +459,28 @@ export default function RetirementPage() {
         </div>
 
         {/* Drawdown chart */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4">
+        <div className="rounded-xl border border-[#e5ddd3] bg-white px-5 py-4">
           <div className="mb-4">
-            <h2 className="text-sm font-semibold text-zinc-200">Retirement Drawdown — 4% Rule
+            <h2 className="text-sm font-semibold text-[#2d2218]">Retirement Drawdown — 4% Rule
               {hasCpf && cpfInputs.cpfMonthlyPayoutSgd > 0 && <span className="ml-2 text-emerald-400 font-normal text-xs">+ CPF Life from age {cpfInputs.cpfPayoutAge}</span>}
             </h2>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-[#9e9087] mt-0.5">
               Investment portfolio only · CPF Life income offsets withdrawals from age {cpfInputs.cpfPayoutAge}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-6 mb-4 text-xs">
-            <div><span className="text-blue-400 font-semibold">Bear: </span><span className="text-zinc-300">{fmtM(plan.monthly.bear)}/mo investments</span></div>
-            <div><span className="text-purple-400 font-semibold">Base: </span><span className="text-zinc-300">{fmtM(plan.monthly.base)}/mo investments</span></div>
-            <div><span className="text-emerald-400 font-semibold">Bull: </span><span className="text-zinc-300">{fmtM(plan.monthly.bull)}/mo investments</span></div>
+            <div><span className="text-blue-400 font-semibold">Bear: </span><span className="text-[#4a3d33]">{fmtM(plan.monthly.bear)}/mo investments</span></div>
+            <div><span className="text-[#da7756] font-semibold">Base: </span><span className="text-[#4a3d33]">{fmtM(plan.monthly.base)}/mo investments</span></div>
+            <div><span className="text-emerald-400 font-semibold">Bull: </span><span className="text-[#4a3d33]">{fmtM(plan.monthly.bull)}/mo investments</span></div>
             {hasCpf && cpfInputs.cpfMonthlyPayoutSgd > 0 && (
-              <div><span className="text-emerald-300 font-semibold">CPF Life: </span><span className="text-zinc-300">+{fmtM(plan.cpf.cpfMonthlyUsd)}/mo from age {cpfInputs.cpfPayoutAge}</span></div>
+              <div><span className="text-emerald-300 font-semibold">CPF Life: </span><span className="text-[#4a3d33]">+{fmtM(plan.cpf.cpfMonthlyUsd)}/mo from age {cpfInputs.cpfPayoutAge}</span></div>
             )}
           </div>
 
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={plan.draw} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5ddd3" />
               <XAxis dataKey="age" tickFormatter={fmtAge} tick={{ fontSize: 11, fill: '#71717a' }}
                 label={{ value: 'Age', position: 'insideBottomRight', offset: -4, fontSize: 11, fill: '#71717a' }} />
               <YAxis tickFormatter={v => fmtM(v as number)} tick={{ fontSize: 11, fill: '#71717a' }} width={60} />
@@ -501,7 +501,7 @@ export default function RetirementPage() {
             </LineChart>
           </ResponsiveContainer>
 
-          <p className="mt-3 text-xs text-zinc-600">
+          <p className="mt-3 text-xs text-[#b8ad9e]">
             CPF Life income reduces the amount drawn from your investment portfolio each year — the portfolio depletes more slowly or keeps growing.
             {hasCpf && cpfInputs.cpfMonthlyPayoutSgd === 0 && ' Enter your expected CPF Life monthly payout in CPF settings above.'}
           </p>
@@ -509,17 +509,17 @@ export default function RetirementPage() {
 
         {/* Milestone table */}
         <div>
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-3">Accumulation Milestones</h2>
-          <div className="rounded-xl border border-zinc-800 overflow-x-auto">
+          <h2 className="text-sm font-semibold text-[#6e5f52] uppercase tracking-wide mb-3">Accumulation Milestones</h2>
+          <div className="rounded-xl border border-[#e5ddd3] overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-zinc-800 bg-zinc-900/60">
-                  <th className="px-4 py-2.5 text-left text-zinc-500 font-medium">Age</th>
-                  <th className="px-4 py-2.5 text-left text-zinc-500 font-medium">Year</th>
-                  <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Bear (4%)</th>
-                  <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Base (7%)</th>
-                  <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">Bull (10%)</th>
-                  {hasCpf && <th className="px-4 py-2.5 text-right text-zinc-500 font-medium">CPF</th>}
+                <tr className="border-b border-[#e5ddd3] bg-[#f0ebe1]/80">
+                  <th className="px-4 py-2.5 text-left text-[#9e9087] font-medium">Age</th>
+                  <th className="px-4 py-2.5 text-left text-[#9e9087] font-medium">Year</th>
+                  <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Bear (4%)</th>
+                  <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Base (7%)</th>
+                  <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">Bull (10%)</th>
+                  {hasCpf && <th className="px-4 py-2.5 text-right text-[#9e9087] font-medium">CPF</th>}
                 </tr>
               </thead>
               <tbody>
@@ -529,13 +529,13 @@ export default function RetirementPage() {
                     const isCpfRa = hasCpf && row.age === cpfInputs.cpfRaAge;
                     const isRetire = row.age === inputs.retirementAge;
                     return (
-                      <tr key={row.age} className={`border-b border-zinc-800/50 ${isRetire ? 'bg-purple-900/20' : isCpfRa ? 'bg-emerald-900/10' : 'bg-zinc-900'}`}>
-                        <td className={`px-4 py-2.5 font-medium ${isRetire ? 'text-purple-300' : isCpfRa ? 'text-emerald-400' : 'text-zinc-200'}`}>
+                      <tr key={row.age} className={`border-b border-[#e5ddd3]/50 ${isRetire ? 'bg-[#da7756]/10' : isCpfRa ? 'bg-emerald-50' : 'bg-white'}`}>
+                        <td className={`px-4 py-2.5 font-medium ${isRetire ? 'text-[#da7756]' : isCpfRa ? 'text-emerald-400' : 'text-[#2d2218]'}`}>
                           {row.age}{isRetire ? ' ★' : isCpfRa ? ' 🇸🇬' : ''}
                         </td>
-                        <td className="px-4 py-2.5 text-zinc-500">{row.year}{isCpfRa ? ' · RA' : ''}</td>
+                        <td className="px-4 py-2.5 text-[#9e9087]">{row.year}{isCpfRa ? ' · RA' : ''}</td>
                         <td className="px-4 py-2.5 text-right text-blue-400">{fmtM(row.bear)}</td>
-                        <td className="px-4 py-2.5 text-right text-purple-300 font-semibold">{fmtM(row.base)}</td>
+                        <td className="px-4 py-2.5 text-right text-[#da7756] font-semibold">{fmtM(row.base)}</td>
                         <td className="px-4 py-2.5 text-right text-emerald-400">{fmtM(row.bull)}</td>
                         {hasCpf && <td className="px-4 py-2.5 text-right text-emerald-300">{row.cpfBalance ? fmtM(row.cpfBalance) : '—'}</td>}
                       </tr>
@@ -546,7 +546,7 @@ export default function RetirementPage() {
           </div>
         </div>
 
-        <p className="text-xs text-zinc-700 pb-6">
+        <p className="text-xs text-[#c8c0b5] pb-6">
           Projections assume constant annual returns and fixed contributions. Actual results will differ due to market volatility, tax changes, and life events. This is not financial advice.
         </p>
       </main>

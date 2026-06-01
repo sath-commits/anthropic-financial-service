@@ -38,33 +38,33 @@ function ProfileStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-100">Tell us about yourself</h2>
-        <p className="mt-1 text-sm text-zinc-500">This helps tailor strategy recommendations to your situation.</p>
+        <h2 className="text-xl font-semibold text-[#1c1612]">Tell us about yourself</h2>
+        <p className="mt-1 text-sm text-[#9e9087]">This helps tailor strategy recommendations to your situation.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <label className="space-y-1.5">
-          <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Current Age</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Current Age</span>
           <input type="number" value={age} onChange={e => setAge(+e.target.value)} min={18} max={90}
-            className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+            className="w-full rounded-lg bg-white px-3 py-2 text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
         </label>
         <label className="space-y-1.5">
-          <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Retire At</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Retire At</span>
           <input type="number" value={retireAge} onChange={e => setRetireAge(+e.target.value)} min={age + 1} max={90}
-            className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
+            className="w-full rounded-lg bg-white px-3 py-2 text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
         </label>
         <label className="space-y-1.5">
-          <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Monthly Contribution</span>
-          <div className="flex items-center rounded-lg bg-zinc-800 px-3 py-2 focus-within:ring-1 focus-within:ring-zinc-600">
-            <span className="text-zinc-500">$</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Monthly Contribution</span>
+          <div className="flex items-center rounded-lg bg-white px-3 py-2 focus-within:ring-1 focus-within:ring-zinc-600">
+            <span className="text-[#9e9087]">$</span>
             <input type="number" value={monthly} onChange={e => setMonthly(+e.target.value)} min={0}
-              className="w-full bg-transparent text-zinc-100 outline-none ml-1" />
+              className="w-full bg-transparent text-[#1c1612] outline-none ml-1" />
           </div>
         </label>
         <label className="space-y-1.5">
-          <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Risk Tolerance</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Risk Tolerance</span>
           <select value={risk} onChange={e => setRisk(e.target.value as InvestorProfile['riskTolerance'])}
-            className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300 outline-none focus:ring-1 focus:ring-zinc-600">
+            className="w-full rounded-lg bg-white px-3 py-2 text-[#4a3d33] outline-none focus:ring-1 focus:ring-zinc-600">
             <option value="conservative">Conservative</option>
             <option value="moderate">Moderate</option>
             <option value="aggressive">Aggressive</option>
@@ -73,12 +73,12 @@ function ProfileStep({
       </div>
 
       <div>
-        <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Primary Goal</span>
+        <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Primary Goal</span>
         <div className="flex flex-wrap gap-2 mt-2">
           {(['growth', 'income', 'preservation', 'balanced'] as const).map(g => (
             <button key={g} onClick={() => setGoal(g)}
               className={`rounded-full px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
-                goal === g ? 'bg-blue-600 text-white' : 'border border-zinc-700 text-zinc-400 hover:text-zinc-200'
+                goal === g ? 'bg-blue-600 text-white' : 'border border-[#d4c9bc] text-[#6e5f52] hover:text-[#2d2218]'
               }`}>
               {g}
             </button>
@@ -88,7 +88,7 @@ function ProfileStep({
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Target Allocation</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-[#9e9087]">Target Allocation</span>
           <span className={`text-xs font-medium ${targetOk ? 'text-emerald-400' : 'text-amber-400'}`}>
             Total: {(totalTarget * 100).toFixed(0)}% {targetOk ? '✓' : '(must equal 100%)'}
           </span>
@@ -96,12 +96,12 @@ function ProfileStep({
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {Object.entries(targets).map(([cls, val]) => (
             <label key={cls} className="flex items-center gap-2">
-              <span className="flex-1 text-sm text-zinc-400">{cls}</span>
+              <span className="flex-1 text-sm text-[#6e5f52]">{cls}</span>
               <div className="flex items-center gap-0.5">
                 <input type="number" value={Math.round(val * 100)} min={0} max={100}
                   onChange={e => updateTarget(cls, e.target.value)}
-                  className="w-12 rounded bg-zinc-800 px-2 py-1 text-center text-sm text-zinc-100 outline-none focus:ring-1 focus:ring-zinc-600" />
-                <span className="text-xs text-zinc-600">%</span>
+                  className="w-12 rounded bg-white px-2 py-1 text-center text-sm text-[#1c1612] outline-none focus:ring-1 focus:ring-zinc-600" />
+                <span className="text-xs text-[#b8ad9e]">%</span>
               </div>
             </label>
           ))}
@@ -110,7 +110,7 @@ function ProfileStep({
 
       <div className="flex items-center gap-3">
         <button onClick={onBack}
-          className="flex items-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+          className="flex items-center gap-2 rounded-lg border border-[#d4c9bc] px-5 py-2.5 text-sm font-medium text-[#6e5f52] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors">
           <ChevronLeft className="h-4 w-4" /> Back
         </button>
         <button
@@ -202,8 +202,8 @@ Be specific, direct, and concise. Use bullet points.`;
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-100">Your Investment Strategy</h2>
-        <p className="mt-1 text-sm text-zinc-500">AI will analyze your portfolio and suggest a starting strategy.</p>
+        <h2 className="text-xl font-semibold text-[#1c1612]">Your Investment Strategy</h2>
+        <p className="mt-1 text-sm text-[#9e9087]">AI will analyze your portfolio and suggest a starting strategy.</p>
       </div>
 
       {!started ? (
@@ -213,20 +213,20 @@ Be specific, direct, and concise. Use bullet points.`;
             Generate strategy recommendation
           </button>
           <button onClick={() => onDone('')}
-            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+            className="text-sm text-[#9e9087] hover:text-[#4a3d33] transition-colors">
             Skip — go to dashboard
           </button>
         </div>
       ) : (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 min-h-[200px]">
+        <div className="rounded-xl border border-[#e5ddd3] bg-white p-5 min-h-[200px]">
           {loading && !strategy && (
-            <div className="flex items-center gap-2 text-zinc-500 text-sm">
+            <div className="flex items-center gap-2 text-[#9e9087] text-sm">
               <Loader2 className="h-4 w-4 animate-spin" />
               Analyzing your portfolio…
             </div>
           )}
           {strategy && (
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-zinc-200">{strategy}</pre>
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-[#2d2218]">{strategy}</pre>
           )}
         </div>
       )}
@@ -234,7 +234,7 @@ Be specific, direct, and concise. Use bullet points.`;
       <div className="flex items-center gap-3">
         {!started && (
           <button onClick={onBack}
-            className="flex items-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+            className="flex items-center gap-2 rounded-lg border border-[#d4c9bc] px-5 py-2.5 text-sm font-medium text-[#6e5f52] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors">
             <ChevronLeft className="h-4 w-4" /> Back
           </button>
         )}
@@ -292,11 +292,11 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-[#0a0a0a] px-4 py-12">
+    <div className="flex min-h-screen flex-col items-center bg-[#f7f2eb] px-4 py-12">
       {/* Header */}
       <div className="mb-10 flex items-center gap-2.5">
         <TrendingUp className="h-6 w-6 text-blue-400" />
-        <span className="text-xl font-semibold text-zinc-100">Beta than nothing</span>
+        <span className="text-xl font-semibold text-[#1c1612]">Beta than nothing</span>
       </div>
 
       {/* Step indicator */}
@@ -304,22 +304,22 @@ export default function OnboardingPage() {
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2">
             <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-              i < step ? 'bg-emerald-600 text-white' : i === step ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-500'
+              i < step ? 'bg-emerald-600 text-white' : i === step ? 'bg-blue-600 text-white' : 'bg-[#ede8df] text-[#9e9087]'
             }`}>
               {i < step ? '✓' : i + 1}
             </div>
-            <span className={`text-sm ${i === step ? 'text-zinc-200' : 'text-zinc-600'}`}>{s}</span>
-            {i < STEPS.length - 1 && <div className="ml-2 h-px w-8 bg-zinc-800" />}
+            <span className={`text-sm ${i === step ? 'text-[#2d2218]' : 'text-[#b8ad9e]'}`}>{s}</span>
+            {i < STEPS.length - 1 && <div className="ml-2 h-px w-8 bg-[#ede8df]" />}
           </div>
         ))}
       </div>
 
       {/* Step content */}
-      <div className="w-full max-w-4xl rounded-2xl border border-zinc-800 bg-zinc-900 p-8">
+      <div className="w-full max-w-4xl rounded-2xl border border-[#e5ddd3] bg-white p-8">
         {step === 0 && hydrated && (
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-100">What&apos;s in your portfolio?</h1>
-            <p className="mt-2 mb-6 text-sm text-zinc-500">
+            <h1 className="text-2xl font-semibold text-[#1c1612]">What&apos;s in your portfolio?</h1>
+            <p className="mt-2 mb-6 text-sm text-[#9e9087]">
               Import your holdings, then review the rows. Purchase date is used for tax calculations.
             </p>
             <PortfolioEditor
@@ -336,7 +336,7 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      <p className="mt-6 text-xs text-zinc-700">
+      <p className="mt-6 text-xs text-[#c8c0b5]">
         Your data stays in your browser — nothing is sent to any server except for AI analysis.
       </p>
     </div>
