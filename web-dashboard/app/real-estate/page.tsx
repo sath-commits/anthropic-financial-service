@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  TrendingUp, Brain, PiggyBank, Home, Layers, Plus, Edit2, Trash2,
+  TrendingUp, Brain, PiggyBank, Home, Layers, Wallet, Plus, Edit2, Trash2,
   X, Check, MapPin, TrendingUp as TrendUp, TrendingDown,
 } from 'lucide-react';
 import { loadPortfolioCache } from '@/lib/storage';
@@ -465,6 +465,9 @@ export default function RealEstatePage() {
           <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
           <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
           <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+            <button onClick={() => router.push('/summary')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+              <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Net Worth</span>
+            </button>
             {[
               { label: 'Dashboard', path: '/', icon: null },
               { label: 'Advisor', path: '/advisor', icon: <Brain className="h-3.5 w-3.5" /> },

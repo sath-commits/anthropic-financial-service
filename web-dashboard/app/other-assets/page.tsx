@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  TrendingUp, Brain, PiggyBank, Home, Layers, Plus, Edit2, Trash2,
+  TrendingUp, Brain, PiggyBank, Home, Layers, Wallet, LayoutDashboard, Plus, Edit2, Trash2,
   X, Check, TrendingUp as TrendUp, TrendingDown,
 } from 'lucide-react';
 import { loadPortfolioCache } from '@/lib/storage';
@@ -378,7 +378,8 @@ export default function OtherAssetsPage() {
   const filtered = categoryFilter === 'All' ? assets : assets.filter(a => a.category === categoryFilter);
 
   const NAV = [
-    { label: 'Dashboard',   path: '/',             icon: null },
+    { label: 'Net Worth',   path: '/summary',      icon: <Wallet className="h-3.5 w-3.5" /> },
+    { label: 'Dashboard',   path: '/',             icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
     { label: 'Advisor',     path: '/advisor',       icon: <Brain className="h-3.5 w-3.5" /> },
     { label: 'Retirement',  path: '/retirement',    icon: <PiggyBank className="h-3.5 w-3.5" /> },
     { label: 'Real Estate', path: '/real-estate',   icon: <Home className="h-3.5 w-3.5" /> },

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X, Edit2, PiggyBank, Home, Layers } from 'lucide-react';
+import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X, Edit2, PiggyBank, Home, Layers, Wallet } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
@@ -383,7 +383,8 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0a]">
       {/* Top bar */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 sm:px-6 sm:py-3">
+      <header className="border-b border-zinc-800">
+      <div className="flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <TrendingUp className="h-5 w-5 text-blue-400 flex-shrink-0" />
           <span className="text-sm sm:text-base font-semibold text-zinc-100 whitespace-nowrap">Beta than nothing</span>
@@ -391,6 +392,10 @@ export default function Dashboard() {
             {isOwnPortfolio ? 'Your portfolio' : 'Demo'}
           </span>
           <nav className="ml-1 sm:ml-3 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+            <Link href="/summary" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0">
+              <Wallet className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Net Worth</span>
+            </Link>
             <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 text-xs font-medium text-zinc-300 bg-zinc-800 whitespace-nowrap flex-shrink-0">
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden text-[10px]">Dash</span>
@@ -413,84 +418,86 @@ export default function Dashboard() {
             </Link>
           </nav>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 text-xs text-zinc-500 flex-shrink-0">
-          <select
-            value={displayCurrency}
-            onChange={event => setDisplayCurrency(event.target.value as Currency)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
-            aria-label="Display currency"
-          >
-            <option value="USD">USD</option>
-            <option value="SGD">SGD</option>
-          </select>
-          {uniqueBrokerages.length > 1 && (
-            <select
-              value={brokerageFilter}
-              onChange={event => setBrokerageFilter(event.target.value)}
-              className="hidden sm:block rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
-              aria-label="Filter by brokerage"
-            >
-              <option value="All">All brokerages</option>
-              {uniqueBrokerages.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
-          )}
-          <select
-            value={liquidityFilter}
-            onChange={event => setLiquidityFilter(event.target.value as typeof liquidityFilter)}
-            className="hidden sm:block rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
-            aria-label="Filter by liquidity"
-          >
-            <option value="All">All assets</option>
-            <option value="Liquid">Liquid only</option>
-            <option value="Illiquid">Illiquid only</option>
-          </select>
-          {displayCurrency === 'SGD' && summary && (
-            <span className="hidden md:inline text-zinc-500">
-              1 USD = {summary.usdToSgdRate.toFixed(4)} SGD
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => downloadSettingsBackup(userPositions ?? [], profile)}
-            className="hidden sm:flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
-            title="Download portfolio backup"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Export</span>
-          </button>
-          <input
-            ref={restoreInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={event => void restoreSettingsBackup(event.target.files?.[0])}
-          />
-          <button
-            type="button"
-            onClick={() => restoreInputRef.current?.click()}
-            className="hidden sm:flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
-            title="Restore portfolio backup"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Restore</span>
-          </button>
+        {/* Action buttons — always visible, right side of top row */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => load()}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 sm:px-3 text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
           <button
             onClick={openAddHolding}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
-            title="Add holding"
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add holding
+            <span className="hidden sm:inline">Add holding</span>
           </button>
         </div>
+      </div>
+
+      {/* Filters row */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/60 px-3 py-2 sm:px-6 text-xs text-zinc-500">
+        <select
+          value={displayCurrency}
+          onChange={event => setDisplayCurrency(event.target.value as Currency)}
+          className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
+          aria-label="Display currency"
+        >
+          <option value="USD">USD</option>
+          <option value="SGD">SGD</option>
+        </select>
+        {uniqueBrokerages.length > 1 && (
+          <select
+            value={brokerageFilter}
+            onChange={event => setBrokerageFilter(event.target.value)}
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
+            aria-label="Filter by brokerage"
+          >
+            <option value="All">All brokerages</option>
+            {uniqueBrokerages.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        )}
+        <select
+          value={liquidityFilter}
+          onChange={event => setLiquidityFilter(event.target.value as typeof liquidityFilter)}
+          className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-300 outline-none"
+          aria-label="Filter by liquidity"
+        >
+          <option value="All">All assets</option>
+          <option value="Liquid">Liquid only</option>
+          <option value="Illiquid">Illiquid only</option>
+        </select>
+        {displayCurrency === 'SGD' && summary && (
+          <span className={summary.hasLiveUsdToSgdRate ? 'text-zinc-500' : 'text-amber-400'}>
+            1 USD = {summary.usdToSgdRate.toFixed(4)} SGD
+          </span>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => downloadSettingsBackup(userPositions ?? [], profile)}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            title="Download portfolio backup"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
+          <input ref={restoreInputRef} type="file" accept="application/json,.json" className="hidden"
+            onChange={event => void restoreSettingsBackup(event.target.files?.[0])} />
+          <button
+            type="button"
+            onClick={() => restoreInputRef.current?.click()}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            title="Restore portfolio backup"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Restore</span>
+          </button>
+        </div>
+      </div>
       </header>
 
       {editingAllocation && (
