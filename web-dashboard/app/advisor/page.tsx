@@ -6,7 +6,7 @@ import {
   TrendingUp, RefreshCw, Clock, ChevronDown, ChevronUp,
   AlertTriangle, TrendingDown, Minus, ArrowUpRight, ArrowDownRight,
   Star, Calendar, BarChart3, Target, Zap, Scale, Scissors,
-  PiggyBank, Edit2, Check, X, BookOpen, Home,
+  PiggyBank, Edit2, Check, X, BookOpen, Home, Layers,
 } from 'lucide-react';
 import {
   saveAdvisorRun, loadAdvisorHistory, shouldAutoRun, nextRunLabel,
@@ -866,6 +866,13 @@ export default function AdvisorPage() {
             >
               <Home className="h-3.5 w-3.5" />
               Real Estate
+            </button>
+            <button
+              onClick={() => router.push('/other-assets')}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              Other
             </button>
           </nav>
         </div>

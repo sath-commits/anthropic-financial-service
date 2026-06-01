@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X, Edit2, PiggyBank, Home } from 'lucide-react';
+import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X, Edit2, PiggyBank, Home, Layers } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
@@ -414,6 +414,13 @@ export default function Dashboard() {
             >
               <Home className="h-3.5 w-3.5" />
               Real Estate
+            </Link>
+            <Link
+              href="/other-assets"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              Other
             </Link>
           </nav>
         </div>
