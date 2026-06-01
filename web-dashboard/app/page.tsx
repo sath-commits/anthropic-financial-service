@@ -278,21 +278,25 @@ export default function Dashboard() {
     setHolding(null);
     // Fast path: same symbol — recompute this row client-side, no API call
     if (summary && oldUserPos && symbol === oldUserPos.symbol) {
-      const existingPos = summary.positions.find(
-        p => p.symbol === oldUserPos.symbol && p.accountType === oldUserPos.accountType
-      );
-      if (existingPos) {
-        const inrRate = summary.usdToInrRate ?? DEFAULT_USD_TO_INR_RATE;
-        const newPos = recomputePositionFast(updated, existingPos.currentPrice, existingPos.hasLivePrice, summary.usdToSgdRate, inrRate);
-        const rawPositions = summary.positions.map(p => p === existingPos ? newPos : p);
-        const { summary: s, allocation: a } = applyLocalPositionUpdate(rawPositions, summary, profile, earnings);
-        setSummary(s);
-        setAllocation(a);
-        savePortfolioCache({ summary: s, allocation: a, earnings });
-        return;
-      }
+      // Match by symbol+accountType; fall back to symbol-only so a stale
+      // accountType never silently drops through to the full API reload.
+      const existingPos =
+        summary.positions.find(p => p.symbol === oldUserPos.symbol && p.accountType === oldUserPos.accountType)
+        ?? summary.positions.find(p => p.symbol === oldUserPos.symbol);
+      const inrRate = summary.usdToInrRate ?? DEFAULT_USD_TO_INR_RATE;
+      const cachedPrice = existingPos?.currentPrice ?? 0;
+      const hasLive = existingPos?.hasLivePrice ?? false;
+      const newPos = recomputePositionFast(updated, cachedPrice, hasLive, summary.usdToSgdRate, inrRate);
+      const rawPositions = existingPos
+        ? summary.positions.map(p => p === existingPos ? newPos : p)
+        : [...summary.positions, newPos];
+      const { summary: s, allocation: a } = applyLocalPositionUpdate(rawPositions, summary, profile, earnings);
+      setSummary(s);
+      setAllocation(a);
+      savePortfolioCache({ summary: s, allocation: a, earnings });
+      return;
     }
-    // Slow path: ticker changed or no match — fetch live price for new symbol
+    // Slow path: ticker changed — fetch live price for new symbol
     load(next, profile);
   }
 
