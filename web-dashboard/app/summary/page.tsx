@@ -175,21 +175,14 @@ export default function SummaryPage() {
   const reCost     = properties.reduce((s, p) => s + toD(p.purchasePrice, p.currency), 0);
   const rePnl      = reTotal - reCost;
 
-  // Other assets — split insurance vs non-insurance
-  const INSURANCE_CATS = ['Insurance (Cash Value)'];
-  const liquidOther    = otherAssets.filter(a => !INSURANCE_CATS.includes(a.category));
-  const insuranceOther = otherAssets.filter(a => INSURANCE_CATS.includes(a.category));
+  // Other assets — insurance completely excluded from this page
+  const visibleOther = otherAssets.filter(a => a.category !== 'Insurance (Cash Value)');
+  const otherValue   = visibleOther.reduce((s, a) => s + toD(a.currentValue, a.currency), 0);
 
-  const otherValue     = liquidOther.reduce((s, a) => s + toD(a.currentValue, a.currency), 0);
-  const otherCost      = liquidOther.reduce((s, a) => s + toD(a.purchasePrice, a.currency), 0);
-  const insuranceValue = insuranceOther.reduce((s, a) => s + toD(a.currentValue, a.currency), 0);
-  const allOtherValue  = otherAssets.reduce((s, a) => s + toD(a.currentValue, a.currency), 0);
-
-  // Net worth calculations
-  const totalAssets     = portfolioValueD + reTotal + allOtherValue;
+  // Net worth
+  const totalAssets      = portfolioValueD + reTotal + otherValue;
   const totalLiabilities = reLoans;
-  const netWorth        = totalAssets - totalLiabilities;
-  const netWorthExInsurance = portfolioValueD + reEquity + otherValue; // excl. insurance cash value
+  const netWorth         = totalAssets - totalLiabilities;
 
   const pnlColor = (n: number) => n >= 0 ? 'text-emerald-400' : 'text-red-400';
 
@@ -232,18 +225,8 @@ export default function SummaryPage() {
           <div className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-1">Total Net Worth</div>
           <div className="text-4xl sm:text-5xl font-bold text-zinc-100">{fmt(netWorth, display)}</div>
           <div className="mt-3 flex flex-wrap gap-4 text-xs text-zinc-500">
-            <span>
-              Excl. insurance:{' '}
-              <span className="text-zinc-300 font-semibold">{fmt(netWorthExInsurance, display)}</span>
-            </span>
-            <span>
-              Total assets:{' '}
-              <span className="text-zinc-300 font-semibold">{fmt(totalAssets, display)}</span>
-            </span>
-            <span>
-              Liabilities:{' '}
-              <span className="text-red-400 font-semibold">{fmt(-totalLiabilities, display)}</span>
-            </span>
+            <span>Total assets: <span className="text-zinc-300 font-semibold">{fmt(totalAssets, display)}</span></span>
+            <span>Liabilities: <span className="text-red-400 font-semibold">{fmt(-totalLiabilities, display)}</span></span>
           </div>
         </div>
 
@@ -252,7 +235,7 @@ export default function SummaryPage() {
           {[
             { label: 'Investments', value: fmt(portfolioValueD, display), sub: 'stocks & ETFs', color: 'text-blue-400' },
             { label: 'Real Estate', value: fmt(reEquity, display), sub: 'equity after loans', color: 'text-orange-400' },
-            { label: 'Other Assets', value: fmt(otherValue, display), sub: 'excl. insurance', color: 'text-teal-400' },
+            { label: 'Other Assets', value: fmt(otherValue, display), sub: 'gold, vehicles, etc.', color: 'text-teal-400' },
             { label: 'Outstanding Loans', value: fmt(-reLoans, display), sub: 'mortgage principal', color: 'text-red-400' },
           ].map(({ label, value, sub, color }) => (
             <div key={label} className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
@@ -289,15 +272,12 @@ export default function SummaryPage() {
           ))}
         </Section>
 
-        {/* Other assets section */}
-        {otherAssets.length > 0 && (
+        {/* Other assets section (insurance excluded entirely) */}
+        {visibleOther.length > 0 && (
           <Section title="Other Assets" icon={<Layers className="h-4 w-4 text-teal-400" />} onClick={() => router.push('/other-assets')}>
-            <Row label="Total Value" value={fmt(allOtherValue, display)} color="text-teal-400" />
-            {insuranceValue > 0 && (
-              <Row label="Insurance (Cash Value)" value={fmt(insuranceValue, display)} color="text-zinc-500" indent sub="excluded from net worth calculation" />
-            )}
-            {liquidOther.length > 0 && <Divider />}
-            {liquidOther.map(a => (
+            <Row label="Total Value" value={fmt(otherValue, display)} color="text-teal-400" />
+            {visibleOther.length > 0 && <Divider />}
+            {visibleOther.map(a => (
               <Row
                 key={a.id}
                 label={a.name}
@@ -320,8 +300,7 @@ export default function SummaryPage() {
               <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Assets</div>
               <Row label="Investment portfolio" value={fmt(portfolioValueD, display)} indent />
               <Row label="Real estate (gross)" value={fmt(reTotal, display)} indent />
-              {otherValue > 0 && <Row label="Other assets" value={fmt(otherValue, display)} indent sub="excl. insurance" />}
-              {insuranceValue > 0 && <Row label="Insurance cash value" value={fmt(insuranceValue, display)} indent color="text-zinc-500" />}
+              {otherValue > 0 && <Row label="Other assets" value={fmt(otherValue, display)} indent />}
             </div>
             <div className="py-2">
               <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Liabilities</div>
@@ -337,7 +316,7 @@ export default function SummaryPage() {
         </div>
 
         <p className="text-xs text-zinc-700 pb-4">
-          Investment values from last portfolio refresh. Real estate and other assets are manually updated. Insurance cash value is excluded from net worth by default.
+          Investment values from last portfolio refresh. Real estate and other assets are manually updated.
         </p>
       </main>
     </div>
