@@ -170,7 +170,17 @@ export function computeTrackRecord(
     }
   }
 
-  const withReturn = calls.filter(c => c.returnPct != null && c.isGoodCall != null);
+  // Deduplicate: keep only the most recent call per symbol+action.
+  // History is most-recent-first, so the first occurrence we encounter is newest.
+  const seen = new Set<string>();
+  const deduped = calls.filter(c => {
+    const key = `${c.symbol}:${c.action}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const withReturn = deduped.filter(c => c.returnPct != null && c.isGoodCall != null);
   const goodCalls = withReturn.filter(c => c.isGoodCall === true);
   const buyRecs = withReturn.filter(c => c.action === 'buy' || c.action === 'add');
   const avgBuyReturnPct =
@@ -178,15 +188,12 @@ export function computeTrackRecord(
       ? buyRecs.reduce((s, c) => s + (c.returnPct ?? 0), 0) / buyRecs.length
       : null;
 
-  // Ghost portfolio: equal $1000 per buy/add rec, measure blended return
   const ghostReturnPct = avgBuyReturnPct;
 
-  // Actual portfolio return since earliest run
   let actualPortfolioReturnPct: number | null = null;
   if (history.length > 0) {
     const oldest = history[history.length - 1];
     const startEquity = oldest.totalEquityAtAnalysis;
-    // estimate current equity from snapshot prices
     const currentEquity = oldest.portfolioSnapshot.reduce((s, p) => {
       const price = currentPrices[p.symbol] ?? p.price;
       return s + price * p.shares;
@@ -199,13 +206,13 @@ export function computeTrackRecord(
   const sorted = [...withReturn].sort((a, b) => (b.returnPct ?? 0) - (a.returnPct ?? 0));
 
   return {
-    totalCalls: calls.length,
+    totalCalls: deduped.length,
     goodCalls: goodCalls.length,
     accuracyPct: withReturn.length > 0 ? (goodCalls.length / withReturn.length) * 100 : null,
     avgBuyReturnPct,
     ghostPortfolioReturnPct: ghostReturnPct,
     actualPortfolioReturnPct,
-    calls,
+    calls: deduped,
     topWins: sorted.slice(0, 3),
     topMisses: sorted.slice(-3).reverse(),
   };
