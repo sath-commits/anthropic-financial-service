@@ -7,6 +7,8 @@ import type { InvestorProfile, UserPosition } from '@/lib/types';
 interface StoredSettings {
   positions?: UserPosition[];
   profile?: InvestorProfile;
+  properties?: unknown[];
+  otherAssets?: unknown[];
 }
 
 interface SettingsRequest extends StoredSettings {
@@ -78,6 +80,8 @@ async function writeSettings(patch: StoredSettings): Promise<StoredSettings> {
     result = { ...previous };
     if (patch.positions !== undefined) result.positions = patch.positions;
     if (patch.profile !== undefined) result.profile = patch.profile;
+    if (patch.properties !== undefined) result.properties = patch.properties;
+    if (patch.otherAssets !== undefined) result.otherAssets = patch.otherAssets;
     await mkdir(path.dirname(settingsPath), { recursive: true });
     await mkdir(backupsDirectory, { recursive: true });
     if (previous.positions?.length || previous.profile) await writeBackup(previous);
@@ -111,14 +115,20 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
   const body = await req.json().catch(() => null) as SettingsRequest | null;
-  if (!body || (body.positions === undefined && body.profile === undefined)) {
-    return NextResponse.json({ error: 'Provide positions or profile settings.' }, { status: 400 });
+  if (!body || (body.positions === undefined && body.profile === undefined && body.properties === undefined && body.otherAssets === undefined)) {
+    return NextResponse.json({ error: 'Provide at least one setting to update.' }, { status: 400 });
   }
   if (body.positions !== undefined && !Array.isArray(body.positions)) {
     return NextResponse.json({ error: 'Positions must be an array.' }, { status: 400 });
   }
   if (body.profile !== undefined && (!body.profile || typeof body.profile !== 'object')) {
     return NextResponse.json({ error: 'Profile must be an object.' }, { status: 400 });
+  }
+  if (body.properties !== undefined && !Array.isArray(body.properties)) {
+    return NextResponse.json({ error: 'Properties must be an array.' }, { status: 400 });
+  }
+  if (body.otherAssets !== undefined && !Array.isArray(body.otherAssets)) {
+    return NextResponse.json({ error: 'Other assets must be an array.' }, { status: 400 });
   }
   try {
     const current = await readSettings();

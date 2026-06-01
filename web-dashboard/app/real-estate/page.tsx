@@ -6,7 +6,7 @@ import {
   TrendingUp, Brain, PiggyBank, Home, Layers, Wallet, Plus, Edit2, Trash2,
   X, Check, MapPin, TrendingUp as TrendUp, TrendingDown,
 } from 'lucide-react';
-import { loadPortfolioCache } from '@/lib/storage';
+import { loadPortfolioCache, hydrateSettings, saveRealEstate } from '@/lib/storage';
 import { DEFAULT_USD_TO_SGD_RATE, DEFAULT_USD_TO_INR_RATE } from '@/lib/currency';
 import type { PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 
@@ -397,8 +397,9 @@ export default function RealEstatePage() {
   const [draft, setDraft] = useState<PropertyDraft>(blankDraft());
 
   useEffect(() => {
-    setProperties(loadProperties());
-    // Load exchange rates from portfolio cache
+    void hydrateSettings().then(() => {
+      setProperties(loadProperties());
+    });
     type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
     const cached = loadPortfolioCache<CacheShape>();
     if (cached?.summary) {
@@ -427,7 +428,7 @@ export default function RealEstatePage() {
       ? properties.map(p => p.id === editingId ? prop : p)
       : [...properties, prop];
     setProperties(next);
-    saveProperties(next);
+    saveRealEstate(next);
     closeModal();
   }
 
@@ -435,7 +436,7 @@ export default function RealEstatePage() {
     if (!window.confirm('Delete this property?')) return;
     const next = properties.filter(p => p.id !== id);
     setProperties(next);
-    saveProperties(next);
+    saveRealEstate(next);
   }
 
   // ── Summary stats ────────────────────────────────────────────────────────

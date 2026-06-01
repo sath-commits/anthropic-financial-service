@@ -6,9 +6,14 @@ const POSITIONS_DIRTY_KEY = 'portfolio-ai:positions-dirty';
 const PROFILE_KEY   = 'portfolio-ai:profile';
 const THESIS_KEY    = 'portfolio-ai:theses';
 
+const RE_KEY         = 'portfolio-ai:real-estate-v1';
+const OTHER_KEY      = 'portfolio-ai:other-assets-v1';
+
 interface StoredSettings {
   positions?: UserPosition[];
   profile?: InvestorProfile;
+  properties?: unknown[];
+  otherAssets?: unknown[];
 }
 
 interface SavePositionsOptions {
@@ -110,10 +115,30 @@ export function loadProfile(): InvestorProfile | null {
   }
 }
 
+export function saveRealEstate(properties: unknown[]): void {
+  try { localStorage.setItem(RE_KEY, JSON.stringify(properties)); } catch {}
+  void fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ properties }),
+  }).catch(() => {});
+}
+
+export function saveOtherAssets(assets: unknown[]): void {
+  try { localStorage.setItem(OTHER_KEY, JSON.stringify(assets)); } catch {}
+  void fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ otherAssets: assets }),
+  }).catch(() => {});
+}
+
 export async function hydrateSettings(): Promise<StoredSettings> {
   const localPositions = loadPositions() ?? undefined;
   const localProfile = loadProfile() ?? undefined;
   const localPositionsAreNewer = localStorage.getItem(POSITIONS_DIRTY_KEY) === '1';
+  const localProperties = (() => { try { return JSON.parse(localStorage.getItem(RE_KEY) ?? 'null') as unknown[] | null; } catch { return null; } })();
+  const localOtherAssets = (() => { try { return JSON.parse(localStorage.getItem(OTHER_KEY) ?? 'null') as unknown[] | null; } catch { return null; } })();
   try {
     const res = await fetch('/api/settings', { cache: 'no-store' });
     if (!res.ok) throw new Error('Settings store unavailable');
@@ -129,7 +154,15 @@ export async function hydrateSettings(): Promise<StoredSettings> {
     if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     if ((localPositionsAreNewer || !server.positions || server.positions.some(position => !position.brokerage)) && localPositions) persistSettings({ positions: localPositions });
     if (!server.profile && localProfile) persistSettings({ profile: localProfile });
-    return { positions, profile };
+    // Sync real estate: server wins if local is empty; push local to server if server lacks it
+    const properties = server.properties ?? localProperties ?? undefined;
+    if (!localProperties && server.properties) localStorage.setItem(RE_KEY, JSON.stringify(server.properties));
+    if (localProperties && !server.properties) void fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ properties: localProperties }) }).catch(() => {});
+    // Sync other assets: same strategy
+    const otherAssets = server.otherAssets ?? localOtherAssets ?? undefined;
+    if (!localOtherAssets && server.otherAssets) localStorage.setItem(OTHER_KEY, JSON.stringify(server.otherAssets));
+    if (localOtherAssets && !server.otherAssets) void fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ otherAssets: localOtherAssets }) }).catch(() => {});
+    return { positions, profile, properties, otherAssets };
   } catch {
     return { positions: localPositions, profile: localProfile };
   }

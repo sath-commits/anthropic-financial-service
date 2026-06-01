@@ -6,7 +6,7 @@ import {
   TrendingUp, Brain, PiggyBank, Home, Layers, Wallet, LayoutDashboard, Plus, Edit2, Trash2,
   X, Check, TrendingUp as TrendUp, TrendingDown,
 } from 'lucide-react';
-import { loadPortfolioCache } from '@/lib/storage';
+import { loadPortfolioCache, hydrateSettings, saveOtherAssets as saveOtherAssetsToServer } from '@/lib/storage';
 import { DEFAULT_USD_TO_SGD_RATE, DEFAULT_USD_TO_INR_RATE } from '@/lib/currency';
 import type { PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 
@@ -316,7 +316,9 @@ export default function OtherAssetsPage() {
   const [draft, setDraft] = useState<AssetDraft>(blankDraft());
 
   useEffect(() => {
-    setAssets(loadAssets());
+    void hydrateSettings().then(() => {
+      setAssets(loadAssets());
+    });
     type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
     const cached = loadPortfolioCache<CacheShape>();
     if (cached?.summary) {
@@ -344,7 +346,7 @@ export default function OtherAssetsPage() {
       ? assets.map(a => a.id === editingId ? asset : a)
       : [...assets, asset];
     setAssets(next);
-    saveAssets(next);
+    saveOtherAssetsToServer(next);
     closeModal();
   }
 
@@ -352,7 +354,7 @@ export default function OtherAssetsPage() {
     if (!window.confirm('Delete this asset?')) return;
     const next = assets.filter(a => a.id !== id);
     setAssets(next);
-    saveAssets(next);
+    saveOtherAssetsToServer(next);
   }
 
   // ── Summary ──────────────────────────────────────────────────────────────

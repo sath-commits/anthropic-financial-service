@@ -6,7 +6,7 @@ import {
   TrendingUp, Brain, PiggyBank, Home, Layers, LayoutDashboard,
   Wallet, Building2, Car, ChevronRight,
 } from 'lucide-react';
-import { loadPortfolioCache } from '@/lib/storage';
+import { loadPortfolioCache, hydrateSettings } from '@/lib/storage';
 import { DEFAULT_USD_TO_SGD_RATE, DEFAULT_USD_TO_INR_RATE } from '@/lib/currency';
 import type { PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 
@@ -155,8 +155,10 @@ export default function SummaryPage() {
         usdToInr: (cached.summary as PortfolioSummary & { usdToInrRate?: number }).usdToInrRate ?? DEFAULT_USD_TO_INR_RATE,
       });
     }
-    setProperties(loadProperties());
-    setOtherAssets(loadOtherAssets());
+    void hydrateSettings().then(() => {
+      setProperties(loadProperties());
+      setOtherAssets(loadOtherAssets());
+    });
   }, []);
 
   // ── Computed values ────────────────────────────────────────────────────────
