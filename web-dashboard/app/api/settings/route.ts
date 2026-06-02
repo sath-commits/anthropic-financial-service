@@ -135,7 +135,7 @@ export async function PUT(req: Request) {
     if (body.positions?.length === 0 && current.positions?.length && !body.allowEmptyPositions) {
       return NextResponse.json({ error: 'Refusing to replace a non-empty portfolio with an empty portfolio without explicit confirmation.' }, { status: 409 });
     }
-    return NextResponse.json(await writeSettings({ positions: body.positions, profile: body.profile }));
+    return NextResponse.json(await writeSettings({ positions: body.positions, profile: body.profile, properties: body.properties, otherAssets: body.otherAssets }));
   } catch {
     return NextResponse.json({ error: 'Could not persist portfolio settings.' }, { status: 500 });
   }
