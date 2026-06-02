@@ -154,14 +154,21 @@ export async function hydrateSettings(): Promise<StoredSettings> {
     if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     if ((localPositionsAreNewer || !server.positions || server.positions.some(position => !position.brokerage)) && localPositions) persistSettings({ positions: localPositions });
     if (!server.profile && localProfile) persistSettings({ profile: localProfile });
-    // Sync real estate: server wins if local is empty; push local to server if server lacks it
-    const properties = server.properties ?? localProperties ?? undefined;
-    if (!localProperties && server.properties) localStorage.setItem(RE_KEY, JSON.stringify(server.properties));
-    if (localProperties && !server.properties) void fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ properties: localProperties }) }).catch(() => {});
+    // Sync real estate: if local has data, push to server (keeps server current on any device).
+    // If local is empty but server has data, pull down (populates a new device).
+    if (localProperties?.length) {
+      void fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ properties: localProperties }) }).catch(() => {});
+    } else if (server.properties?.length) {
+      localStorage.setItem(RE_KEY, JSON.stringify(server.properties));
+    }
+    const properties = localProperties?.length ? localProperties : (server.properties ?? undefined);
     // Sync other assets: same strategy
-    const otherAssets = server.otherAssets ?? localOtherAssets ?? undefined;
-    if (!localOtherAssets && server.otherAssets) localStorage.setItem(OTHER_KEY, JSON.stringify(server.otherAssets));
-    if (localOtherAssets && !server.otherAssets) void fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ otherAssets: localOtherAssets }) }).catch(() => {});
+    if (localOtherAssets?.length) {
+      void fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ otherAssets: localOtherAssets }) }).catch(() => {});
+    } else if (server.otherAssets?.length) {
+      localStorage.setItem(OTHER_KEY, JSON.stringify(server.otherAssets));
+    }
+    const otherAssets = localOtherAssets?.length ? localOtherAssets : (server.otherAssets ?? undefined);
     return { positions, profile, properties, otherAssets };
   } catch {
     return { positions: localPositions, profile: localProfile };

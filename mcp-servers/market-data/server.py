@@ -79,6 +79,7 @@ def get_quote(symbol: str) -> dict:
             return {
                 "symbol": symbol.upper(),
                 "price": price,
+                "previousClose": info.previous_close,
                 "open": info.open,
                 "day_high": info.day_high,
                 "day_low": info.day_low,

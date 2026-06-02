@@ -36,15 +36,17 @@ async function handler(
     callDataService('get_quote', { symbol: 'SGD=X' }),
     callDataService('get_quote', { symbol: 'INR=X' }),
   ]);
-  const quotes = (quotesRaw as Array<{ symbol: string; price: number; error?: string }>) ?? [];
+  const quotes = (quotesRaw as Array<{ symbol: string; price: number; previousClose?: number; error?: string }>) ?? [];
   const liveUsdToSgdRate = (fxRaw as { price?: number } | null)?.price;
   const usdToSgdRate = liveUsdToSgdRate || DEFAULT_USD_TO_SGD_RATE;
   const liveUsdToInrRate = (inrFxRaw as { price?: number } | null)?.price;
   const usdToInrRate = liveUsdToInrRate || DEFAULT_USD_TO_INR_RATE;
 
   const priceMap: Record<string, number> = {};
+  const prevCloseMap: Record<string, number> = {};
   for (const q of quotes) {
     if (q.price) priceMap[q.symbol] = q.price;
+    if (q.previousClose) prevCloseMap[q.symbol] = q.previousClose;
   }
 
   const positions: Position[] = rawPositions.map(p => {
@@ -136,10 +138,22 @@ async function handler(
     ];
   }
 
+  let dayChange = 0;
+  let prevTotalEquity = 0;
+  for (const p of positions) {
+    const prevClose = prevCloseMap[p.symbol];
+    if (prevClose && p.hasLivePrice && !isCashEquivalent(p.symbol, p.assetClass)) {
+      const prevEquityUsd = toUsd(prevClose, p.currency, usdToSgdRate, usdToInrRate) * p.shares;
+      dayChange += p.equity - prevEquityUsd;
+      prevTotalEquity += prevEquityUsd;
+    }
+  }
+  const dayChangePct = prevTotalEquity > 0 ? (dayChange / prevTotalEquity) * 100 : 0;
+
   const summary: PortfolioSummary = {
     totalEquity,
-    dayChange: 0,
-    dayChangePct: 0,
+    dayChange,
+    dayChangePct,
     totalUnrealizedPnl,
     totalUnrealizedPnlPct: totalCost > 0 ? (totalUnrealizedPnl / totalCost) * 100 : 0,
     buyingPower,

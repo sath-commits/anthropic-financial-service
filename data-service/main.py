@@ -151,6 +151,7 @@ def get_batch_quotes(symbols: list[str]) -> list[dict]:
         return []
 
     prices: dict[str, float] = {}
+    prev_closes: dict[str, float] = {}
     try:
         # Fetch one compact daily-price frame for the entire portfolio. Calling
         # Ticker.info serially is too slow for a real portfolio and can exceed
@@ -171,6 +172,8 @@ def get_batch_quotes(symbols: list[str]) -> list[dict]:
                 valid = close.dropna()
                 if not valid.empty:
                     prices[sym] = float(valid.iloc[-1])
+                    if len(valid) >= 2:
+                        prev_closes[sym] = float(valid.iloc[-2])
             except Exception:
                 pass
     except Exception:
@@ -179,7 +182,10 @@ def get_batch_quotes(symbols: list[str]) -> list[dict]:
     results = []
     for sym in normalized_symbols:
         if sym in prices:
-            results.append({"symbol": sym, "price": prices[sym], "source": "yahoo_batch"})
+            entry: dict = {"symbol": sym, "price": prices[sym], "source": "yahoo_batch"}
+            if sym in prev_closes:
+                entry["previousClose"] = prev_closes[sym]
+            results.append(entry)
         else:
             q = _yahoo_chart_quote(sym)
             results.append(q or {"symbol": sym, "price": 0, "error": "fetch_failed"})
