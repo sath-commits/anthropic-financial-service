@@ -7,6 +7,7 @@ Price provider priority:
   2. Alpha Vantage — free key (25 req/day), register at alphavantage.co
      Set ALPHA_VANTAGE_KEY env var to enable.
 """
+from __future__ import annotations
 
 import json
 import os
@@ -16,9 +17,16 @@ from typing import Optional
 
 import requests
 import yfinance as yf
-from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("market-data")
+try:
+    from mcp.server.fastmcp import FastMCP
+    mcp = FastMCP("market-data")
+except ImportError:
+    # Running as a library (e.g. via data_service.py); MCP server not needed.
+    class _NoOpMcp:
+        def tool(self, *a, **kw):
+            return lambda fn: fn
+    mcp = _NoOpMcp()
 
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY", "")
@@ -85,8 +93,8 @@ def get_quote(symbol: str) -> dict:
                 "day_low": info.day_low,
                 "volume": info.three_month_average_volume,
                 "market_cap": info.market_cap,
-                "fifty_two_week_high": info.fifty_two_week_high,
-                "fifty_two_week_low": info.fifty_two_week_low,
+                "fifty_two_week_high": info.year_high,
+                "fifty_two_week_low": info.year_low,
                 "currency": info.currency,
                 "source": "yfinance",
             }
