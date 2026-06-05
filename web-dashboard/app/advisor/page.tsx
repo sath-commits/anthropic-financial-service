@@ -647,7 +647,7 @@ export default function AdvisorPage() {
     try {
       const positions = loadPositions();
       const profile = loadProfile();
-      if (!positions?.length) { router.push('/'); return; }
+      if (!positions?.length) { router.push('/dashboard'); return; }
       const hist = loadAdvisorHistory();
       const res = await fetch('/api/advisor', {
         method: 'POST',
@@ -673,7 +673,7 @@ export default function AdvisorPage() {
 
   useEffect(() => {
     void hydrateSettings().then(({ positions }) => {
-      if (!positions?.length) { router.push('/'); return; }
+      if (!positions?.length) { router.push('/dashboard'); return; }
       const hist = loadAdvisorHistory();
       setHistory(hist);
       setAutoRunState(getAutoRunEnabled());
@@ -722,7 +722,7 @@ export default function AdvisorPage() {
             <button onClick={() => router.push('/summary')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Net Worth</span>
             </button>
-            <button onClick={() => router.push('/')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden text-[10px]">Dash</span>
             </button>

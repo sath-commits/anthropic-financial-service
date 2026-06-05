@@ -381,7 +381,7 @@ export default function OtherAssetsPage() {
 
   const NAV = [
     { label: 'Net Worth',   path: '/summary',      icon: <Wallet className="h-3.5 w-3.5" /> },
-    { label: 'Dashboard',   path: '/',             icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
+    { label: 'Dashboard',   path: '/dashboard',    icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
     { label: 'Advisor',     path: '/advisor',       icon: <Brain className="h-3.5 w-3.5" /> },
     { label: 'Retirement',  path: '/retirement',    icon: <PiggyBank className="h-3.5 w-3.5" /> },
     { label: 'Real Estate', path: '/real-estate',   icon: <Home className="h-3.5 w-3.5" /> },

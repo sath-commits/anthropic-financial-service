@@ -120,7 +120,7 @@ function Section({ title, icon, onClick, children }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 const NAV = [
-  { label: 'Dashboard',   path: '/',             icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
+  { label: 'Dashboard',   path: '/dashboard',    icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
   { label: 'Advisor',     path: '/advisor',       icon: <Brain className="h-3.5 w-3.5" /> },
   { label: 'Retirement',  path: '/retirement',    icon: <PiggyBank className="h-3.5 w-3.5" /> },
   { label: 'Real Estate', path: '/real-estate',   icon: <Home className="h-3.5 w-3.5" /> },
@@ -249,7 +249,7 @@ export default function SummaryPage() {
         </div>
 
         {/* Investment portfolio section */}
-        <Section title="Investment Portfolio" icon={<LayoutDashboard className="h-4 w-4 text-blue-400" />} onClick={() => router.push('/')}>
+        <Section title="Investment Portfolio" icon={<LayoutDashboard className="h-4 w-4 text-blue-400" />} onClick={() => router.push('/dashboard')}>
           <Row label="Market Value" value={fmt(portfolioValueD, display)} color="text-blue-400" />
           <Row label="Total P&L" value={`${portfolioPnlD >= 0 ? '+' : ''}${fmt(portfolioPnlD, display)}`} color={pnlColor(portfolioPnlD)} sub="vs cost basis" />
           <Row label="Cash & Equivalents" value={fmt(toD(cashEquivalents), display)} color="text-[#6e5f52]" indent sub="money market, SGOV, etc." />

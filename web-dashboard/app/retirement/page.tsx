@@ -251,7 +251,7 @@ export default function RetirementPage() {
             <button onClick={() => router.push('/summary')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Net Worth</span>
             </button>
-            <button onClick={() => router.push('/')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <LayoutDashboard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Dashboard</span>
             </button>
             <button onClick={() => router.push('/advisor')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
@@ -275,7 +275,7 @@ export default function RetirementPage() {
         {/* No portfolio data warning */}
         {currentValue === 0 && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-300">
-            Portfolio value not loaded — visit the <button onClick={() => router.push('/')} className="underline">Dashboard</button> first to load live prices, then return here.
+            Portfolio value not loaded — visit the <button onClick={() => router.push('/dashboard')} className="underline">Dashboard</button> first to load live prices, then return here.
           </div>
         )}
 

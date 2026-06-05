@@ -470,7 +470,7 @@ export default function RealEstatePage() {
               <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Net Worth</span>
             </button>
             {[
-              { label: 'Dashboard', path: '/', icon: null },
+              { label: 'Dashboard', path: '/dashboard', icon: null },
               { label: 'Advisor', path: '/advisor', icon: <Brain className="h-3.5 w-3.5" /> },
               { label: 'Retirement', path: '/retirement', icon: <PiggyBank className="h-3.5 w-3.5" /> },
             ].map(({ label, path, icon }) => (

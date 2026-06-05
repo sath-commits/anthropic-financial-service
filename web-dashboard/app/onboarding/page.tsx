@@ -274,7 +274,7 @@ export default function OnboardingPage() {
   function handlePositions(p: UserPosition[]) {
     savePositions(p);
     if (savedProfile) {
-      router.push('/');
+      router.push('/dashboard');
       return;
     }
     setPositions(p);
@@ -282,13 +282,13 @@ export default function OnboardingPage() {
   }
   function handleSaveDashboard(p: UserPosition[]) {
     savePositions(p);
-    router.push('/');
+    router.push('/dashboard');
   }
   function handleProfile(p: Omit<InvestorProfile, 'strategy'>) { setProfile(p); setStep(2); }
   function handleDone(strategy: string) {
     savePositions(positions);
     saveProfile({ ...profile!, strategy });
-    router.push('/');
+    router.push('/dashboard');
   }
 
   return (
