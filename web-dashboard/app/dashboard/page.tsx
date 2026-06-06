@@ -11,7 +11,7 @@ import PnLChart from '@/components/PnLChart';
 import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
 import PortfolioEditor from '@/components/PortfolioEditor';
-import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile, savePortfolioCache, loadPortfolioCache } from '@/lib/storage';
+import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile, savePortfolioCache, loadPortfolioCache, saveMetricSnapshot, loadMetricHistory, type MetricSnapshot } from '@/lib/storage';
 import { TARGET_ALLOCATION } from '@/lib/mock-portfolio';
 import { formatCurrency, toUsd, positionCurrency, DEFAULT_USD_TO_INR_RATE, type Currency } from '@/lib/currency';
 import { isCashEquivalent } from '@/lib/cash-equivalents';
@@ -163,6 +163,7 @@ export default function Dashboard() {
   const [editingAllocation, setEditingAllocation] = useState(false);
   const [allocationDraft, setAllocationDraft] = useState<Record<string, string>>({});
   const [allocationError, setAllocationError] = useState('');
+  const [metricHistory, setMetricHistory] = useState<MetricSnapshot[]>([]);
   const restoreInputRef = useRef<HTMLInputElement>(null);
 
   async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null, silent = false) {
@@ -187,6 +188,13 @@ export default function Dashboard() {
       setEarnings(data.earnings);
       setLastUpdated(new Date().toLocaleTimeString());
       savePortfolioCache(data);
+      saveMetricSnapshot({
+        portfolioValue: data.summary.totalEquity,
+        totalPnl: data.summary.totalUnrealizedPnl,
+        dayChange: data.summary.dayChange,
+        cashEquivalents: data.summary.buyingPower,
+      });
+      setMetricHistory(loadMetricHistory());
       if (!chartSymbol && data.summary?.positions?.length) {
         setChartSymbol(data.summary.positions[0].symbol);
       }
@@ -198,6 +206,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    setMetricHistory(loadMetricHistory());
     // Show last-known portfolio instantly from localStorage while live prices load
     type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
     const cached = loadPortfolioCache<CacheShape>();
@@ -695,18 +704,21 @@ export default function Dashboard() {
                 label="Portfolio Value"
                 value={formatCurrency(summary.totalEquity, displayCurrency, summary.usdToSgdRate)}
                 positive={null}
+                sparkData={metricHistory.map(s => s.portfolioValue)}
               />
               <MetricCard
                 label="Total P&L"
                 value={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : '-'}${formatCurrency(Math.abs(summary.totalUnrealizedPnl), displayCurrency, summary.usdToSgdRate)}` : '—'}
                 subValue={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%` : 'Waiting for live prices'}
                 positive={hasCompleteLivePrices ? totalPnlPositive : null}
+                sparkData={metricHistory.map(s => s.totalPnl)}
               />
               <MetricCard
                 label="Day Change"
                 value={summary.dayChange === 0 ? '—' : `${summary.dayChange >= 0 ? '+' : '-'}$${fmt(Math.abs(summary.dayChange))}`}
                 subValue={summary.dayChange === 0 ? 'Live prices not connected' : `${fmt(summary.dayChangePct)}%`}
                 positive={summary.dayChange === 0 ? null : summary.dayChange >= 0}
+                sparkData={metricHistory.map(s => s.dayChange)}
               />
               <MetricCard
                 label="Cash Equivalents"
@@ -715,6 +727,7 @@ export default function Dashboard() {
                   ? `Includes ${formatCurrency(hsaCashEquivalents, displayCurrency, summary.usdToSgdRate)} in HSA`
                   : 'Available across accounts'}
                 positive={null}
+                sparkData={metricHistory.map(s => s.cashEquivalents)}
               />
             </>
           ) : null}

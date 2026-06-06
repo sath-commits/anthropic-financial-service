@@ -238,3 +238,37 @@ export function hasOnboarded(): boolean {
   try { return pos ? JSON.parse(pos).length > 0 : false; }
   catch { return false; }
 }
+
+// ─── Metric trend history ─────────────────────────────────────────────────────
+
+const METRIC_HISTORY_KEY = 'portfolio-ai:metric-history-v1';
+
+export interface MetricSnapshot {
+  date: string;
+  portfolioValue: number;
+  totalPnl: number;
+  dayChange: number;
+  cashEquivalents: number;
+}
+
+export function saveMetricSnapshot(snapshot: Omit<MetricSnapshot, 'date'>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const raw = localStorage.getItem(METRIC_HISTORY_KEY);
+    const history: MetricSnapshot[] = raw ? JSON.parse(raw) : [];
+    const idx = history.findIndex(s => s.date === today);
+    const entry = { date: today, ...snapshot };
+    if (idx >= 0) history[idx] = entry;
+    else history.push(entry);
+    localStorage.setItem(METRIC_HISTORY_KEY, JSON.stringify(history.slice(-30)));
+  } catch {}
+}
+
+export function loadMetricHistory(): MetricSnapshot[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(METRIC_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}

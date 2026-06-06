@@ -1,28 +1,32 @@
-import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-function safeEqual(actual: string, expected: string): boolean {
-  const actualBuffer = Buffer.from(actual);
-  const expectedBuffer = Buffer.from(expected);
-  return actualBuffer.length === expectedBuffer.length
-    && timingSafeEqual(actualBuffer, expectedBuffer);
+const COOKIE_NAME = 'btn-session';
+const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Public paths that never require auth
+const PUBLIC_PATHS = ['/', '/api/auth/login', '/api/auth/logout'];
+
+async function computeHmac(message: string, secret: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function isAuthorized(request: NextRequest): boolean {
-  const expectedUsername = process.env.DASHBOARD_AUTH_USERNAME;
-  const expectedPassword = process.env.DASHBOARD_AUTH_PASSWORD;
-  if (!expectedUsername || !expectedPassword) return false;
-
-  const header = request.headers.get('authorization');
-  if (!header?.startsWith('Basic ')) return false;
-
+async function isValidSession(token: string, secret: string): Promise<boolean> {
   try {
-    const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
-    const separator = decoded.indexOf(':');
-    if (separator < 0) return false;
-    return safeEqual(decoded.slice(0, separator), expectedUsername)
-      && safeEqual(decoded.slice(separator + 1), expectedPassword);
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const parts = decoded.split(':');
+    if (parts.length < 3) return false;
+    const username = parts[0];
+    const expires = parseInt(parts[1], 10);
+    const sig = parts.slice(2).join(':');
+    if (Date.now() > expires) return false;
+    const expected = await computeHmac(`${username}:${expires}`, secret);
+    return sig === expected;
   } catch {
     return false;
   }
@@ -40,27 +44,32 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-export function proxy(request: NextRequest) {
-  if (process.env.NODE_ENV !== 'production' && !process.env.DASHBOARD_AUTH_PASSWORD) {
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Always allow public paths and Next.js internals
+  if (PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
     return withSecurityHeaders(NextResponse.next());
   }
 
-  if (!process.env.DASHBOARD_AUTH_USERNAME || !process.env.DASHBOARD_AUTH_PASSWORD) {
-    return withSecurityHeaders(new NextResponse(
-      'Dashboard authentication is not configured.',
-      { status: 503 },
-    ));
+  const secret = process.env.DASHBOARD_AUTH_PASSWORD;
+
+  // Dev mode: no password configured — allow everything through
+  if (!secret) {
+    return withSecurityHeaders(NextResponse.next());
   }
 
-  if (!isAuthorized(request)) {
-    return withSecurityHeaders(new NextResponse('Authentication required.', {
-      status: 401,
-      headers: { 'WWW-Authenticate': 'Basic realm="Beta than nothing", charset="UTF-8"' },
-    }));
+  const sessionCookie = request.cookies.get(COOKIE_NAME)?.value;
+  if (sessionCookie && await isValidSession(sessionCookie, secret)) {
+    return withSecurityHeaders(NextResponse.next());
   }
 
-  return withSecurityHeaders(NextResponse.next());
+  // Redirect unauthenticated requests to the landing/login page
+  const loginUrl = new URL('/', request.url);
+  return NextResponse.redirect(loginUrl);
 }
+
+export { SESSION_MAX_AGE_MS };
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
