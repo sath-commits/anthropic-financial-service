@@ -12,6 +12,7 @@ import os
 import secrets
 import time
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 from typing import Any
@@ -23,6 +24,7 @@ FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 DATA_SERVICE_TOKEN = os.getenv("DATA_SERVICE_TOKEN", "")
 
 _av_last_call = 0.0
+YAHOO_HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 
 # ── Request / response schema ────────────────────────────────────────────────
@@ -98,7 +100,7 @@ def _yahoo_chart_quote(symbol: str) -> dict | None:
         r = requests.get(
             f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}",
             params={"range": "1d", "interval": "1m"},
-            headers={"User-Agent": "Mozilla/5.0"},
+            headers=YAHOO_HEADERS,
             timeout=8,
         )
         r.raise_for_status()
@@ -112,7 +114,58 @@ def _yahoo_chart_quote(symbol: str) -> dict | None:
     return None
 
 
+def _quote_from_yahoo_record(record: dict) -> dict | None:
+    symbol = record.get("symbol")
+    price = (
+        record.get("regularMarketPrice")
+        or record.get("postMarketPrice")
+        or record.get("preMarketPrice")
+        or 0
+    )
+    if not symbol or not price:
+        return None
+    quote: dict = {
+        "symbol": symbol,
+        "price": price,
+        "source": "yahoo_quote",
+    }
+    previous_close = record.get("regularMarketPreviousClose")
+    if previous_close:
+        quote["previousClose"] = previous_close
+    if record.get("marketCap"):
+        quote["marketCap"] = record.get("marketCap")
+    if record.get("regularMarketVolume"):
+        quote["volume"] = record.get("regularMarketVolume")
+    return quote
+
+
+def _yahoo_quote_batch(symbols: list[str]) -> dict[str, dict]:
+    quotes: dict[str, dict] = {}
+    for i in range(0, len(symbols), 50):
+        chunk = symbols[i:i + 50]
+        try:
+            r = requests.get(
+                "https://query1.finance.yahoo.com/v7/finance/quote",
+                params={"symbols": ",".join(chunk)},
+                headers=YAHOO_HEADERS,
+                timeout=8,
+            )
+            r.raise_for_status()
+            records = r.json().get("quoteResponse", {}).get("result", [])
+            for record in records:
+                quote = _quote_from_yahoo_record(record)
+                if quote:
+                    quotes[quote["symbol"].upper()] = quote
+        except Exception:
+            pass
+    return quotes
+
+
 def get_quote(symbol: str) -> dict:
+    direct = _yahoo_quote_batch([symbol]).get(symbol.strip().upper())
+    if direct:
+        return direct
+
     import yfinance as yf
     try:
         t = yf.Ticker(symbol)
@@ -145,50 +198,73 @@ def get_quote(symbol: str) -> dict:
 
 
 def get_batch_quotes(symbols: list[str]) -> list[dict]:
-    import yfinance as yf
     normalized_symbols = list(dict.fromkeys(sym.strip().upper() for sym in symbols if sym.strip()))
     if not normalized_symbols:
         return []
 
-    prices: dict[str, float] = {}
+    quotes = _yahoo_quote_batch(normalized_symbols)
+    missing_symbols = [sym for sym in normalized_symbols if sym not in quotes]
+
+    prices: dict[str, float] = {sym: quote["price"] for sym, quote in quotes.items()}
     prev_closes: dict[str, float] = {}
-    try:
-        # Fetch one compact daily-price frame for the entire portfolio. Calling
-        # Ticker.info serially is too slow for a real portfolio and can exceed
-        # the dashboard's request timeout.
-        history = yf.download(
-            tickers=" ".join(normalized_symbols),
-            period="5d",
-            interval="1d",
-            group_by="ticker",
-            auto_adjust=False,
-            progress=False,
-            threads=True,
-            timeout=8,
-        )
-        for sym in normalized_symbols:
-            try:
-                close = history["Close"] if len(normalized_symbols) == 1 else history[sym]["Close"]
-                valid = close.dropna()
-                if not valid.empty:
-                    prices[sym] = float(valid.iloc[-1])
-                    if len(valid) >= 2:
-                        prev_closes[sym] = float(valid.iloc[-2])
-            except Exception:
-                pass
-    except Exception:
-        pass
+    for sym, quote in quotes.items():
+        if quote.get("previousClose"):
+            prev_closes[sym] = quote["previousClose"]
+
+    if missing_symbols:
+        try:
+            import yfinance as yf
+            # Fetch one compact daily-price frame for symbols still missing from
+            # the direct quote API. Keep this as a fallback because yfinance can
+            # be slow or rate-limited in hosted environments.
+            history = yf.download(
+                tickers=" ".join(missing_symbols),
+                period="5d",
+                interval="1d",
+                group_by="ticker",
+                auto_adjust=False,
+                progress=False,
+                threads=True,
+                timeout=5,
+            )
+            for sym in missing_symbols:
+                try:
+                    close = history["Close"] if len(missing_symbols) == 1 else history[sym]["Close"]
+                    valid = close.dropna()
+                    if not valid.empty:
+                        prices[sym] = float(valid.iloc[-1])
+                        if len(valid) >= 2:
+                            prev_closes[sym] = float(valid.iloc[-2])
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    chart_missing = [sym for sym in normalized_symbols if sym not in prices]
+    if chart_missing:
+        with ThreadPoolExecutor(max_workers=min(8, len(chart_missing))) as executor:
+            futures = {executor.submit(_yahoo_chart_quote, sym): sym for sym in chart_missing}
+            for future in as_completed(futures):
+                sym = futures[future]
+                try:
+                    quote = future.result()
+                    if quote and quote.get("price"):
+                        prices[sym] = quote["price"]
+                        if quote.get("previousClose"):
+                            prev_closes[sym] = quote["previousClose"]
+                except Exception:
+                    pass
 
     results = []
     for sym in normalized_symbols:
         if sym in prices:
-            entry: dict = {"symbol": sym, "price": prices[sym], "source": "yahoo_batch"}
+            source = quotes.get(sym, {}).get("source", "yahoo_batch")
+            entry: dict = {"symbol": sym, "price": prices[sym], "source": source}
             if sym in prev_closes:
                 entry["previousClose"] = prev_closes[sym]
             results.append(entry)
         else:
-            q = _yahoo_chart_quote(sym)
-            results.append(q or {"symbol": sym, "price": 0, "error": "fetch_failed"})
+            results.append({"symbol": sym, "price": 0, "error": "fetch_failed"})
     return results
 
 

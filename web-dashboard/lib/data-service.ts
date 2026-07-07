@@ -34,7 +34,7 @@ export async function callDataService(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ method, params }),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(30_000),
       });
       if (!res.ok) {
         console.error(`Data service call failed: ${method} returned HTTP ${res.status}.`);
@@ -58,7 +58,7 @@ export async function callDataService(
       input: JSON.stringify({ method, params }),
       cwd: SCRIPTS_DIR,
       encoding: 'utf-8',
-      timeout: 15_000,
+      timeout: 30_000,
     });
     const result = JSON.parse(output) as Record<string, unknown>;
     return result?.error ? null : result;
