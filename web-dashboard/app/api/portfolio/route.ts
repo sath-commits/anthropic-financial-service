@@ -27,9 +27,10 @@ async function handler(
     assetClass: p.assetClass,
   }));
 
-  const symbols = rawPositions
+  const symbols = Array.from(new Set(rawPositions
     .filter(p => !shouldPriceAtCostBasis(p.symbol) && p.accountType !== 'cpf')
-    .map(p => p.symbol);
+    .map(p => p.symbol.trim().toUpperCase())
+    .filter(Boolean)));
 
   const [quotesRaw, fxRaw, inrFxRaw] = await Promise.all([
     callDataService('get_batch_quotes', { symbols }),
@@ -162,7 +163,7 @@ async function handler(
     hasLiveUsdToSgdRate: liveUsdToSgdRate !== undefined,
     usdToInrRate,
     hasLiveUsdToInrRate: liveUsdToInrRate !== undefined,
-    missingPriceSymbols: positions.filter(p => !p.hasLivePrice).map(p => p.symbol),
+    missingPriceSymbols: Array.from(new Set(positions.filter(p => !p.hasLivePrice).map(p => p.symbol))),
     positions: positions.sort((a, b) => b.equity - a.equity),
   };
 

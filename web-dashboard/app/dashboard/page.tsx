@@ -123,7 +123,7 @@ function applyLocalPositionUpdate(
     totalUnrealizedPnlPct: totalCost > 0 ? (totalUnrealizedPnl / totalCost) * 100 : 0,
     buyingPower: cashPositions.reduce((s, p) => s + p.equity, 0),
     cashEquivalentsByAccount,
-    missingPriceSymbols: withWeights.filter(p => !p.hasLivePrice).map(p => p.symbol),
+    missingPriceSymbols: Array.from(new Set(withWeights.filter(p => !p.hasLivePrice).map(p => p.symbol))),
   };
   const targets = profile?.targetAllocation ?? TARGET_ALLOCATION;
   const actualByClass: Record<string, number> = {};
@@ -690,7 +690,7 @@ export default function Dashboard() {
           <div className="rounded-lg border border-amber-300 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             Live prices are unavailable for {summary.missingPriceSymbols.join(', ')}. Values are temporarily estimated from cost basis.
             Check that <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_URL</code> and
-            <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_TOKEN</code> are configured on the dashboard service,
+            {' '}<code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_TOKEN</code> are configured on the dashboard service,
             and that the same token is configured on the Python service.
           </div>
         )}
