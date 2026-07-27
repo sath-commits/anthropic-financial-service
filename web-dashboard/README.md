@@ -110,6 +110,78 @@ curl -X POST \
 This fallback retrieves Plaid's latest cached Investments data; it does not call
 the separately billed Investments Refresh endpoint.
 
+### Production setup, step by step
+
+1. In **Plaid Dashboard → Developers → API keys**, copy the Client ID and the
+   **Production** secret. Do not put either value in Git, a committed `.env`
+   file, a browser setting, or a `NEXT_PUBLIC_*` variable.
+2. Confirm the dashboard has a stable public HTTPS domain, for example
+   `https://portfolio.example.com` or the Railway-generated domain.
+3. In Plaid's Allowed redirect URIs, add the exact URL
+   `https://<dashboard-domain>/dashboard`. It must use HTTPS, contain no query
+   string, and exactly match `PLAID_REDIRECT_URI`.
+4. In the Railway **dashboard service → Variables** tab, add:
+
+   ```text
+   PLAID_CLIENT_ID=<Plaid Client ID>
+   PLAID_SECRET=<Plaid Production secret>
+   PLAID_ENV=production
+   PLAID_TOKEN_ENCRYPTION_KEY=<output from: openssl rand -base64 32>
+   PLAID_REDIRECT_URI=https://<dashboard-domain>/dashboard
+   PLAID_WEBHOOK_URL=https://<dashboard-domain>/api/plaid/webhook
+   PLAID_SYNC_SECRET=<output from: openssl rand -hex 32>
+   ```
+
+   Keep a backup of `PLAID_TOKEN_ENCRYPTION_KEY` in a password manager. Seal
+   `PLAID_SECRET`, `PLAID_TOKEN_ENCRYPTION_KEY`, and `PLAID_SYNC_SECRET` in
+   Railway after verifying them. No Plaid variable should use the
+   `NEXT_PUBLIC_` prefix.
+5. Attach a persistent volume to the dashboard service with the absolute mount
+   path `/data`. Do this before connecting Fidelity; otherwise the encrypted
+   access token and holdings history will be lost on a redeploy.
+6. Review Railway's staged variable/volume changes and deploy the dashboard.
+   Open `https://<dashboard-domain>/api/plaid/status` while signed in. It should
+   return `"configured": true` and `"environment": "production"`.
+7. Open the dashboard, sign in, and click **Connect Fidelity** in the
+   **U.S. brokerage connection** card. Complete Fidelity's OAuth and consent
+   screens. Fidelity credentials go to the institution flow, never into this
+   application's settings.
+8. Return to the dashboard. The connection card should show Fidelity and a
+   snapshot time. The first extraction can take a little time; a Plaid webhook
+   will update the stored snapshot when new holdings are ready. Plaid receives
+   the webhook URL through Link, so no separate Investments webhook
+   subscription is required in the Plaid Dashboard.
+9. Add a second Railway service from the same repository as a fallback
+   scheduler:
+
+   - Root directory: `web-dashboard`
+   - Start command: `npm run plaid:sync`
+   - Variables:
+
+     ```text
+     DASHBOARD_URL=https://<dashboard-domain>
+     PLAID_SYNC_SECRET=<the same value used by the dashboard service>
+     ```
+
+   - Cron schedule: `0 10 * * 2-6`
+   - Public domain: none
+   - Persistent volume: none
+
+   Railway cron schedules use UTC. This schedule runs Tuesday through Saturday
+   at 10:00 UTC, after the preceding U.S. trading day and Plaid's normal
+   overnight update window. The command calls the protected endpoint once and
+   exits, as required for a Railway cron service.
+10. Verify the cron service's first run in Railway logs. A successful line
+    resembles:
+
+    ```json
+    {"synced":true,"snapshotAt":"...","positionCount":12,"errorCount":0}
+    ```
+
+    Also check **Plaid Dashboard → Logs** for Link, holdings, or webhook errors.
+    Never paste access tokens, secrets, or Fidelity credentials into logs or
+    support messages.
+
 The dashboard fails closed in production if its username or password is
 missing. The Python `/call` endpoint fails closed if `DATA_SERVICE_TOKEN` is
 missing or incorrect. Its `/health` endpoint remains unauthenticated so Railway
