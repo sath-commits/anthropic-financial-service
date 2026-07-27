@@ -60,3 +60,13 @@ If you genuinely think a convention is harmful, surface it. Don't fork silently.
 "Completed" is wrong if anything was skipped silently.
 "Tests pass" is wrong if any were skipped.
 Default to surfacing uncertainty, not hiding it.
+
+## Rule 13 - Git workflow
+
+After completing any requested code or content change, run the appropriate checks, then commit and push the changes to the current branch unless I explicitly say not to.
+
+Before committing:
+- Verify the working tree only contains changes related to the current request.
+- Run the relevant checks for the scope of the change.
+- Do not commit secrets, `.env.local`, generated junk, or unrelated user changes.
+- Use a clear commit message that describes the change.
