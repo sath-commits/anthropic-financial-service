@@ -82,6 +82,7 @@ export interface UserPosition {
   purchaseDate?: string; // ISO date string
   currentValue?: number; // manual current-value override (real estate, gold, etc.)
   fallbackPrice?: number; // last institution-reported price when live market data is unavailable
+  preferInstitutionPrice?: boolean; // private/cash security without a reliable public quote symbol
   hasCostBasis?: boolean;
   source?: 'manual' | 'plaid';
   externalId?: string;

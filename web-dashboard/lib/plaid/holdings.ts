@@ -6,6 +6,7 @@ import type {
   InvestmentsHoldingsGetResponse,
   Security,
 } from 'plaid';
+import { isCashEquivalent } from '@/lib/cash-equivalents';
 import type { UserPosition } from '@/lib/types';
 import { getPlaidClient, plaidError } from './client';
 import {
@@ -103,10 +104,17 @@ function normalizeHolding(
 
   const ticker = security.ticker_symbol?.trim().toUpperCase();
   const symbol = ticker || `PLAID-${holding.security_id.slice(0, 8).toUpperCase()}`;
-  const hasCostBasis = holding.cost_basis !== null
+  const classifiedAssetClass = assetClass(security);
+  const isCashLike = isCashEquivalent(symbol, classifiedAssetClass);
+  const preferInstitutionPrice = isCashLike
+    || !security.market_identifier_code
+    || symbol.includes(':')
+    || symbol.includes('.');
+  const hasReportedCostBasis = holding.cost_basis !== null
     && Number.isFinite(holding.cost_basis)
     && holding.quantity !== 0;
-  const avgCost = hasCostBasis
+  const hasCostBasis = hasReportedCostBasis || isCashLike;
+  const avgCost = hasReportedCostBasis
     ? Math.abs(holding.cost_basis! / holding.quantity)
     : Math.abs(holding.institution_price);
   const period = holdingPeriod(holding);
@@ -121,9 +129,10 @@ function normalizeHolding(
     brokerage: item.institutionName,
     holdingDays: period.holdingDays,
     holdingPeriodKnown: period.holdingPeriodKnown,
-    assetClass: assetClass(security),
+    assetClass: classifiedAssetClass,
     purchaseDate: period.purchaseDate,
     fallbackPrice: Math.abs(holding.institution_price),
+    preferInstitutionPrice,
     hasCostBasis,
     source: 'plaid',
     externalId: `${item.itemId}:${holding.account_id}:${holding.security_id}`,

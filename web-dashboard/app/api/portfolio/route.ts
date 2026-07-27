@@ -28,7 +28,11 @@ async function handler(
   }));
 
   const symbols = Array.from(new Set(rawPositions
-    .filter(p => !shouldPriceAtCostBasis(p.symbol) && p.accountType !== 'cpf')
+    .filter(p =>
+      !shouldPriceAtCostBasis(p.symbol)
+      && p.accountType !== 'cpf'
+      && !('preferInstitutionPrice' in p && p.preferInstitutionPrice),
+    )
     .map(p => p.symbol.trim().toUpperCase())
     .filter(Boolean)));
 
@@ -55,11 +59,24 @@ async function handler(
     const usesCostBasisPrice = shouldPriceAtCostBasis(p.symbol);
     const currency = positionCurrency('currency' in p ? p.currency : undefined);
     const isCpf = p.accountType === 'cpf';
+    const isCashLike = isCashEquivalent(p.symbol, p.assetClass);
     const manualValue = 'currentValue' in p ? (p as UserPosition).currentValue : undefined;
-    const hasCostBasis = !('hasCostBasis' in p) || (p as UserPosition).hasCostBasis !== false;
+    const institutionPrice = 'fallbackPrice' in p ? (p as UserPosition).fallbackPrice : undefined;
+    const hasInstitutionPrice = institutionPrice !== undefined
+      && Number.isFinite(institutionPrice)
+      && institutionPrice > 0;
+    const usesInstitutionPrice = 'preferInstitutionPrice' in p
+      && p.preferInstitutionPrice
+      && hasInstitutionPrice;
+    const hasReportedCostBasis = !('hasCostBasis' in p) || (p as UserPosition).hasCostBasis !== false;
+    const hasCostBasis = hasReportedCostBasis || isCashLike;
     const nativePrice = isCpf
       ? p.avgCost * Math.pow(1.045, p.holdingDays / 365)
-      : manualValue ?? (usesCostBasisPrice ? p.avgCost : livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost);
+      : manualValue ?? (
+        usesCostBasisPrice
+          ? p.avgCost
+          : usesInstitutionPrice ? institutionPrice : livePrice ?? institutionPrice ?? p.avgCost
+      );
     const price = toUsd(nativePrice, currency, usdToSgdRate, usdToInrRate);
     const avgCost = toUsd(p.avgCost, currency, usdToSgdRate, usdToInrRate);
     const equity = price * p.shares;
@@ -71,7 +88,11 @@ async function handler(
       avgCost,
       currency,
       currentPrice: price,
-      hasLivePrice: isCpf || manualValue !== undefined || usesCostBasisPrice || livePrice !== undefined,
+      hasLivePrice: isCpf
+        || manualValue !== undefined
+        || usesCostBasisPrice
+        || livePrice !== undefined
+        || hasInstitutionPrice,
       hasCostBasis,
       equity,
       // CPF: P&L is always the 4.5% growth amount (never negative); percentage uses

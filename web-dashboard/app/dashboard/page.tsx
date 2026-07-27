@@ -751,7 +751,7 @@ export default function Dashboard() {
         />
         {summary && !hasCompleteLivePrices && (
           <div className="rounded-lg border border-amber-300 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            Live prices are unavailable for {summary.missingPriceSymbols.join(', ')}. Values are temporarily estimated from cost basis.
+            No market or institution price is available for {summary.missingPriceSymbols.join(', ')}. Values are temporarily estimated from cost basis.
             Check that <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_URL</code> and
             {' '}<code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_TOKEN</code> are configured on the dashboard service,
             and that the same token is configured on the Python service.
@@ -759,7 +759,7 @@ export default function Dashboard() {
         )}
         {summary && !hasCompleteCostBasis && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            Fidelity did not provide cost basis for {summary.missingCostBasisSymbols?.join(', ')}. Those holdings are included in portfolio value but excluded from P&amp;L.
+            Plaid did not receive cost basis for {summary.missingCostBasisSymbols?.join(', ')}. Those holdings are included in portfolio value but excluded from P&amp;L.
           </div>
         )}
         {/* Metric cards */}
