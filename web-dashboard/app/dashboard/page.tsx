@@ -750,10 +750,10 @@ export default function Dashboard() {
           onSnapshotChanged={() => load(userPositions, profile)}
         />
         {summary && !hasCompleteLivePrices && (
-          <div className="rounded-lg border border-amber-300 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-700">
             No market or institution price is available for {summary.missingPriceSymbols.join(', ')}. Values are temporarily estimated from cost basis.
-            Check that <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_URL</code> and
-            {' '}<code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_TOKEN</code> are configured on the dashboard service,
+            Check that <code className="mx-1 rounded bg-amber-100 px-1 py-0.5 font-mono text-[0.92em] text-amber-900">DATA_SERVICE_URL</code> and
+            {' '}<code className="mx-1 rounded bg-amber-100 px-1 py-0.5 font-mono text-[0.92em] text-amber-900">DATA_SERVICE_TOKEN</code> are configured on the dashboard service,
             and that the same token is configured on the Python service.
           </div>
         )}
