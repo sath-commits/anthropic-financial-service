@@ -11,8 +11,10 @@ import PnLChart from '@/components/PnLChart';
 import EarningsStrip from '@/components/EarningsStrip';
 import ChatPanel from '@/components/ChatPanel';
 import PortfolioEditor from '@/components/PortfolioEditor';
+import PlaidConnection from '@/components/PlaidConnection';
 import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile, savePortfolioCache, loadPortfolioCache, saveMetricSnapshot, loadMetricHistory, type MetricSnapshot } from '@/lib/storage';
 import { TARGET_ALLOCATION } from '@/lib/mock-portfolio';
+import { mergePortfolioPositions } from '@/lib/portfolio-merge';
 import { formatCurrency, toUsd, positionCurrency, DEFAULT_USD_TO_INR_RATE, type Currency } from '@/lib/currency';
 import { isCashEquivalent } from '@/lib/cash-equivalents';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
@@ -85,6 +87,7 @@ function recomputePositionFast(
   return {
     symbol: userPos.symbol, name: userPos.name, shares: userPos.shares, avgCost: avgCostUsd,
     currentPrice: priceUsd, hasLivePrice: live, equity,
+    hasCostBasis: userPos.hasCostBasis !== false,
     unrealizedPnl: isCpf ? Math.max(0, equity - costTotal) : equity - costTotal,
     unrealizedPnlPct: isCpf
       ? Math.max(0, (cpfGrowthFactor - 1) * 100)
@@ -102,14 +105,13 @@ function applyLocalPositionUpdate(
   rawPositions: Position[],
   summaryBase: PortfolioSummary,
   profile: InvestorProfile | null,
-  earnings: EarningsEvent[],
 ): { summary: PortfolioSummary; allocation: AllocationItem[] } {
   const totalEquity = rawPositions.reduce((s, p) => s + p.equity, 0);
   const withWeights = [...rawPositions]
     .sort((a, b) => b.equity - a.equity)
     .map(p => ({ ...p, portfolioWeightPct: totalEquity > 0 ? (p.equity / totalEquity) * 100 : 0 }));
-  const totalCost = withWeights.reduce((s, p) => s + p.avgCost * p.shares, 0);
-  const totalUnrealizedPnl = withWeights.reduce((s, p) => s + p.unrealizedPnl, 0);
+  const totalCost = withWeights.filter(p => p.hasCostBasis).reduce((s, p) => s + p.avgCost * p.shares, 0);
+  const totalUnrealizedPnl = withWeights.filter(p => p.hasCostBasis).reduce((s, p) => s + p.unrealizedPnl, 0);
   const cashPositions = withWeights.filter(p => isCashEquivalent(p.symbol, p.assetClass));
   const cashEquivalentsByAccount = cashPositions.reduce<PortfolioSummary['cashEquivalentsByAccount']>((acc, p) => {
     acc[p.accountType] = (acc[p.accountType] ?? 0) + p.equity;
@@ -124,6 +126,7 @@ function applyLocalPositionUpdate(
     buyingPower: cashPositions.reduce((s, p) => s + p.equity, 0),
     cashEquivalentsByAccount,
     missingPriceSymbols: Array.from(new Set(withWeights.filter(p => !p.hasLivePrice).map(p => p.symbol))),
+    missingCostBasisSymbols: Array.from(new Set(withWeights.filter(p => !p.hasCostBasis).map(p => p.symbol))),
   };
   const targets = profile?.targetAllocation ?? TARGET_ALLOCATION;
   const actualByClass: Record<string, number> = {};
@@ -149,10 +152,11 @@ export default function Dashboard() {
   const [allocation, setAllocation] = useState<AllocationItem[]>([]);
   const [earnings, setEarnings] = useState<EarningsEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<string>('');
   const [chartSymbol, setChartSymbol] = useState('');
   const [profile, setProfile] = useState<InvestorProfile | null>(null);
   const [userPositions, setUserPositions] = useState<UserPosition[] | null>(null);
+  const [plaidPositions, setPlaidPositions] = useState<UserPosition[]>([]);
+  const [plaidBrokerages, setPlaidBrokerages] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [holding, setHolding] = useState<HoldingDraft | null>(null);
   const [holdingError, setHoldingError] = useState('');
@@ -166,10 +170,39 @@ export default function Dashboard() {
   const [metricHistory, setMetricHistory] = useState<MetricSnapshot[]>([]);
   const restoreInputRef = useRef<HTMLInputElement>(null);
 
+  async function loadPlaidSnapshot(): Promise<{
+    positions: UserPosition[];
+    brokerages: string[];
+  }> {
+    try {
+      const res = await fetch('/api/plaid/holdings', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Plaid snapshot unavailable');
+      const body = await res.json() as {
+        positions?: UserPosition[];
+        items?: Array<{ institutionName?: string }>;
+      };
+      const positions = body.positions ?? [];
+      const brokerages = body.items
+        ?.map(item => item.institutionName?.trim())
+        .filter((name): name is string => Boolean(name)) ?? [];
+      setPlaidPositions(positions);
+      setPlaidBrokerages(brokerages);
+      return { positions, brokerages };
+    } catch {
+      return { positions: plaidPositions, brokerages: plaidBrokerages };
+    }
+  }
+
   async function load(positions?: UserPosition[] | null, prof?: InvestorProfile | null, silent = false) {
     if (!silent) setLoading(true);
     try {
-      const posToSend = positions ?? userPositions;
+      const manualPositions = positions ?? userPositions ?? [];
+      const linked = await loadPlaidSnapshot();
+      const posToSend = mergePortfolioPositions(
+        manualPositions,
+        linked.positions,
+        linked.brokerages,
+      ).positions;
       // Use explicitly-passed profile first, then state (for refresh calls)
       const profileToUse = prof !== undefined ? prof : profile;
       const res = posToSend
@@ -186,7 +219,6 @@ export default function Dashboard() {
       setSummary(data.summary);
       setAllocation(data.allocation);
       setEarnings(data.earnings);
-      setLastUpdated(new Date().toLocaleTimeString());
       savePortfolioCache(data);
       saveMetricSnapshot({
         portfolioValue: data.summary.totalEquity,
@@ -206,6 +238,8 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    // Browser-only history cannot be read during the server render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMetricHistory(loadMetricHistory());
     // Show last-known portfolio instantly from localStorage while live prices load
     type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
@@ -233,6 +267,7 @@ export default function Dashboard() {
 
   const totalPnlPositive = (summary?.totalUnrealizedPnl ?? 0) >= 0;
   const hasCompleteLivePrices = summary?.missingPriceSymbols.length === 0;
+  const hasCompleteCostBasis = (summary?.missingCostBasisSymbols?.length ?? 0) === 0;
   const hsaCashEquivalents = summary?.cashEquivalentsByAccount.hsa ?? 0;
 
   function openAddHolding() {
@@ -240,6 +275,7 @@ export default function Dashboard() {
   }
 
   function openEditHolding(position: Position) {
+    if (position.source === 'plaid') return;
     const index = (userPositions ?? []).findIndex(stored => matchesStoredPosition(stored, position));
     if (index < 0) return;
     setEditingIndex(index);
@@ -248,6 +284,7 @@ export default function Dashboard() {
   }
 
   function deleteHolding(position: Position) {
+    if (position.source === 'plaid') return;
     const positions = userPositions ?? [];
     const index = positions.findIndex(stored => matchesStoredPosition(stored, position));
     if (index < 0 || !window.confirm(`Delete ${position.symbol} from your portfolio?`)) return;
@@ -257,7 +294,7 @@ export default function Dashboard() {
     setChartSymbol(next[0]?.symbol ?? '');
     if (summary) {
       const rawPositions = summary.positions.filter(p => p !== position);
-      const { summary: s, allocation: a } = applyLocalPositionUpdate(rawPositions, summary, profile, earnings);
+      const { summary: s, allocation: a } = applyLocalPositionUpdate(rawPositions, summary, profile);
       setSummary(s);
       setAllocation(a);
       savePortfolioCache({ summary: s, allocation: a, earnings });
@@ -301,7 +338,7 @@ export default function Dashboard() {
       const rawPositions = existingPos
         ? summary.positions.map(p => p === existingPos ? newPos : p)
         : [...summary.positions, newPos];
-      const { summary: s, allocation: a } = applyLocalPositionUpdate(rawPositions, summary, profile, earnings);
+      const { summary: s, allocation: a } = applyLocalPositionUpdate(rawPositions, summary, profile);
       setSummary(s);
       setAllocation(a);
       savePortfolioCache({ summary: s, allocation: a, earnings });
@@ -344,7 +381,15 @@ export default function Dashboard() {
   }
 
   const portfolioContext = summary
-    ? `Total equity: $${fmt(summary.totalEquity)}\nTotal P&L: ${totalPnlPositive ? '+' : '-'}$${fmt(Math.abs(summary.totalUnrealizedPnl))} (${fmt(summary.totalUnrealizedPnlPct)}%)\nBuying power: $${fmt(summary.buyingPower)}\n\nPositions:\n${summary.positions.map(p => `${p.symbol} (${p.accountType}): ${p.shares} shares @ $${fmt(p.currentPrice)}, cost $${fmt(p.avgCost)}, equity $${fmt(p.equity)}, P&L ${p.unrealizedPnl >= 0 ? '+' : ''}$${fmt(p.unrealizedPnl)} (${fmt(p.unrealizedPnlPct)}%), weight ${fmt(p.portfolioWeightPct)}%, ${p.isShortTerm ? 'short-term' : 'long-term'}`).join('\n')}`
+    ? `Total equity: $${fmt(summary.totalEquity)}\n${hasCompleteCostBasis ? `Total P&L: ${totalPnlPositive ? '+' : '-'}$${fmt(Math.abs(summary.totalUnrealizedPnl))} (${fmt(summary.totalUnrealizedPnlPct)}%)` : 'Total P&L: incomplete because cost basis is unavailable for one or more positions'}\nBuying power: $${fmt(summary.buyingPower)}\n\nPositions:\n${summary.positions.map(p => {
+      const costAndPnl = p.hasCostBasis === false
+        ? 'cost basis and P&L unavailable'
+        : `cost $${fmt(p.avgCost)}, P&L ${p.unrealizedPnl >= 0 ? '+' : ''}$${fmt(p.unrealizedPnl)} (${fmt(p.unrealizedPnlPct)}%)`;
+      const holdingPeriod = p.holdingPeriodKnown === false
+        ? 'holding period unavailable'
+        : p.isShortTerm ? 'short-term' : 'long-term';
+      return `${p.symbol} (${p.accountType}): ${p.shares} shares @ $${fmt(p.currentPrice)}, ${costAndPnl}, equity $${fmt(p.equity)}, weight ${fmt(p.portfolioWeightPct)}%, ${holdingPeriod}`;
+    }).join('\n')}`
     : undefined;
 
   const profileContext = profile
@@ -363,6 +408,20 @@ export default function Dashboard() {
     if (liquidityFilter === 'Illiquid' && isLiquid(p)) return false;
     return true;
   });
+  const usPositions = filteredPositions.filter(position =>
+    position.currency === 'USD' && position.accountType !== 'cpf',
+  );
+  const singaporePositions = filteredPositions.filter(position =>
+    position.currency === 'SGD' || position.accountType === 'cpf',
+  );
+  const otherPositions = filteredPositions.filter(position =>
+    !usPositions.includes(position) && !singaporePositions.includes(position),
+  );
+  const hiddenManualCount = mergePortfolioPositions(
+    userPositions ?? [],
+    plaidPositions,
+    plaidBrokerages,
+  ).hiddenManualCount;
 
   function openAllocationEditor() {
     const targets = profile?.targetAllocation ?? TARGET_ALLOCATION;
@@ -686,12 +745,21 @@ export default function Dashboard() {
       )}
 
       <main className="flex-1 px-3 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-5">
+        <PlaidConnection
+          hiddenManualCount={hiddenManualCount}
+          onSnapshotChanged={() => load(userPositions, profile)}
+        />
         {summary && !hasCompleteLivePrices && (
           <div className="rounded-lg border border-amber-300 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             Live prices are unavailable for {summary.missingPriceSymbols.join(', ')}. Values are temporarily estimated from cost basis.
             Check that <code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_URL</code> and
             {' '}<code className="mx-1 rounded bg-black/20 px-1 py-0.5">DATA_SERVICE_TOKEN</code> are configured on the dashboard service,
             and that the same token is configured on the Python service.
+          </div>
+        )}
+        {summary && !hasCompleteCostBasis && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Fidelity did not provide cost basis for {summary.missingCostBasisSymbols?.join(', ')}. Those holdings are included in portfolio value but excluded from P&amp;L.
           </div>
         )}
         {/* Metric cards */}
@@ -708,9 +776,9 @@ export default function Dashboard() {
               />
               <MetricCard
                 label="Total P&L"
-                value={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : '-'}${formatCurrency(Math.abs(summary.totalUnrealizedPnl), displayCurrency, summary.usdToSgdRate)}` : '—'}
-                subValue={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%` : 'Waiting for live prices'}
-                positive={hasCompleteLivePrices ? totalPnlPositive : null}
+                value={hasCompleteLivePrices && hasCompleteCostBasis ? `${totalPnlPositive ? '+' : '-'}${formatCurrency(Math.abs(summary.totalUnrealizedPnl), displayCurrency, summary.usdToSgdRate)}` : '—'}
+                subValue={hasCompleteLivePrices && hasCompleteCostBasis ? `${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%` : 'Waiting for complete price and cost data'}
+                positive={hasCompleteLivePrices && hasCompleteCostBasis ? totalPnlPositive : null}
                 sparkData={metricHistory.map(s => s.totalPnl)}
               />
               <MetricCard
@@ -737,10 +805,13 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
           {/* Left column */}
           <div className="space-y-5">
-            {/* Positions table */}
+            {/* Positions grouped by market / update source */}
             <div className="rounded-xl border border-[#e5ddd3] bg-white p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-[#2d2218]">Positions</h2>
+                <div>
+                  <h2 className="text-sm font-semibold text-[#2d2218]">Investment holdings</h2>
+                  <p className="mt-1 text-xs text-[#9e9087]">One portfolio, separated by market and update cadence.</p>
+                </div>
                 <button onClick={openAddHolding}
                   className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] px-3 py-1.5 text-xs text-[#6e5f52] transition-colors hover:bg-white hover:text-[#2d2218]">
                   <Plus className="h-3.5 w-3.5" /> Add holding
@@ -752,7 +823,37 @@ export default function Dashboard() {
                 </div>
               ) : summary ? (
                 summary.positions.length
-                  ? <PositionsTable positions={filteredPositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
+                  ? (
+                    <div className="space-y-8">
+                      {usPositions.length > 0 && (
+                        <section>
+                          <div className="mb-3">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#2d2218]">U.S. investments</h3>
+                            <p className="mt-1 text-xs text-[#9e9087]">Fidelity snapshots for holdings and cost basis; existing market service for live prices.</p>
+                          </div>
+                          <PositionsTable positions={usPositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
+                        </section>
+                      )}
+                      {singaporePositions.length > 0 && (
+                        <section>
+                          <div className="mb-3">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#2d2218]">Singapore and static holdings</h3>
+                            <p className="mt-1 text-xs text-[#9e9087]">Manually maintained SGD assets and CPF positions that change less frequently.</p>
+                          </div>
+                          <PositionsTable positions={singaporePositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
+                        </section>
+                      )}
+                      {otherPositions.length > 0 && (
+                        <section>
+                          <div className="mb-3">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#2d2218]">Other holdings</h3>
+                            <p className="mt-1 text-xs text-[#9e9087]">Other manually tracked currencies and markets.</p>
+                          </div>
+                          <PositionsTable positions={otherPositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
+                        </section>
+                      )}
+                    </div>
+                  )
                   : <p className="py-8 text-center text-sm text-[#9e9087]">No holdings yet. Add your first position to start tracking your portfolio.</p>
               ) : null}
             </div>

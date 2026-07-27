@@ -56,6 +56,7 @@ async function handler(
     const currency = positionCurrency('currency' in p ? p.currency : undefined);
     const isCpf = p.accountType === 'cpf';
     const manualValue = 'currentValue' in p ? (p as UserPosition).currentValue : undefined;
+    const hasCostBasis = !('hasCostBasis' in p) || (p as UserPosition).hasCostBasis !== false;
     const nativePrice = isCpf
       ? p.avgCost * Math.pow(1.045, p.holdingDays / 365)
       : manualValue ?? (usesCostBasisPrice ? p.avgCost : livePrice ?? (p as { fallbackPrice?: number }).fallbackPrice ?? p.avgCost);
@@ -71,6 +72,7 @@ async function handler(
       currency,
       currentPrice: price,
       hasLivePrice: isCpf || manualValue !== undefined || usesCostBasisPrice || livePrice !== undefined,
+      hasCostBasis,
       equity,
       // CPF: P&L is always the 4.5% growth amount (never negative); percentage uses
       // the pure growth factor so currency conversion doesn't distort it
@@ -88,8 +90,12 @@ async function handler(
     p.portfolioWeightPct = totalEquity > 0 ? (p.equity / totalEquity) * 100 : 0;
   }
 
-  const totalUnrealizedPnl = positions.reduce((s, p) => s + p.unrealizedPnl, 0);
-  const totalCost = positions.reduce((s, p) => s + p.avgCost * p.shares, 0);
+  const totalUnrealizedPnl = positions
+    .filter(p => p.hasCostBasis)
+    .reduce((s, p) => s + p.unrealizedPnl, 0);
+  const totalCost = positions
+    .filter(p => p.hasCostBasis)
+    .reduce((s, p) => s + p.avgCost * p.shares, 0);
   const buyingPower = positions
     .filter(p => isCashEquivalent(p.symbol, p.assetClass))
     .reduce((total, p) => total + p.equity, 0);
@@ -164,6 +170,7 @@ async function handler(
     usdToInrRate,
     hasLiveUsdToInrRate: liveUsdToInrRate !== undefined,
     missingPriceSymbols: Array.from(new Set(positions.filter(p => !p.hasLivePrice).map(p => p.symbol))),
+    missingCostBasisSymbols: Array.from(new Set(positions.filter(p => !p.hasCostBasis).map(p => p.symbol))),
     positions: positions.sort((a, b) => b.equity - a.equity),
   };
 

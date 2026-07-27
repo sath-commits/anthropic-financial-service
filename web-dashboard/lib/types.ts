@@ -5,6 +5,7 @@ export interface Position {
   avgCost: number;
   currentPrice: number;
   hasLivePrice: boolean;
+  hasCostBasis: boolean;
   equity: number;
   unrealizedPnl: number;
   unrealizedPnlPct: number;
@@ -15,6 +16,14 @@ export interface Position {
   holdingDays: number;
   isShortTerm: boolean;
   assetClass: string;
+  source?: 'manual' | 'plaid';
+  externalId?: string;
+  plaidItemId?: string;
+  plaidAccountId?: string;
+  plaidSecurityId?: string;
+  accountName?: string;
+  accountMask?: string;
+  holdingPeriodKnown?: boolean;
 }
 
 export interface PortfolioSummary {
@@ -30,6 +39,7 @@ export interface PortfolioSummary {
   usdToInrRate?: number;
   hasLiveUsdToInrRate?: boolean;
   missingPriceSymbols: string[];
+  missingCostBasisSymbols: string[];
   positions: Position[];
 }
 
@@ -71,6 +81,16 @@ export interface UserPosition {
   assetClass: string;
   purchaseDate?: string; // ISO date string
   currentValue?: number; // manual current-value override (real estate, gold, etc.)
+  fallbackPrice?: number; // last institution-reported price when live market data is unavailable
+  hasCostBasis?: boolean;
+  source?: 'manual' | 'plaid';
+  externalId?: string;
+  plaidItemId?: string;
+  plaidAccountId?: string;
+  plaidSecurityId?: string;
+  accountName?: string;
+  accountMask?: string;
+  holdingPeriodKnown?: boolean;
 }
 
 // User profile / investment goals from onboarding

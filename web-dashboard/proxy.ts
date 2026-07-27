@@ -5,7 +5,7 @@ const COOKIE_NAME = 'btn-session';
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Public paths that never require auth
-const PUBLIC_PATHS = ['/', '/api/auth/login', '/api/auth/logout'];
+const PUBLIC_PATHS = ['/', '/api/auth/login', '/api/auth/logout', '/api/plaid/webhook', '/api/plaid/cron'];
 
 async function computeHmac(message: string, secret: string): Promise<string> {
   const enc = new TextEncoder();

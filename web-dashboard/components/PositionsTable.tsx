@@ -77,8 +77,8 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
         if (!accountPositions.length) return null;
         const accountValue = accountPositions.reduce((total, position) => total + position.equity, 0);
         const accountWeight = accountPositions.reduce((total, position) => total + position.portfolioWeightPct, 0);
-        const hasCompleteLivePrices = accountPositions.every(position => position.hasLivePrice);
-        const accountPnl = accountPositions.reduce((total, position) => total + position.unrealizedPnl, 0);
+        const hasCompletePnl = accountPositions.every(position => position.hasLivePrice && position.hasCostBasis);
+        const accountPnl = accountPositions.filter(position => position.hasCostBasis).reduce((total, position) => total + position.unrealizedPnl, 0);
         const accountPnlPositive = accountPnl >= 0;
         return (
           <section key={accountType} className="overflow-hidden rounded-xl border border-[#d4c9bc]/80 bg-[#f0ebe1]/60">
@@ -92,8 +92,8 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
               <div className="flex items-center gap-5 text-right">
                 <div>
                   <div className="text-[10px] font-medium uppercase tracking-wider text-[#1c1612]0">Category P&amp;L</div>
-                  <div className={`mt-0.5 text-sm font-medium ${hasCompleteLivePrices ? accountPnlPositive ? 'text-emerald-400' : 'text-red-400' : 'text-[#1c1612]0'}`}>
-                    {hasCompleteLivePrices ? `${accountPnlPositive ? '+' : '-'}${money(accountPnl)}` : 'Unavailable'}
+                  <div className={`mt-0.5 text-sm font-medium ${hasCompletePnl ? accountPnlPositive ? 'text-emerald-400' : 'text-red-400' : 'text-[#1c1612]0'}`}>
+                    {hasCompletePnl ? `${accountPnlPositive ? '+' : '-'}${money(accountPnl)}` : 'Unavailable'}
                   </div>
                 </div>
                 <div>
@@ -136,29 +136,33 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
                           <div className="text-xs text-[#1c1612]0 truncate max-w-[140px]">{p.name}</div>
                         </td>
                         <td className="py-2.5 pr-4 text-[#4a3d33]">{fmt(p.shares)}</td>
-                        <td className="py-2.5 pr-4 text-[#4a3d33]">{p.accountType === 'cpf' ? <span className="text-[#b8ad9e]">—</span> : money(p.avgCost)}</td>
+                        <td className="py-2.5 pr-4 text-[#4a3d33]">{p.accountType === 'cpf' || !p.hasCostBasis ? <span className="text-[#b8ad9e]">—</span> : money(p.avgCost)}</td>
                         <td className="py-2.5 pr-4 text-[#1c1612] font-medium">
                           {p.hasLivePrice ? money(p.currentPrice) : <span className="text-amber-300">Unavailable</span>}
                         </td>
                         <td className="py-2.5 pr-4 text-[#1c1612]">{money(p.equity)}</td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {p.hasLivePrice ? `${gain ? '+' : '-'}${money(p.unrealizedPnl)}` : <span className="text-[#1c1612]0">—</span>}
+                          {p.hasLivePrice && p.hasCostBasis ? `${gain ? '+' : '-'}${money(p.unrealizedPnl)}` : <span className="text-[#1c1612]0">—</span>}
                         </td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {p.hasLivePrice ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-[#1c1612]0">—</span>}
+                          {p.hasLivePrice && p.hasCostBasis ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-[#1c1612]0">—</span>}
                         </td>
                         <td className="py-2.5 pr-4 text-[#6e5f52]">{fmt(p.portfolioWeightPct, 1)}%</td>
                         <td className="py-2.5 pr-4 text-[#1c1612]0 text-xs">{p.brokerage}</td>
                         <td className="py-2.5 pl-3">
                           <div className="flex items-center gap-1">
-                            <button onClick={() => onEdit(p)} title={`Edit ${p.symbol}`}
-                              className="rounded p-1 text-[#b8ad9e] transition-colors hover:bg-[#ede8df] hover:text-[#4a3d33]">
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={() => onDelete(p)} title={`Delete ${p.symbol}`}
-                              className="rounded p-1 text-[#b8ad9e] transition-colors hover:bg-red-50 hover:text-red-400">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            {p.source !== 'plaid' && (
+                              <>
+                                <button onClick={() => onEdit(p)} title={`Edit ${p.symbol}`}
+                                  className="rounded p-1 text-[#b8ad9e] transition-colors hover:bg-[#ede8df] hover:text-[#4a3d33]">
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button onClick={() => onDelete(p)} title={`Delete ${p.symbol}`}
+                                  className="rounded p-1 text-[#b8ad9e] transition-colors hover:bg-red-50 hover:text-red-400">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
