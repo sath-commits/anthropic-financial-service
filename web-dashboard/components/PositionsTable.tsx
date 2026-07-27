@@ -148,7 +148,15 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
                           {p.hasLivePrice && p.hasCostBasis ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-[#1c1612]0">—</span>}
                         </td>
                         <td className="py-2.5 pr-4 text-[#6e5f52]">{fmt(p.portfolioWeightPct, 1)}%</td>
-                        <td className="py-2.5 pr-4 text-[#1c1612]0 text-xs">{p.brokerage}</td>
+                        <td className="py-2.5 pr-4 text-xs">
+                          <div className="text-[#6e5f52]">{p.brokerage}</div>
+                          {p.source === 'plaid' && (p.accountName || p.accountMask) && (
+                            <div className="mt-0.5 max-w-[150px] truncate text-[10px] text-[#9e9087]">
+                              {p.accountName || 'Investment account'}
+                              {p.accountMask ? ` · ••••${p.accountMask}` : ''}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-2.5 pl-3">
                           <div className="flex items-center gap-1">
                             {p.source !== 'plaid' && (

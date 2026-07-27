@@ -8,6 +8,7 @@ import {
   Link2,
   Loader2,
   RefreshCw,
+  Trash2,
   Unlink,
 } from 'lucide-react';
 
@@ -67,6 +68,7 @@ interface PlaidStatus {
 interface Props {
   hiddenManualCount: number;
   onSnapshotChanged: () => Promise<void> | void;
+  onDeleteHiddenManual: () => Promise<number>;
 }
 
 const LINK_TOKEN_KEY = 'beta-than-nothing:plaid-link-token';
@@ -76,10 +78,14 @@ function friendlyTime(value: string | null): string {
   return new Date(value).toLocaleString();
 }
 
-export default function PlaidConnection({ hiddenManualCount, onSnapshotChanged }: Props) {
+export default function PlaidConnection({
+  hiddenManualCount,
+  onSnapshotChanged,
+  onDeleteHiddenManual,
+}: Props) {
   const [status, setStatus] = useState<PlaidStatus | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
-  const [busy, setBusy] = useState<'connect' | 'sync' | 'disconnect' | null>(null);
+  const [busy, setBusy] = useState<'connect' | 'sync' | 'disconnect' | 'cleanup' | null>(null);
   const [message, setMessage] = useState('');
   const handlerRef = useRef<PlaidHandler | null>(null);
   const snapshotCallbackRef = useRef(onSnapshotChanged);
@@ -264,6 +270,22 @@ export default function PlaidConnection({ hiddenManualCount, onSnapshotChanged }
     }
   }
 
+  async function deleteHiddenManual() {
+    if (!window.confirm(
+      `Permanently delete ${hiddenManualCount} hidden manual Fidelity/Robinhood holding${hiddenManualCount === 1 ? '' : 's'}? Plaid holdings will remain connected.`,
+    )) return;
+    setBusy('cleanup');
+    setMessage('');
+    try {
+      const removed = await onDeleteHiddenManual();
+      setMessage(`${removed} outdated manual holding${removed === 1 ? '' : 's'} permanently deleted.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not delete the manual copies.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (!status) {
     return <div className="h-24 animate-pulse rounded-xl border border-[#e5ddd3] bg-white" />;
   }
@@ -304,9 +326,20 @@ export default function PlaidConnection({ hiddenManualCount, onSnapshotChanged }
                   {status.items.map(item => item.institutionName).join(', ')} · snapshot {friendlyTime(status.snapshotAt)}
                 </p>
                 {hiddenManualCount > 0 && (
-                  <p className="mt-1 text-[11px] text-[#9e9087]">
-                    {hiddenManualCount} manual brokerage holding{hiddenManualCount === 1 ? '' : 's'} hidden while the connected account is authoritative.
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[#9e9087]">
+                    <span>
+                      {hiddenManualCount} manual brokerage holding{hiddenManualCount === 1 ? '' : 's'} hidden while the connected account is authoritative.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void deleteHiddenManual()}
+                      disabled={busy !== null}
+                      className="inline-flex items-center gap-1 font-medium text-red-500 hover:text-red-600 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Delete manual copies
+                    </button>
+                  </div>
                 )}
               </>
             ) : (

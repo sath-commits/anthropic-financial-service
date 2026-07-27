@@ -7,7 +7,7 @@ function normalizedBrokerage(value?: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-function sameBrokerage(left?: string, right?: string): boolean {
+export function sameBrokerage(left?: string, right?: string): boolean {
   const a = normalizedBrokerage(left);
   const b = normalizedBrokerage(right);
   return Boolean(a && b && (a === b || a.includes(b) || b.includes(a)));

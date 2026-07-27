@@ -14,7 +14,7 @@ import PortfolioEditor from '@/components/PortfolioEditor';
 import PlaidConnection from '@/components/PlaidConnection';
 import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile, savePortfolioCache, loadPortfolioCache, saveMetricSnapshot, loadMetricHistory, type MetricSnapshot } from '@/lib/storage';
 import { TARGET_ALLOCATION } from '@/lib/mock-portfolio';
-import { mergePortfolioPositions } from '@/lib/portfolio-merge';
+import { mergePortfolioPositions, sameBrokerage } from '@/lib/portfolio-merge';
 import { formatCurrency, toUsd, positionCurrency, DEFAULT_USD_TO_INR_RATE, type Currency } from '@/lib/currency';
 import { isCashEquivalent } from '@/lib/cash-equivalents';
 import type { PortfolioSummary, AllocationItem, EarningsEvent, UserPosition, InvestorProfile, Position } from '@/lib/types';
@@ -356,6 +356,19 @@ export default function Dashboard() {
     load(next, profile);
   }
 
+  async function deleteHiddenManualCopies(): Promise<number> {
+    const current = userPositions ?? [];
+    const next = current.filter(position =>
+      !plaidBrokerages.some(brokerage => sameBrokerage(position.brokerage, brokerage)),
+    );
+    const removed = current.length - next.length;
+    if (!removed) return 0;
+    savePositions(next, { allowEmptyPositions: true });
+    setUserPositions(next);
+    await load(next, profile);
+    return removed;
+  }
+
   async function restoreSettingsBackup(file: File | undefined) {
     if (!file) return;
     try {
@@ -408,14 +421,24 @@ export default function Dashboard() {
     if (liquidityFilter === 'Illiquid' && isLiquid(p)) return false;
     return true;
   });
+  const isSingaporeBasedUsPlatform = (position: Position) => {
+    const brokerage = position.brokerage.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return brokerage.includes('moomoo') || brokerage.includes('stashaway');
+  };
+  const singaporeUsPositions = filteredPositions.filter(isSingaporeBasedUsPlatform);
   const usPositions = filteredPositions.filter(position =>
-    position.currency === 'USD' && position.accountType !== 'cpf',
+    position.currency === 'USD'
+    && position.accountType !== 'cpf'
+    && !isSingaporeBasedUsPlatform(position),
   );
   const singaporePositions = filteredPositions.filter(position =>
-    position.currency === 'SGD' || position.accountType === 'cpf',
+    (position.currency === 'SGD' || position.accountType === 'cpf')
+    && !isSingaporeBasedUsPlatform(position),
   );
   const otherPositions = filteredPositions.filter(position =>
-    !usPositions.includes(position) && !singaporePositions.includes(position),
+    !usPositions.includes(position)
+    && !singaporeUsPositions.includes(position)
+    && !singaporePositions.includes(position),
   );
   const hiddenManualCount = mergePortfolioPositions(
     userPositions ?? [],
@@ -748,6 +771,7 @@ export default function Dashboard() {
         <PlaidConnection
           hiddenManualCount={hiddenManualCount}
           onSnapshotChanged={() => load(userPositions, profile)}
+          onDeleteHiddenManual={deleteHiddenManualCopies}
         />
         {summary && !hasCompleteLivePrices && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-700">
@@ -829,9 +853,18 @@ export default function Dashboard() {
                         <section>
                           <div className="mb-3">
                             <h3 className="text-xs font-semibold uppercase tracking-wide text-[#2d2218]">U.S. investments</h3>
-                            <p className="mt-1 text-xs text-[#9e9087]">Fidelity snapshots for holdings and cost basis; existing market service for live prices.</p>
+                            <p className="mt-1 text-xs text-[#9e9087]">Plaid-connected U.S. brokerages for holdings and available cost basis; existing market service for live prices.</p>
                           </div>
                           <PositionsTable positions={usPositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
+                        </section>
+                      )}
+                      {singaporeUsPositions.length > 0 && (
+                        <section>
+                          <div className="mb-3">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#2d2218]">Singapore-based U.S. investments</h3>
+                            <p className="mt-1 text-xs text-[#9e9087]">Moomoo and StashAway holdings: U.S. investments maintained through Singapore-based platforms.</p>
+                          </div>
+                          <PositionsTable positions={singaporeUsPositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
                         </section>
                       )}
                       {singaporePositions.length > 0 && (
