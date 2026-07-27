@@ -153,9 +153,10 @@ export default function PlaidConnection({ hiddenManualCount, onSnapshotChanged }
     window.history.replaceState({}, '', cleanUrl);
     await loadStatus();
     await snapshotCallbackRef.current();
+    const institutionName = metadata.institution?.name?.trim() || 'brokerage';
     setMessage(body.errors?.length
-      ? `Connected successfully. Fidelity is still preparing the first holdings snapshot: ${body.errors[0].message}`
-      : `Connected successfully. Saved ${body.positionCount ?? 0} Fidelity holdings.`);
+      ? `Connected successfully. ${institutionName} is still preparing the first holdings snapshot: ${body.errors[0].message}`
+      : `Connected successfully. Saved ${body.positionCount ?? 0} ${institutionName} holdings.`);
     setBusy(null);
   }, [loadStatus]);
 
@@ -246,7 +247,7 @@ export default function PlaidConnection({ hiddenManualCount, onSnapshotChanged }
   }
 
   async function disconnect(item: ItemStatus) {
-    if (!window.confirm(`Disconnect ${item.institutionName}? Your historical snapshots will remain, but current Fidelity holdings will be removed.`)) return;
+    if (!window.confirm(`Disconnect ${item.institutionName}? Your historical snapshots will remain, but current ${item.institutionName} holdings will be removed.`)) return;
     setBusy('disconnect');
     setMessage('');
     try {
