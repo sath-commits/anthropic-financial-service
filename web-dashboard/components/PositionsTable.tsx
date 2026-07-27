@@ -11,6 +11,7 @@ interface Props {
   onDelete: (position: Position) => void;
   displayCurrency: Currency;
   usdToSgdRate: number;
+  accountLabelOverrides?: Partial<Record<Position['accountType'], string>>;
 }
 
 const ACCOUNT_ORDER: Position['accountType'][] = ['taxable', '401k', 'ira', 'roth_ira', 'hsa', 'cpf'];
@@ -42,7 +43,14 @@ const COLUMNS: Array<{ label: string; key: SortKey }> = [
   { label: 'Brokerage', key: 'brokerage' },
 ];
 
-export default function PositionsTable({ positions, onEdit, onDelete, displayCurrency, usdToSgdRate }: Props) {
+export default function PositionsTable({
+  positions,
+  onEdit,
+  onDelete,
+  displayCurrency,
+  usdToSgdRate,
+  accountLabelOverrides,
+}: Props) {
   const money = (amount: number) => formatCurrency(Math.abs(amount), displayCurrency, usdToSgdRate);
   const [sortKey, setSortKey] = useState<SortKey>('equity');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -84,7 +92,9 @@ export default function PositionsTable({ positions, onEdit, onDelete, displayCur
           <section key={accountType} className="overflow-hidden rounded-xl border border-[#d4c9bc]/80 bg-[#f0ebe1]/60">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d4c9bc]/80 bg-[#ede8df]/50 px-4 py-3">
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#2d2218]">{ACCOUNT_LABELS[accountType]}</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#2d2218]">
+                  {accountLabelOverrides?.[accountType] ?? ACCOUNT_LABELS[accountType]}
+                </h3>
                 <p className="mt-1 text-xs text-[#1c1612]0">
                   {accountPositions.length} holding{accountPositions.length === 1 ? '' : 's'} · {fmt(accountWeight, 1)}% of portfolio
                 </p>

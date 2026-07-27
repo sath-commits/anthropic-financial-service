@@ -864,7 +864,14 @@ export default function Dashboard() {
                             <h3 className="text-xs font-semibold uppercase tracking-wide text-[#2d2218]">Singapore-based U.S. investments</h3>
                             <p className="mt-1 text-xs text-[#9e9087]">Moomoo and StashAway holdings: U.S. investments maintained through Singapore-based platforms.</p>
                           </div>
-                          <PositionsTable positions={singaporeUsPositions} onEdit={openEditHolding} onDelete={deleteHolding} displayCurrency={displayCurrency} usdToSgdRate={summary.usdToSgdRate} />
+                          <PositionsTable
+                            positions={singaporeUsPositions}
+                            onEdit={openEditHolding}
+                            onDelete={deleteHolding}
+                            displayCurrency={displayCurrency}
+                            usdToSgdRate={summary.usdToSgdRate}
+                            accountLabelOverrides={{ '401k': 'SRS - Supplementary retirement' }}
+                          />
                         </section>
                       )}
                       {singaporePositions.length > 0 && (
