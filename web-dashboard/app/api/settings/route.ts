@@ -3,6 +3,12 @@ import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'node:fs/pro
 import path from 'node:path';
 import { NextResponse } from 'next/server';
 import type { InvestorProfile, UserPosition } from '@/lib/types';
+import {
+  decodeSensitiveJson,
+  encodeSensitiveJson,
+  requireDataEncryption,
+} from '@/lib/security/encrypted-file';
+import { readJsonBody, requireSameOrigin } from '@/lib/security/request';
 
 interface StoredSettings {
   positions?: UserPosition[];
@@ -27,11 +33,12 @@ const backupsDirectory = useTestStorage
     ? '/data/portfolio-backups'
     : '/tmp/beta-than-nothing-backups';
 let writeQueue = Promise.resolve();
+let backupMigration: Promise<void> | null = null;
 const MAX_SERVER_BACKUPS = 500;
 
 function parseSettings(raw: string): StoredSettings | null {
   try {
-    const settings = JSON.parse(raw) as StoredSettings;
+    const settings = decodeSensitiveJson<StoredSettings>(raw).value;
     if (settings.positions !== undefined && !Array.isArray(settings.positions)) return null;
     if (settings.profile !== undefined && (!settings.profile || typeof settings.profile !== 'object')) return null;
     return settings;
@@ -47,7 +54,13 @@ async function readLatestBackup(): Promise<StoredSettings | null> {
       .sort()
       .reverse();
     for (const file of files) {
-      const settings = parseSettings(await readFile(path.join(backupsDirectory, file), 'utf8'));
+      const filePath = path.join(backupsDirectory, file);
+      const raw = await readFile(filePath, 'utf8');
+      const decoded = decodeSensitiveJson<StoredSettings>(raw);
+      const settings = parseSettings(raw);
+      if (settings && !decoded.wasEncrypted) {
+        await writeFile(filePath, encodeSensitiveJson(settings), { mode: 0o600 });
+      }
       if (settings) return settings;
     }
   } catch {
@@ -56,10 +69,43 @@ async function readLatestBackup(): Promise<StoredSettings | null> {
   return null;
 }
 
+async function migrateBackups(): Promise<void> {
+  if (!backupMigration) {
+    backupMigration = (async () => {
+      try {
+        const files = (await readdir(backupsDirectory)).filter(file => file.endsWith('.json'));
+        for (const file of files) {
+          const filePath = path.join(backupsDirectory, file);
+          const raw = await readFile(filePath, 'utf8');
+          const decoded = decodeSensitiveJson<StoredSettings>(raw);
+          const settings = parseSettings(raw);
+          if (settings && !decoded.wasEncrypted) {
+            await writeFile(filePath, encodeSensitiveJson(settings), { mode: 0o600 });
+          }
+        }
+      } catch {
+        // New installations do not have a backup directory yet.
+      }
+    })();
+  }
+  await backupMigration;
+}
+
 async function readSettings(): Promise<StoredSettings> {
+  requireDataEncryption();
+  await migrateBackups();
   try {
-    const settings = parseSettings(await readFile(settingsPath, 'utf8'));
-    if (settings) return settings;
+    const raw = await readFile(settingsPath, 'utf8');
+    const decoded = decodeSensitiveJson<StoredSettings>(raw);
+    const settings = parseSettings(raw);
+    if (settings) {
+      if (!decoded.wasEncrypted) {
+        const temporaryPath = `${settingsPath}.migration.tmp`;
+        await writeFile(temporaryPath, encodeSensitiveJson(settings), { mode: 0o600 });
+        await rename(temporaryPath, settingsPath);
+      }
+      return settings;
+    }
   } catch {
     // Restore from the historical snapshots below.
   }
@@ -86,7 +132,7 @@ async function writeSettings(patch: StoredSettings): Promise<StoredSettings> {
     await mkdir(backupsDirectory, { recursive: true });
     if (previous.positions?.length || previous.profile) await writeBackup(previous);
     const temporaryPath = `${settingsPath}.tmp`;
-    await writeFile(temporaryPath, JSON.stringify(result, null, 2), { mode: 0o600 });
+    await writeFile(temporaryPath, encodeSensitiveJson(result), { mode: 0o600 });
     await rename(temporaryPath, settingsPath);
     await writeBackup(result);
     await pruneBackups();
@@ -97,7 +143,7 @@ async function writeSettings(patch: StoredSettings): Promise<StoredSettings> {
 
 async function writeBackup(settings: StoredSettings) {
   const backupName = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`;
-  await writeFile(path.join(backupsDirectory, backupName), JSON.stringify(settings, null, 2), { mode: 0o600 });
+  await writeFile(path.join(backupsDirectory, backupName), encodeSensitiveJson(settings), { mode: 0o600 });
 }
 
 export async function GET(req: Request) {
@@ -114,7 +160,10 @@ export async function GET(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const body = await req.json().catch(() => null) as SettingsRequest | null;
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
+  const { value: body, error } = await readJsonBody<SettingsRequest>(req, 2 * 1024 * 1024);
+  if (error) return error;
   if (!body || (body.positions === undefined && body.profile === undefined && body.properties === undefined && body.otherAssets === undefined)) {
     return NextResponse.json({ error: 'Provide at least one setting to update.' }, { status: 400 });
   }

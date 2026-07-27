@@ -2,9 +2,14 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/browser';
 import {
   TrendingUp, PiggyBank, Home, Layers, Brain, Wallet,
-  BarChart3, Shield, ArrowRight, ExternalLink, Eye, EyeOff,
+  BarChart3, Shield, ArrowRight, ExternalLink, Eye, EyeOff, KeyRound,
 } from 'lucide-react';
 import DashboardPreview from '@/components/DashboardPreview';
 
@@ -49,7 +54,7 @@ const FEATURES: Feature[] = [
   {
     icon: <Brain className="h-6 w-6 text-rose-500" />,
     title: 'AI Financial Advisor',
-    description: 'Ask Claude anything about your portfolio — rebalancing, tax implications, risk exposure.',
+    description: 'Ask the AI advisor about your portfolio — rebalancing, tax implications, and risk exposure.',
     iconBg: 'bg-rose-50 border-rose-100',
   },
 ];
@@ -70,7 +75,7 @@ const HOW_IT_WORKS = [
   {
     step: '03',
     title: 'Ask the advisor',
-    body: 'Claude reads your actual portfolio and answers questions — drift analysis, retirement readiness, tax lots.',
+    body: 'The advisor reads your portfolio context and answers questions — drift analysis, retirement readiness, tax lots.',
     accent: 'text-purple-400',
   },
 ];
@@ -83,6 +88,8 @@ export default function LandingPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [bootstrapSecret, setBootstrapSecret] = useState('');
+  const [showEnrollment, setShowEnrollment] = useState(false);
 
   function scrollToLogin() {
     loginRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -114,6 +121,65 @@ export default function LandingPage() {
     }
   }
 
+  async function handlePasskeyLogin() {
+    setError('');
+    setLoading(true);
+    try {
+      if (!username.trim()) throw new Error('Enter your username first.');
+      const optionsResponse = await fetch('/api/auth/passkey/login/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      const options = await optionsResponse.json() as PublicKeyCredentialRequestOptionsJSON & { error?: string };
+      if (!optionsResponse.ok) throw new Error(options.error ?? 'Passkey sign-in is unavailable.');
+      const credential = await startAuthentication({ optionsJSON: options });
+      const verifyResponse = await fetch('/api/auth/passkey/login/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credential),
+      });
+      const result = await verifyResponse.json() as { error?: string };
+      if (!verifyResponse.ok) throw new Error(result.error ?? 'Passkey sign-in failed.');
+      router.push('/dashboard');
+    } catch (passkeyError) {
+      setError(passkeyError instanceof Error ? passkeyError.message : 'Passkey sign-in failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePasskeyEnrollment() {
+    setError('');
+    setLoading(true);
+    try {
+      if (!username.trim() || !bootstrapSecret) {
+        throw new Error('Enter your username and one-time enrollment secret.');
+      }
+      const optionsResponse = await fetch('/api/auth/passkey/register/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, bootstrapSecret }),
+      });
+      const options = await optionsResponse.json() as PublicKeyCredentialCreationOptionsJSON & { error?: string };
+      if (!optionsResponse.ok) throw new Error(options.error ?? 'Passkey enrollment is unavailable.');
+      const credential = await startRegistration({ optionsJSON: options });
+      const verifyResponse = await fetch('/api/auth/passkey/register/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credential),
+      });
+      const result = await verifyResponse.json() as { error?: string };
+      if (!verifyResponse.ok) throw new Error(result.error ?? 'Passkey enrollment failed.');
+      router.push('/dashboard');
+    } catch (enrollmentError) {
+      setError(enrollmentError instanceof Error ? enrollmentError.message : 'Passkey enrollment failed.');
+    } finally {
+      setLoading(false);
+      setBootstrapSecret('');
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#f7f2eb]">
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
@@ -140,7 +206,7 @@ export default function LandingPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-[#d4c9bc] bg-white px-3 py-1 text-xs text-[#6e5f52] mb-6">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block" />
-                Powered by Anthropic Claude
+                Private, AI-assisted analysis
               </div>
               <h1 className="text-3xl font-bold text-[#1c1612] sm:text-4xl lg:text-5xl leading-tight">
                 Your entire financial life,{' '}
@@ -174,7 +240,7 @@ export default function LandingPage() {
               <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#9e9087]">
                 <span className="flex items-center gap-1.5">
                   <Shield className="h-3.5 w-3.5 text-emerald-400" />
-                  Data stays in your browser
+                  Encrypted private storage
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="h-1 w-1 rounded-full bg-[#d4c9bc]" />
@@ -230,21 +296,19 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Anthropic / GitHub section ────────────────────────────────────── */}
+        {/* ── AI / GitHub section ───────────────────────────────────────────── */}
         <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
           <div className="rounded-xl border border-[#e5ddd3] bg-white p-8">
             <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-8">
-              {/* Anthropic "A" logomark in SVG */}
+              {/* AI mark */}
               <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-[#1c1612]">
-                <svg viewBox="0 0 24 24" className="h-8 w-8 fill-white" aria-label="Anthropic">
-                  <path d="M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-7.258 0h3.767L16.906 20h-3.674l-1.343-3.461H5.017L3.674 20H0L6.569 3.52zm4.132 9.959L8.453 7.687 6.205 13.479h4.496z" />
-                </svg>
+                <Brain className="h-8 w-8 text-white" aria-label="AI advisor" />
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-semibold text-[#1c1612]">Built on Anthropic Claude</h3>
+                <h3 className="text-base font-semibold text-[#1c1612]">AI analysis with explicit guardrails</h3>
                 <p className="mt-1.5 text-sm text-[#6e5f52] leading-relaxed max-w-xl">
-                  The AI advisor uses Claude — Anthropic&apos;s frontier model — to analyze your real portfolio data.
-                  No hallucinated numbers, no generic advice. Claude reads your actual positions and answers accordingly.
+                  The advisor uses the OpenAI API to analyze the portfolio context you submit. It can recommend,
+                  but this dashboard contains no brokerage trading or money-movement capability.
                 </p>
                 <a
                   href="https://github.com/anthropics/financial-services"
@@ -313,13 +377,61 @@ export default function LandingPage() {
               )}
 
               <button
+                type="button"
+                onClick={() => void handlePasskeyLogin()}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+              >
+                <KeyRound className="h-4 w-4" />
+                {loading ? 'Please wait…' : 'Sign in with passkey'}
+              </button>
+
+              <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-[#9e9087]">
+                <span className="h-px flex-1 bg-[#e5ddd3]" />
+                Password fallback
+                <span className="h-px flex-1 bg-[#e5ddd3]" />
+              </div>
+
+              <button
                 type="submit"
                 disabled={loading}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#d4c9bc] bg-[#f7f2eb] px-4 py-2.5 text-sm font-medium text-[#4a3d33] transition-colors hover:bg-[#ede8df] disabled:opacity-50"
               >
-                {loading ? 'Signing in…' : 'Sign in'}
+                {loading ? 'Signing in…' : 'Sign in with password'}
                 {!loading && <ArrowRight className="h-4 w-4" />}
               </button>
+
+              <button
+                type="button"
+                onClick={() => setShowEnrollment(value => !value)}
+                className="w-full text-center text-xs text-[#6e5f52] underline-offset-2 hover:underline"
+              >
+                {showEnrollment ? 'Hide passkey setup' : 'Set up a new passkey'}
+              </button>
+              {showEnrollment && (
+                <div className="space-y-3 rounded-lg border border-[#e5ddd3] bg-[#f7f2eb] p-3">
+                  <p className="text-xs leading-relaxed text-[#6e5f52]">
+                    Use the one-time enrollment secret from your password manager. Your device will ask for Face ID, Touch ID, or its PIN.
+                  </p>
+                  <input
+                    type="password"
+                    autoComplete="one-time-code"
+                    value={bootstrapSecret}
+                    onChange={event => setBootstrapSecret(event.target.value)}
+                    className="w-full rounded-lg border border-[#d4c9bc] bg-white px-3 py-2.5 text-sm text-[#1c1612] outline-none focus:border-blue-400"
+                    placeholder="One-time enrollment secret"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handlePasskeyEnrollment()}
+                    disabled={loading}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#1c1612] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    Enroll this device
+                  </button>
+                </div>
+              )}
             </form>
           </div>
         </section>
@@ -329,7 +441,7 @@ export default function LandingPage() {
       <footer className="border-t border-[#e5ddd3] px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between text-xs text-[#b8ad9e]">
           <span>Market data via Yahoo Finance. Not financial advice.</span>
-          <span>Powered by Claude</span>
+          <span>AI analysis via OpenAI</span>
         </div>
       </footer>
     </div>

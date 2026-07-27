@@ -2,15 +2,20 @@
   "name": "web-dashboard",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "oxlint .",
     "plaid:sync": "node scripts/plaid-sync.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.2",
     "jose": "^6.2.4",
     "lucide-react": "^1.17.0",
     "next": "16.2.12",
@@ -25,10 +30,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "oxlint": "^1.75.0",
     "playwright": "^1.60.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "8.5.23",
+    "sharp": "0.35.3"
   }
 }

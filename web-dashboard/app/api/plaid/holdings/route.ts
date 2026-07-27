@@ -27,9 +27,9 @@ export async function GET() {
       snapshotAt: snapshot?.capturedAt ?? null,
       errors: snapshot?.errors ?? [],
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Could not read the Plaid holdings snapshot.' },
+      { error: 'Could not read the encrypted Plaid holdings snapshot.' },
       { status: 500 },
     );
   }

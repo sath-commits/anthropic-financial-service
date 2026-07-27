@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPlaidClient, plaidError } from '@/lib/plaid/client';
 import { syncPlaidHoldings } from '@/lib/plaid/holdings';
 import { upsertPlaidItem } from '@/lib/plaid/store';
+import { rateLimit, readJsonBody, requireSameOrigin } from '@/lib/security/request';
 
 interface ExchangeRequest {
   publicToken?: string;
@@ -12,7 +13,12 @@ interface ExchangeRequest {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null) as ExchangeRequest | null;
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
+  const limited = rateLimit(req, 'plaid-exchange', 5, 30 * 60 * 1000);
+  if (limited) return limited;
+  const { value: body, error } = await readJsonBody<ExchangeRequest>(req, 32 * 1024);
+  if (error) return error;
   if (!body?.publicToken) {
     return NextResponse.json({ error: 'A Plaid public token is required.' }, { status: 400 });
   }

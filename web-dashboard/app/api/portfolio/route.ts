@@ -5,11 +5,23 @@ import { isCashEquivalent, shouldPriceAtCostBasis } from '@/lib/cash-equivalents
 import { DEFAULT_USD_TO_SGD_RATE, DEFAULT_USD_TO_INR_RATE, positionCurrency, toUsd } from '@/lib/currency';
 import type { UserPosition } from '@/lib/types';
 import type { Position, PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
+import { rateLimit, readJsonBody, requireSameOrigin } from '@/lib/security/request';
 
 export async function GET() { return handler(null, null); }
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  return handler(body.positions ?? null, body.targetAllocation ?? null);
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
+  const limited = rateLimit(req, 'portfolio-pricing', 60, 5 * 60 * 1000);
+  if (limited) return limited;
+  const { value: body, error } = await readJsonBody<{
+    positions?: UserPosition[];
+    targetAllocation?: Record<string, number>;
+  }>(req, 2 * 1024 * 1024);
+  if (error) return error;
+  return handler(
+    Array.isArray(body?.positions) ? body.positions.slice(0, 1000) : null,
+    body?.targetAllocation ?? null,
+  );
 }
 
 async function handler(

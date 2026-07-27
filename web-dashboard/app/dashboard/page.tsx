@@ -241,7 +241,7 @@ export default function Dashboard() {
     // Browser-only history cannot be read during the server render.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMetricHistory(loadMetricHistory());
-    // Show last-known portfolio instantly from localStorage while live prices load
+    // Show this tab's last-known portfolio instantly while live prices load
     type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
     const cached = loadPortfolioCache<CacheShape>();
     let hadCache = false;
@@ -390,6 +390,7 @@ export default function Dashboard() {
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
+    sessionStorage.clear();
     router.push('/');
   }
 

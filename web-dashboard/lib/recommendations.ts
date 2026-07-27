@@ -39,13 +39,13 @@ export function saveAdvisorRun(run: AdvisorRun): void {
   const history = loadAdvisorHistory();
   history.unshift(run);
   if (history.length > MAX_RUNS) history.splice(MAX_RUNS);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
 export function loadAdvisorHistory(): AdvisorRun[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = sessionStorage.getItem(HISTORY_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
@@ -58,12 +58,12 @@ export function getLastRunTime(): Date | null {
 
 export function getAutoRunEnabled(): boolean {
   if (typeof window === 'undefined') return true;
-  const val = localStorage.getItem(AUTO_RUN_KEY);
+  const val = sessionStorage.getItem(AUTO_RUN_KEY);
   return val === null ? true : val === 'true';
 }
 
 export function setAutoRunEnabled(enabled: boolean): void {
-  localStorage.setItem(AUTO_RUN_KEY, String(enabled));
+  sessionStorage.setItem(AUTO_RUN_KEY, String(enabled));
 }
 
 export function shouldAutoRun(): boolean {

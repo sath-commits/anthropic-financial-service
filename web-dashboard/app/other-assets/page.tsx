@@ -55,13 +55,9 @@ const STORAGE_KEY = 'portfolio-ai:other-assets-v1';
 function loadAssets(): Asset[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
-}
-
-function saveAssets(assets: Asset[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -322,6 +318,8 @@ export default function OtherAssetsPage() {
     type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
     const cached = loadPortfolioCache<CacheShape>();
     if (cached?.summary) {
+      // Hydrate the last known rates before the background refresh completes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRates({
         usdToSgd: cached.summary.usdToSgdRate ?? DEFAULT_USD_TO_SGD_RATE,
         usdToInr: (cached.summary as PortfolioSummary & { usdToInrRate?: number }).usdToInrRate ?? DEFAULT_USD_TO_INR_RATE,

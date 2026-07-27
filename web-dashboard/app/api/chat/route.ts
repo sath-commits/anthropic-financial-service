@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { callDataService } from '@/lib/data-service';
+import { rateLimit, readJsonBody, requireSameOrigin } from '@/lib/security/request';
 
 export const maxDuration = 60;
 
@@ -112,7 +113,35 @@ Be concise, direct, and data-driven. Use markdown tables when presenting data.`;
 }
 
 export async function POST(req: Request) {
-  const { messages, portfolioContext, profileContext } = await req.json();
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
+  const limited = rateLimit(req, 'ai-chat', 20, 15 * 60 * 1000);
+  if (limited) return limited;
+  const { value: body, error } = await readJsonBody<{
+    messages?: Array<{ role?: string; content?: unknown }>;
+    portfolioContext?: unknown;
+    profileContext?: unknown;
+  }>(req, 512 * 1024);
+  if (error) return error;
+  const messages = (body?.messages ?? [])
+    .slice(-30)
+    .filter(message =>
+      (message.role === 'user' || message.role === 'assistant')
+      && typeof message.content === 'string'
+      && message.content.length <= 20_000,
+    ) as Array<{ role: 'user' | 'assistant'; content: string }>;
+  if (!messages.length) {
+    return new Response(JSON.stringify({ error: 'Provide a valid message.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const portfolioContext = typeof body?.portfolioContext === 'string'
+    ? body.portfolioContext.slice(0, 200_000)
+    : undefined;
+  const profileContext = typeof body?.profileContext === 'string'
+    ? body.profileContext.slice(0, 20_000)
+    : undefined;
   const openai = getOpenAIClient();
 
   const systemPrompt = buildSystemPrompt(portfolioContext, profileContext);
@@ -138,6 +167,7 @@ export async function POST(req: Request) {
             messages: msgHistory,
             tools: TOOLS,
             stream: false,
+            store: false,
           });
 
           const choice = response.choices[0];
@@ -179,6 +209,7 @@ export async function POST(req: Request) {
               model: 'gpt-4o',
               messages: msgHistory,
               stream: true,
+              store: false,
             });
             for await (const chunk of streamResp) {
               const text = chunk.choices[0]?.delta?.content ?? '';
@@ -187,8 +218,8 @@ export async function POST(req: Request) {
           }
           break;
         }
-      } catch (err) {
-        send(`\n\nError: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      } catch {
+        send('\n\nThe advisor is temporarily unavailable. No financial action was taken.');
       } finally {
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();

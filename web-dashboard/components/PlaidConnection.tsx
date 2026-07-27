@@ -153,7 +153,7 @@ export default function PlaidConnection({
       errors?: Array<{ message: string }>;
     };
     if (!res.ok) throw new Error(body.error ?? 'Could not save the Plaid connection.');
-    localStorage.removeItem(LINK_TOKEN_KEY);
+    sessionStorage.removeItem(LINK_TOKEN_KEY);
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete('oauth_state_id');
     window.history.replaceState({}, '', cleanUrl);
@@ -188,7 +188,7 @@ export default function PlaidConnection({
 
   useEffect(() => {
     if (!scriptReady || !new URL(window.location.href).searchParams.has('oauth_state_id')) return;
-    const linkToken = localStorage.getItem(LINK_TOKEN_KEY);
+    const linkToken = sessionStorage.getItem(LINK_TOKEN_KEY);
     if (!linkToken) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessage('The Fidelity authorization returned, but the Plaid Link session expired. Start the connection again.');
@@ -227,7 +227,7 @@ export default function PlaidConnection({
       const res = await fetch('/api/plaid/link-token', { method: 'POST' });
       const body = await res.json() as { linkToken?: string; error?: string };
       if (!res.ok || !body.linkToken) throw new Error(body.error ?? 'Could not start Plaid Link.');
-      localStorage.setItem(LINK_TOKEN_KEY, body.linkToken);
+      sessionStorage.setItem(LINK_TOKEN_KEY, body.linkToken);
       openLink(body.linkToken);
     } catch (error) {
       setBusy(null);

@@ -23,13 +23,13 @@ export async function GET() {
       items,
       snapshotAt: snapshot?.capturedAt ?? null,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       ...configuration,
       configured: false,
       items: [],
       snapshotAt: null,
-      error: error instanceof Error ? error.message : 'Could not read Plaid connection status.',
+      error: 'Could not read the encrypted Plaid connection status.',
     });
   }
 }

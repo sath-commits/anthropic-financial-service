@@ -5,8 +5,13 @@ import {
   Products,
 } from 'plaid';
 import { getPlaidClient, plaidError } from '@/lib/plaid/client';
+import { rateLimit, requireSameOrigin } from '@/lib/security/request';
 
-export async function POST() {
+export async function POST(request: Request) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+  const limited = rateLimit(request, 'plaid-link-token', 10, 30 * 60 * 1000);
+  if (limited) return limited;
   try {
     const redirectUri = process.env.PLAID_REDIRECT_URI?.trim();
     const webhook = process.env.PLAID_WEBHOOK_URL?.trim();

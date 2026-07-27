@@ -21,6 +21,8 @@ interface PlaidWebhook {
 }
 
 const keyCache = new Map<string, { key: Awaited<ReturnType<typeof importJWK>>; expiredAt: number | null }>();
+const processedWebhooks = new Map<string, number>();
+const MAX_WEBHOOK_BYTES = 64 * 1024;
 
 async function verifyWebhook(rawBody: string, signedJwt: string): Promise<boolean> {
   const header = decodeProtectedHeader(signedJwt);
@@ -51,13 +53,33 @@ async function verifyWebhook(rawBody: string, signedJwt: string): Promise<boolea
 }
 
 export async function POST(req: Request) {
+  const declaredLength = Number(req.headers.get('content-length') ?? 0);
+  if (declaredLength > MAX_WEBHOOK_BYTES) {
+    return NextResponse.json({ error: 'Webhook body is too large.' }, { status: 413 });
+  }
   const rawBody = await req.text();
+  if (Buffer.byteLength(rawBody, 'utf8') > MAX_WEBHOOK_BYTES) {
+    return NextResponse.json({ error: 'Webhook body is too large.' }, { status: 413 });
+  }
   const verification = req.headers.get('plaid-verification');
   if (!verification || !await verifyWebhook(rawBody, verification).catch(() => false)) {
     return NextResponse.json({ error: 'Invalid Plaid webhook signature.' }, { status: 401 });
   }
 
-  const webhook = JSON.parse(rawBody) as PlaidWebhook;
+  const now = Date.now();
+  for (const [id, expires] of processedWebhooks) {
+    if (expires <= now) processedWebhooks.delete(id);
+  }
+  const webhookId = createHash('sha256').update(verification).digest('hex');
+  if (processedWebhooks.has(webhookId)) return NextResponse.json({ received: true });
+  processedWebhooks.set(webhookId, now + 10 * 60 * 1000);
+
+  let webhook: PlaidWebhook;
+  try {
+    webhook = JSON.parse(rawBody) as PlaidWebhook;
+  } catch {
+    return NextResponse.json({ error: 'Invalid webhook body.' }, { status: 400 });
+  }
   if (webhook.item_id) {
     await updatePlaidItemStatus(webhook.item_id, {
       lastWebhookAt: new Date().toISOString(),

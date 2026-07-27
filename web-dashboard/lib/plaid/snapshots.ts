@@ -10,6 +10,11 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import type { UserPosition } from '@/lib/types';
+import {
+  decodeSensitiveJson,
+  encodeSensitiveJson,
+  requireDataEncryption,
+} from '@/lib/security/encrypted-file';
 import type { PlaidItemStatus } from './store';
 
 export interface PlaidHoldingsSnapshot {
@@ -40,7 +45,7 @@ let writeQueue = Promise.resolve();
 
 function parseSnapshot(raw: string): PlaidHoldingsSnapshot | null {
   try {
-    const snapshot = JSON.parse(raw) as PlaidHoldingsSnapshot;
+    const snapshot = decodeSensitiveJson<PlaidHoldingsSnapshot>(raw).value;
     if (snapshot.version !== 1 || !Array.isArray(snapshot.positions) || !Array.isArray(snapshot.items)) return null;
     return snapshot;
   } catch {
@@ -49,8 +54,17 @@ function parseSnapshot(raw: string): PlaidHoldingsSnapshot | null {
 }
 
 export async function readLatestPlaidSnapshot(): Promise<PlaidHoldingsSnapshot | null> {
+  requireDataEncryption();
   try {
-    return parseSnapshot(await readFile(/* turbopackIgnore: true */ currentPath, 'utf8'));
+    const raw = await readFile(/* turbopackIgnore: true */ currentPath, 'utf8');
+    const decoded = decodeSensitiveJson<PlaidHoldingsSnapshot>(raw);
+    const snapshot = parseSnapshot(raw);
+    if (snapshot && !decoded.wasEncrypted) {
+      const temporaryPath = `${currentPath}.migration.tmp`;
+      await writeFile(temporaryPath, encodeSensitiveJson(snapshot), { mode: 0o600 });
+      await rename(temporaryPath, currentPath);
+    }
+    return snapshot;
   } catch {
     return null;
   }
@@ -76,10 +90,17 @@ async function newestHistorySnapshot(): Promise<PlaidHoldingsSnapshot | null> {
       .sort()
       .reverse();
     if (!files[0]) return null;
-    return parseSnapshot(await readFile(
+    const filePath = `${historyDirectory}/${files[0]}`;
+    const raw = await readFile(
       /* turbopackIgnore: true */ `${historyDirectory}/${files[0]}`,
       'utf8',
-    ));
+    );
+    const decoded = decodeSensitiveJson<PlaidHoldingsSnapshot>(raw);
+    const snapshot = parseSnapshot(raw);
+    if (snapshot && !decoded.wasEncrypted) {
+      await writeFile(/* turbopackIgnore: true */ filePath, encodeSensitiveJson(snapshot), { mode: 0o600 });
+    }
+    return snapshot;
   } catch {
     return null;
   }
@@ -96,6 +117,7 @@ async function pruneHistory(): Promise<void> {
 }
 
 export async function writePlaidSnapshot(snapshot: PlaidHoldingsSnapshot): Promise<void> {
+  requireDataEncryption();
   writeQueue = writeQueue.catch(() => undefined).then(async () => {
     const currentDirectory = currentPath.slice(0, currentPath.lastIndexOf('/')) || '.';
     await mkdir(/* turbopackIgnore: true */ currentDirectory, { recursive: true });
@@ -103,7 +125,7 @@ export async function writePlaidSnapshot(snapshot: PlaidHoldingsSnapshot): Promi
     const temporaryPath = `${currentPath}.tmp`;
     await writeFile(
       /* turbopackIgnore: true */ temporaryPath,
-      JSON.stringify(snapshot, null, 2),
+      encodeSensitiveJson(snapshot),
       { mode: 0o600 },
     );
     await rename(
@@ -118,7 +140,7 @@ export async function writePlaidSnapshot(snapshot: PlaidHoldingsSnapshot): Promi
       const historyName = `${snapshot.capturedAt.replace(/[:.]/g, '-')}.json`;
       await writeFile(
         /* turbopackIgnore: true */ `${historyDirectory}/${historyName}`,
-        JSON.stringify(snapshot, null, 2),
+        encodeSensitiveJson(snapshot),
         { mode: 0o600 },
       );
       await pruneHistory();
@@ -140,17 +162,21 @@ export async function removeItemFromCurrentSnapshot(itemId: string): Promise<voi
 }
 
 export async function readPlaidHistory(): Promise<PlaidHistoryPoint[]> {
+  requireDataEncryption();
   try {
     const files = (await readdir(/* turbopackIgnore: true */ historyDirectory))
       .filter(file => file.endsWith('.json'))
       .sort();
     const points: PlaidHistoryPoint[] = [];
     for (const file of files) {
-      const snapshot = parseSnapshot(await readFile(
-        /* turbopackIgnore: true */ `${historyDirectory}/${file}`,
-        'utf8',
-      ));
+      const filePath = `${historyDirectory}/${file}`;
+      const raw = await readFile(/* turbopackIgnore: true */ filePath, 'utf8');
+      const decoded = decodeSensitiveJson<PlaidHoldingsSnapshot>(raw);
+      const snapshot = parseSnapshot(raw);
       if (!snapshot) continue;
+      if (!decoded.wasEncrypted) {
+        await writeFile(/* turbopackIgnore: true */ filePath, encodeSensitiveJson(snapshot), { mode: 0o600 });
+      }
       points.push({
         capturedAt: snapshot.capturedAt,
         totalInstitutionValue: snapshot.positions.reduce(

@@ -53,13 +53,9 @@ const STORAGE_KEY = 'portfolio-ai:real-estate-v1';
 function loadProperties(): Property[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
-}
-
-function saveProperties(props: Property[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(props));
 }
 
 // ── Mortgage math ─────────────────────────────────────────────────────────────
@@ -403,6 +399,8 @@ export default function RealEstatePage() {
     type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
     const cached = loadPortfolioCache<CacheShape>();
     if (cached?.summary) {
+      // Hydrate the last known rates before the background refresh completes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRates({
         usdToSgd: cached.summary.usdToSgdRate ?? DEFAULT_USD_TO_SGD_RATE,
         usdToInr: (cached.summary as PortfolioSummary & { usdToInrRate?: number }).usdToInrRate ?? DEFAULT_USD_TO_INR_RATE,

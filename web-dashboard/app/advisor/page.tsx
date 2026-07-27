@@ -12,8 +12,7 @@ import {
   saveAdvisorRun, loadAdvisorHistory, shouldAutoRun, nextRunLabel,
   getAutoRunEnabled, setAutoRunEnabled, computeTrackRecord,
 } from '@/lib/recommendations';
-import { hydrateSettings, loadPositions, loadProfile, saveProfile, saveThesis, loadThesis, deleteThesis } from '@/lib/storage';
-import type { InvestorProfile } from '@/lib/types';
+import { hydrateSettings, loadPositions, loadProfile, saveThesis, loadThesis, deleteThesis } from '@/lib/storage';
 import type {
   AdvisorRun, PositionRecommendation, BuyCandidate, MarketEvent,
   RebalanceTrade, DriftItem, TLHOpportunity,

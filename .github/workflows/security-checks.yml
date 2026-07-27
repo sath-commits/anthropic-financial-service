@@ -1,0 +1,44 @@
+name: security-checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-dashboard
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web-dashboard/package-lock.json
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run lint
+      - run: npm run build
+
+  data-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: data-service
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: data-service/requirements.txt
+      - run: python -m pip install --disable-pip-version-check -r requirements.txt pip-audit==2.9.0
+      - run: python -m pip_audit -r requirements.txt
+      - run: python -m unittest -v
+      - run: python -m py_compile main.py

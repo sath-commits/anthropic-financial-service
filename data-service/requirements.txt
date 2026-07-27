@@ -1,5 +1,6 @@
-fastapi>=0.111.0
-uvicorn[standard]>=0.29.0
-yfinance>=0.2.40,<1.0.0
-pandas>=2.0.0
-requests>=2.31.0
+uvicorn==0.39.0
+click==8.3.3
+yfinance==0.2.66
+curl-cffi==0.15.0
+pandas==2.3.3
+requests==2.34.2

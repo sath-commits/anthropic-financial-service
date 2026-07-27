@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { rateLimit, readJsonBody, requireSameOrigin } from '@/lib/security/request';
 import { NextResponse } from 'next/server';
 import type { UserPosition } from '@/lib/types';
 
@@ -155,9 +156,18 @@ function sanitizeImport(raw: PortfolioImport): PortfolioImport {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({})) as { imageDataUrl?: string; imageDataUrls?: string[]; text?: string };
-  const text = body.text?.trim() ?? '';
-  const imageDataUrls = (body.imageDataUrls ?? (body.imageDataUrl ? [body.imageDataUrl] : []))
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
+  const limited = rateLimit(req, 'portfolio-import', 10, 30 * 60 * 1000);
+  if (limited) return limited;
+  const { value: body, error } = await readJsonBody<{
+    imageDataUrl?: string;
+    imageDataUrls?: string[];
+    text?: string;
+  }>(req, 34 * 1024 * 1024);
+  if (error) return error;
+  const text = body?.text?.trim() ?? '';
+  const imageDataUrls = (body?.imageDataUrls ?? (body?.imageDataUrl ? [body.imageDataUrl] : []))
     .map(url => url.trim())
     .filter(Boolean);
 
@@ -203,6 +213,7 @@ Return JSON only using the requested schema.
     const response = await getOpenAIClient().chat.completions.create({
       model: 'gpt-4o',
       temperature: 0,
+      store: false,
       response_format: { type: 'json_schema', json_schema: portfolioSchema },
       messages: [
         { role: 'system', content: instructions },

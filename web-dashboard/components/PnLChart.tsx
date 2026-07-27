@@ -13,7 +13,7 @@ const HISTORY_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 h
 
 function readHistoryCache(symbol: string, period: string): HistoryPoint[] | null {
   try {
-    const raw = localStorage.getItem(`portfolio-ai:history-v1-${symbol}-${period}`);
+    const raw = sessionStorage.getItem(`portfolio-ai:history-v1-${symbol}-${period}`);
     if (!raw) return null;
     const { d, t } = JSON.parse(raw) as { d: HistoryPoint[]; t: number };
     if (Date.now() - t > HISTORY_CACHE_TTL) return null;
@@ -23,7 +23,7 @@ function readHistoryCache(symbol: string, period: string): HistoryPoint[] | null
 
 function writeHistoryCache(symbol: string, period: string, data: HistoryPoint[]): void {
   try {
-    localStorage.setItem(`portfolio-ai:history-v1-${symbol}-${period}`, JSON.stringify({ d: data, t: Date.now() }));
+    sessionStorage.setItem(`portfolio-ai:history-v1-${symbol}-${period}`, JSON.stringify({ d: data, t: Date.now() }));
   } catch {}
 }
 
@@ -56,10 +56,8 @@ export default function PnLChart({ symbol = 'VOO', holdingCurrency = 'USD', disp
     if (cached) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setData(cached.slice(-120));
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(true);
     }
 

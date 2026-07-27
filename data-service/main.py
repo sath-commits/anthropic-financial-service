@@ -8,45 +8,99 @@ Set DATA_SERVICE_URL in the Next.js service to the Railway URL of this service.
 
 from __future__ import annotations
 
+import asyncio
 import os
+import json
+import re
 import secrets
 import time
-import requests
+from curl_cffi import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from fastapi import FastAPI, Header, HTTPException
-from pydantic import BaseModel, Field
 from typing import Any
-
-app = FastAPI()
 
 ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY", "")
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 DATA_SERVICE_TOKEN = os.getenv("DATA_SERVICE_TOKEN", "")
+MAX_REQUEST_BYTES = 64 * 1024
 
 _av_last_call = 0.0
 YAHOO_HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 
-# ── Request / response schema ────────────────────────────────────────────────
+# ── Minimal authenticated ASGI surface ───────────────────────────────────────
 
-class CallRequest(BaseModel):
-    method: str
-    params: dict = Field(default_factory=dict)
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+class RequestError(Exception):
+    def __init__(self, status: int, message: str):
+        self.status = status
+        self.message = message
 
 
-@app.post("/call")
-def call_method(req: CallRequest, authorization: str | None = Header(default=None)) -> Any:
+async def _send_json(send, status: int, value: Any) -> None:
+    body = json.dumps(value, separators=(",", ":")).encode("utf-8")
+    await send({
+        "type": "http.response.start",
+        "status": status,
+        "headers": [
+            (b"content-type", b"application/json"),
+            (b"cache-control", b"no-store"),
+            (b"x-content-type-options", b"nosniff"),
+        ],
+    })
+    await send({"type": "http.response.body", "body": body})
+
+
+async def app(scope, receive, send) -> None:
+    if scope["type"] != "http":
+        return
+    method = scope.get("method", "")
+    path = scope.get("path", "")
+    if method == "GET" and path == "/health":
+        await _send_json(send, 200, {"status": "ok"})
+        return
+    if method != "POST" or path != "/call":
+        await _send_json(send, 404, {"error": "not_found"})
+        return
+
+    headers = {key.lower(): value for key, value in scope.get("headers", [])}
+    expected = f"Bearer {DATA_SERVICE_TOKEN}".encode()
+    provided = headers.get(b"authorization", b"")
     if not DATA_SERVICE_TOKEN:
-        raise HTTPException(status_code=503, detail="DATA_SERVICE_TOKEN is not configured")
-    expected = f"Bearer {DATA_SERVICE_TOKEN}"
-    if not authorization or not secrets.compare_digest(authorization, expected):
-        raise HTTPException(status_code=401, detail="Invalid data-service credentials")
+        await _send_json(send, 503, {"error": "service_not_configured"})
+        return
+    if not provided or not secrets.compare_digest(provided, expected):
+        await _send_json(send, 401, {"error": "unauthorized"})
+        return
 
+    body = bytearray()
+    while True:
+        message = await receive()
+        if message["type"] == "http.disconnect":
+            return
+        body.extend(message.get("body", b""))
+        if len(body) > MAX_REQUEST_BYTES:
+            await _send_json(send, 413, {"error": "request_too_large"})
+            return
+        if not message.get("more_body", False):
+            break
+    try:
+        payload = json.loads(body)
+        request_method = payload.get("method")
+        params = payload.get("params", {})
+        if not isinstance(request_method, str) or not 1 <= len(request_method) <= 40:
+            raise RequestError(400, "invalid_method")
+        if not isinstance(params, dict):
+            raise RequestError(400, "invalid_params")
+        result = await asyncio.to_thread(call_method, request_method, params)
+        await _send_json(send, 200, result)
+    except RequestError as error:
+        await _send_json(send, error.status, {"error": error.message})
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        await _send_json(send, 400, {"error": "invalid_json"})
+    except Exception:
+        await _send_json(send, 502, {"error": "market_data_unavailable"})
+
+
+def call_method(method: str, params: dict) -> Any:
     handlers = {
         "get_quote":            get_quote,
         "get_batch_quotes":     get_batch_quotes,
@@ -59,13 +113,44 @@ def call_method(req: CallRequest, authorization: str | None = Header(default=Non
         "get_macro_indicator":  get_macro_indicator,
         "screen_stocks":        screen_stocks,
     }
-    fn = handlers.get(req.method)
+    fn = handlers.get(method)
     if not fn:
-        return {"error": f"Unknown method: {req.method}"}
+        raise RequestError(400, "unknown_method")
+    _validate_params(method, params)
     try:
-        return fn(**req.params)
-    except Exception as e:
-        return {"error": str(e)}
+        return fn(**params)
+    except Exception:
+        return {"error": "market_data_unavailable"}
+
+
+SYMBOL_PATTERN = re.compile(r"^[A-Za-z0-9.^=_-]{1,20}$")
+ALLOWED_PERIODS = {"1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"}
+
+
+def _validate_symbol(value: Any) -> None:
+    if not isinstance(value, str) or not SYMBOL_PATTERN.fullmatch(value):
+        raise RequestError(400, "invalid_symbol")
+
+
+def _validate_params(method: str, params: dict) -> None:
+    if len(json.dumps(params, separators=(",", ":"))) > 50_000:
+        raise RequestError(413, "request_too_large")
+    if "symbol" in params:
+        _validate_symbol(params["symbol"])
+    if "symbols" in params:
+        symbols = params["symbols"]
+        if not isinstance(symbols, list) or len(symbols) > 500:
+            raise RequestError(400, "invalid_symbol_list")
+        for symbol in symbols:
+            _validate_symbol(symbol)
+    if "series_id" in params:
+        _validate_symbol(params["series_id"])
+    if method == "get_price_history" and params.get("period", "6mo") not in ALLOWED_PERIODS:
+        raise RequestError(400, "invalid_period")
+    if "days" in params:
+        days = params["days"]
+        if not isinstance(days, int) or not 1 <= days <= 90:
+            raise RequestError(400, "invalid_news_range")
 
 
 # ── Alpha Vantage fallback (25 free req/day) ─────────────────────────────────
@@ -187,14 +272,14 @@ def get_quote(symbol: str) -> dict:
             "fiftyTwoWeekLow": info.get("fiftyTwoWeekLow"),
             "volume": info.get("volume"),
         }
-    except Exception as e:
+    except Exception:
         yahoo = _yahoo_chart_quote(symbol)
         if yahoo:
             return yahoo
         av = _av_quote(symbol)
         if av:
             return av
-        return {"symbol": symbol, "error": str(e)}
+        return {"symbol": symbol, "error": "fetch_failed"}
 
 
 def get_batch_quotes(symbols: list[str]) -> list[dict]:
@@ -286,8 +371,8 @@ def get_fundamentals(symbol: str) -> dict:
             "returnOnEquity": info.get("returnOnEquity"),
             "totalRevenue": info.get("totalRevenue"),
         }
-    except Exception as e:
-        return {"symbol": symbol, "error": str(e)}
+    except Exception:
+        return {"symbol": symbol, "error": "fetch_failed"}
 
 
 def get_analyst_ratings(symbol: str) -> dict:
@@ -303,8 +388,8 @@ def get_analyst_ratings(symbol: str) -> dict:
             "targetHighPrice": info.get("targetHighPrice"),
             "targetLowPrice": info.get("targetLowPrice"),
         }
-    except Exception as e:
-        return {"symbol": symbol, "error": str(e)}
+    except Exception:
+        return {"symbol": symbol, "error": "fetch_failed"}
 
 
 def get_earnings_history(symbol: str) -> list[dict]:
@@ -326,8 +411,8 @@ def get_earnings_history(symbol: str) -> list[dict]:
                 ),
             })
         return rows
-    except Exception as e:
-        return [{"error": str(e)}]
+    except Exception:
+        return [{"error": "fetch_failed"}]
 
 
 def get_earnings_calendar(symbols: list[str]) -> list[dict]:
@@ -400,8 +485,8 @@ def get_price_history(symbol: str, period: str = "6mo") -> list[dict]:
             {"date": str(d)[:10], "close": round(float(row["Close"]), 2)}
             for d, row in hist.iterrows()
         ]
-    except Exception as e:
-        return [{"error": str(e)}]
+    except Exception:
+        return [{"error": "fetch_failed"}]
 
 
 def get_news(symbol: str, days: int = 7) -> list[dict]:
@@ -417,8 +502,8 @@ def get_news(symbol: str, days: int = 7) -> list[dict]:
             }
             for item in news[:10]
         ]
-    except Exception as e:
-        return [{"error": str(e)}]
+    except Exception:
+        return [{"error": "fetch_failed"}]
 
 
 def get_macro_indicator(series_id: str) -> list[dict]:
@@ -438,8 +523,8 @@ def get_macro_indicator(series_id: str) -> list[dict]:
         )
         obs = r.json().get("observations", [])
         return [{"date": o["date"], "value": o["value"]} for o in obs]
-    except Exception as e:
-        return [{"error": str(e)}]
+    except Exception:
+        return [{"error": "fetch_failed"}]
 
 
 def screen_stocks(

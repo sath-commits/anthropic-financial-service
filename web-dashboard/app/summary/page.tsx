@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   TrendingUp, Brain, PiggyBank, Home, Layers, LayoutDashboard,
-  Wallet, Building2, Car, ChevronRight,
+  Wallet, ChevronRight,
 } from 'lucide-react';
 import { loadPortfolioCache, hydrateSettings } from '@/lib/storage';
 import { DEFAULT_USD_TO_SGD_RATE, DEFAULT_USD_TO_INR_RATE } from '@/lib/currency';
@@ -70,10 +70,10 @@ function remainingLoan(p: Property): number {
 // ── Storage loaders ───────────────────────────────────────────────────────────
 
 function loadProperties(): Property[] {
-  try { return JSON.parse(localStorage.getItem('portfolio-ai:real-estate-v1') ?? '[]'); } catch { return []; }
+  try { return JSON.parse(sessionStorage.getItem('portfolio-ai:real-estate-v1') ?? '[]'); } catch { return []; }
 }
 function loadOtherAssets(): OtherAsset[] {
-  try { return JSON.parse(localStorage.getItem('portfolio-ai:other-assets-v1') ?? '[]'); } catch { return []; }
+  try { return JSON.parse(sessionStorage.getItem('portfolio-ai:other-assets-v1') ?? '[]'); } catch { return []; }
 }
 
 // ── Row component ─────────────────────────────────────────────────────────────
@@ -147,6 +147,8 @@ export default function SummaryPage() {
     type CacheShape = { summary: PortfolioSummary; allocation: AllocationItem[]; earnings: EarningsEvent[] };
     const cached = loadPortfolioCache<CacheShape>();
     if (cached?.summary) {
+      // Hydrate the last known summary before the background refresh completes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPortfolioValue(cached.summary.totalEquity);
       setPortfolioCost(cached.summary.positions?.reduce((s, p) => s + p.avgCost * p.shares, 0) ?? 0);
       setCashEquivalents(cached.summary.buyingPower ?? 0);

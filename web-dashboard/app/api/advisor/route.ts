@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { rateLimit, readJsonBody, requireSameOrigin } from '@/lib/security/request';
 import { NextResponse } from 'next/server';
 import { callDataService } from '@/lib/data-service';
 import { shouldPriceAtCostBasis } from '@/lib/cash-equivalents';
@@ -262,11 +263,19 @@ function computeRetirement(totalEquity: number, profile: InvestorProfile): Retir
 }
 
 export async function POST(req: Request) {
-  const { positions, profile, history } = (await req.json()) as {
-    positions: UserPosition[];
-    profile: InvestorProfile | null;
-    history: AdvisorRun[];
-  };
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
+  const limited = rateLimit(req, 'ai-advisor', 10, 30 * 60 * 1000);
+  if (limited) return limited;
+  const { value: body, error } = await readJsonBody<{
+    positions?: UserPosition[];
+    profile?: InvestorProfile | null;
+    history?: AdvisorRun[];
+  }>(req, 2 * 1024 * 1024);
+  if (error) return error;
+  const positions = Array.isArray(body?.positions) ? body.positions.slice(0, 500) : [];
+  const profile = body?.profile ?? null;
+  const history = Array.isArray(body?.history) ? body.history.slice(0, 20) : [];
 
   if (!positions?.length) {
     return NextResponse.json({ error: 'No positions provided' }, { status: 400 });
@@ -421,26 +430,24 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
       temperature: 0.3,
+      store: false,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
     });
     rawContent = response.choices[0].message.content ?? '{}';
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[advisor] OpenAI error:', msg);
-    return NextResponse.json({ error: `OpenAI: ${msg}` }, { status: 502 });
+  } catch {
+    console.error('[advisor] OpenAI request failed.');
+    return NextResponse.json({ error: 'The advisor is temporarily unavailable. No financial action was taken.' }, { status: 502 });
   }
-
-  console.log('[advisor] Claude raw (first 300):', rawContent.slice(0, 300));
 
   let raw: { executiveSummary?: string; recommendations?: Array<Record<string, unknown>>; buyCandidates?: Array<Record<string, unknown>>; marketEvents?: Array<Record<string, unknown>> };
   try {
     raw = JSON.parse(rawContent);
-  } catch (parseErr) {
-    console.error('[advisor] JSON parse failed. Raw:', rawContent.slice(0, 500));
-    return NextResponse.json({ error: `Failed to parse AI response as JSON: ${String(parseErr)}` }, { status: 502 });
+  } catch {
+    console.error('[advisor] OpenAI response was not valid structured data.');
+    return NextResponse.json({ error: 'The advisor returned an invalid response. No financial action was taken.' }, { status: 502 });
   }
 
   try {
@@ -515,9 +522,8 @@ Analyze this portfolio thoroughly and return your structured JSON recommendation
     };
 
     return NextResponse.json(run);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[advisor] Post-parse processing error:', msg);
-    return NextResponse.json({ error: `Processing error: ${msg}` }, { status: 500 });
+  } catch {
+    console.error('[advisor] Post-parse processing failed.');
+    return NextResponse.json({ error: 'The advisor response could not be processed. No financial action was taken.' }, { status: 500 });
   }
 }

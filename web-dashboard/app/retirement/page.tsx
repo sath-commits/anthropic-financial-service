@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { TrendingUp, PiggyBank, Brain, Edit2, Check, X, LayoutDashboard, Home, Layers, Wallet } from 'lucide-react';
 import { loadProfile, saveProfile, loadPortfolioCache } from '@/lib/storage';
-import type { InvestorProfile, PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
+import type { PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend,
   ResponsiveContainer, CartesianGrid, ReferenceLine,
@@ -195,6 +195,8 @@ export default function RetirementPage() {
   useEffect(() => {
     const p = loadProfile();
     if (p) {
+      // Hydrate the encrypted server-backed profile on first mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInputs(prev => ({ ...prev, currentAge: p.currentAge, retirementAge: p.retirementAge }));
       setDraft(prev => ({ ...prev, currentAge: p.currentAge, retirementAge: p.retirementAge }));
     }

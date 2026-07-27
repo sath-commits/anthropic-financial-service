@@ -20,3 +20,7 @@ FRED_API_KEY
 ```
 
 Configure Railway's health-check path as `/health`.
+Use `uvicorn main:app --host 0.0.0.0 --port $PORT` as the service start
+command. The service deliberately uses a minimal ASGI handler instead of a
+general-purpose web framework; only `GET /health` and bearer-authenticated
+`POST /call` exist.

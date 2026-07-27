@@ -6,11 +6,16 @@ import {
   listPlaidItems,
   removePlaidItem,
 } from '@/lib/plaid/store';
+import { rateLimit, requireSameOrigin } from '@/lib/security/request';
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ itemId: string }> },
 ) {
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
+  const limited = rateLimit(req, 'plaid-disconnect', 5, 30 * 60 * 1000);
+  if (limited) return limited;
   const { itemId } = await context.params;
   const item = (await listPlaidItems()).find(candidate => candidate.itemId === itemId);
   if (!item) return NextResponse.json({ error: 'Plaid Item not found.' }, { status: 404 });

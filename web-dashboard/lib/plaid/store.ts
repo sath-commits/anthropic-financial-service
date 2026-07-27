@@ -12,6 +12,11 @@ import {
   rename,
   writeFile,
 } from 'node:fs/promises';
+import {
+  decodeSensitiveJson,
+  encodeSensitiveJson,
+  requireDataEncryption,
+} from '@/lib/security/encrypted-file';
 
 interface EncryptedToken {
   version: 1;
@@ -87,7 +92,7 @@ export function decryptPlaidAccessToken(item: StoredPlaidItem): string {
 
 function parseStore(raw: string): PlaidStore | null {
   try {
-    const value = JSON.parse(raw) as PlaidStore;
+    const value = decodeSensitiveJson<PlaidStore>(raw).value;
     if (value.version !== 1 || !Array.isArray(value.items)) return null;
     if (value.items.some(item => !item.itemId || !item.accessToken?.ciphertext)) return null;
     return value;
@@ -97,10 +102,18 @@ function parseStore(raw: string): PlaidStore | null {
 }
 
 async function readStore(): Promise<PlaidStore> {
+  requireDataEncryption();
   for (const candidate of [storagePath, backupPath]) {
     try {
-      const parsed = parseStore(await readFile(/* turbopackIgnore: true */ candidate, 'utf8'));
-      if (parsed) return parsed;
+      const raw = await readFile(/* turbopackIgnore: true */ candidate, 'utf8');
+      const decoded = decodeSensitiveJson<PlaidStore>(raw);
+      const parsed = parseStore(raw);
+      if (parsed) {
+        if (!decoded.wasEncrypted) {
+          await writeFile(/* turbopackIgnore: true */ candidate, encodeSensitiveJson(parsed), { mode: 0o600 });
+        }
+        return parsed;
+      }
     } catch {
       // A new installation has no Plaid store yet.
     }
@@ -120,7 +133,7 @@ async function mutateStore(
     const temporaryPath = `${storagePath}.tmp`;
     await writeFile(
       /* turbopackIgnore: true */ temporaryPath,
-      JSON.stringify(result, null, 2),
+      encodeSensitiveJson(result),
       { mode: 0o600 },
     );
     try {
