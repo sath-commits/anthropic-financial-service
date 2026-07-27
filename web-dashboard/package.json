@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "oxlint .",
-    "plaid:sync": "node scripts/plaid-sync.mjs"
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "plaid:sync": "node scripts/plaid-sync.mjs",
+    "finance-brain:fetch": "node scripts/fetch-finance-brain.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",

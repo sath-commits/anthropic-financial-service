@@ -48,6 +48,7 @@ PLAID_TOKEN_ENCRYPTION_KEY=<32 random bytes encoded as base64>
 PLAID_REDIRECT_URI=https://<dashboard-domain>/dashboard
 PLAID_WEBHOOK_URL=https://<dashboard-domain>/api/plaid/webhook
 PLAID_SYNC_SECRET=<shared random secret for the scheduled fallback sync>
+FINANCE_BRAIN_READ_TOKEN=<independent 32-byte hex read-only secret>
 ```
 
 Set the same `DATA_SERVICE_TOKEN` value on the private Python data service.
@@ -245,16 +246,55 @@ The Python `/call` endpoint fails closed if `DATA_SERVICE_TOKEN` is missing or
 incorrect. Its generic `/health` endpoint remains unauthenticated so Railway
 can perform deployment health checks.
 
+## Read-only Household Finance Brain
+
+The existing dashboard exposes a machine-only snapshot at:
+
+```text
+GET https://<dashboard-domain>/api/finance-brain/v1/snapshot
+Authorization: Bearer <FINANCE_BRAIN_READ_TOKEN>
+```
+
+This route reads the stored encrypted settings and latest Plaid snapshot; it
+does not refresh Plaid. It adds current pricing, compact one-year history,
+property equity, estimated mortgage balances, other assets, allocation, and
+upcoming earnings. It removes Plaid identifiers, account masks, credentials,
+property names, and addresses. It has no write or trading capability.
+
+Generate and seal a token in Railway:
+
+```bash
+openssl rand -hex 32
+```
+
+Configure the Claude Code cloud environment with:
+
+```text
+FINANCE_BRAIN_SNAPSHOT_URL=https://<dashboard-domain>/api/finance-brain/v1/snapshot
+FINANCE_BRAIN_READ_TOKEN=<same sealed read-only token>
+```
+
+Never add either real value to this public repository or to the scheduled-task
+prompt. Test the handoff from a cloud session:
+
+```bash
+npm --prefix web-dashboard run finance-brain:fetch
+```
+
+The command prints JSON to standard output and does not create a data file. The
+copy-ready Sunday analysis prompt is in
+`docs/finance-brain-weekly-prompt.md`. Rotate this token independently of Plaid
+and the dashboard encryption keys.
+
 ## Security boundary
 
 This repository has no order-placement, brokerage-trading, ACH, wire, or
 money-movement endpoint. The AI routes return analysis only and explicitly say
 that no action was taken. OpenAI requests set `store: false`; provider errors
-and raw model output are not written to application logs. A future Claude COO
-routine should receive a separate, read-only, minimized portfolio export and
-must not receive Plaid tokens, dashboard session cookies, encryption keys, or
+and raw model output are not written to application logs. A Claude household
+routine can receive the separate read-only minimized snapshot above, but must
+not receive Plaid tokens, dashboard session cookies, encryption keys, or
 credentials. OpenAI may still retain abuse-monitoring logs under its published
 [API data controls](https://developers.openai.com/api/docs/guides/your-data);
 do not submit brokerage credentials, Plaid tokens, or unrelated documents to
-the advisor or screenshot importer. The Claude integration is intentionally
-not part of this hardening release.
+the advisor or screenshot importer.

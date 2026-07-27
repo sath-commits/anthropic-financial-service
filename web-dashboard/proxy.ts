@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const COOKIE_NAME = 'btn-session';
 // Public paths that never require auth
-const PUBLIC_PATHS = ['/', '/api/auth/login', '/api/auth/logout', '/api/plaid/webhook', '/api/plaid/cron'];
+const PUBLIC_PATHS = ['/', '/api/auth/login', '/api/auth/logout', '/api/plaid/webhook', '/api/plaid/cron', '/api/finance-brain/v1/snapshot'];
 
 async function computeHmac(message: string, secret: string): Promise<string> {
   const enc = new TextEncoder();

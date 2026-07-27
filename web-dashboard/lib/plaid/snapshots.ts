@@ -192,3 +192,22 @@ export async function readPlaidHistory(): Promise<PlaidHistoryPoint[]> {
     return [];
   }
 }
+
+export async function readPlaidSnapshotHistory(since: Date): Promise<PlaidHoldingsSnapshot[]> {
+  requireDataEncryption();
+  try {
+    const files = (await readdir(/* turbopackIgnore: true */ historyDirectory))
+      .filter(file => file.endsWith('.json'))
+      .sort();
+    const snapshots: PlaidHoldingsSnapshot[] = [];
+    for (const file of files) {
+      const raw = await readFile(/* turbopackIgnore: true */ `${historyDirectory}/${file}`, 'utf8');
+      const snapshot = parseSnapshot(raw);
+      if (!snapshot || new Date(snapshot.capturedAt) < since) continue;
+      snapshots.push(snapshot);
+    }
+    return snapshots;
+  } catch {
+    return [];
+  }
+}
