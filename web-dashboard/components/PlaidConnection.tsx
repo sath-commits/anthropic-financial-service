@@ -272,13 +272,13 @@ export default function PlaidConnection({
 
   async function deleteHiddenManual() {
     if (!window.confirm(
-      `Permanently delete ${hiddenManualCount} hidden manual Fidelity/Robinhood holding${hiddenManualCount === 1 ? '' : 's'}? Plaid holdings will remain connected.`,
+      `Remove ${hiddenManualCount} hidden manual Fidelity/Robinhood holding${hiddenManualCount === 1 ? '' : 's'} from the active portfolio? Plaid holdings will remain connected, and historical backup snapshots will remain available.`,
     )) return;
     setBusy('cleanup');
     setMessage('');
     try {
       const removed = await onDeleteHiddenManual();
-      setMessage(`${removed} outdated manual holding${removed === 1 ? '' : 's'} permanently deleted.`);
+      setMessage(`${removed} outdated manual holding${removed === 1 ? '' : 's'} removed from the active portfolio.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not delete the manual copies.');
     } finally {
@@ -337,7 +337,7 @@ export default function PlaidConnection({
                       className="inline-flex items-center gap-1 font-medium text-red-500 hover:text-red-600 disabled:opacity-50"
                     >
                       <Trash2 className="h-3 w-3" />
-                      Delete manual copies
+                      Remove manual copies
                     </button>
                   </div>
                 )}
