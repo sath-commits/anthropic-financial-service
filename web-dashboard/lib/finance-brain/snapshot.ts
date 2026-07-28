@@ -13,11 +13,14 @@ import { mergePortfolioPositions } from '@/lib/portfolio-merge';
 import { readLatestPlaidSnapshot, readPlaidSnapshotHistory } from '@/lib/plaid/snapshots';
 import { readSettings } from '@/lib/server/settings-store';
 import { estimatedMortgageBalance, stableRef } from './calculations';
+import { isInsuranceCategory, isSingaporeHdb, managementMode } from './policy';
 import { assertFinanceBrainSafe } from './safety';
 import type { FinanceBrainPosition, FinanceBrainSnapshot } from './types';
 
 interface PropertyRecord {
   id?: string;
+  name?: string;
+  location?: string;
   currency?: Currency;
   currentPrice?: number;
   ownership?: 'outright' | 'mortgage';
@@ -34,10 +37,6 @@ interface OtherAssetRecord {
   currentValue?: number;
 }
 
-function managementMode(institution: string): 'agentic_satellite' | 'user_managed' {
-  return institution.toLowerCase().includes('robinhood') ? 'agentic_satellite' : 'user_managed';
-}
-
 function finite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
@@ -50,9 +49,9 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
   ]);
   const connectedBrokerages = plaid?.items.map(item => item.institutionName) ?? [];
   const merged = mergePortfolioPositions(settings.positions ?? [], plaid?.positions ?? [], connectedBrokerages).positions;
-  const symbols = Array.from(new Set(merged
+  const analyticalPositions = merged.filter(position => position.accountType !== 'cpf');
+  const symbols = Array.from(new Set(analyticalPositions
     .filter(position => !shouldPriceAtCostBasis(position.symbol)
-      && position.accountType !== 'cpf'
       && !position.preferInstitutionPrice)
     .map(position => position.symbol.trim().toUpperCase())
     .filter(Boolean)));
@@ -67,8 +66,15 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
   const usdToSgd = finite((sgdRaw as { price?: unknown } | null)?.price) ? (sgdRaw as { price: number }).price : DEFAULT_USD_TO_SGD_RATE;
   const usdToInr = finite((inrRaw as { price?: unknown } | null)?.price) ? (inrRaw as { price: number }).price : DEFAULT_USD_TO_INR_RATE;
   const warnings: string[] = [];
+  const cpfValueUsd = merged
+    .filter(position => position.accountType === 'cpf')
+    .reduce((sum, position) => {
+      const currency = positionCurrency(position.currency);
+      const nativeValue = position.avgCost * Math.pow(1.045, position.holdingDays / 365) * position.shares;
+      return sum + toUsd(nativeValue, currency, usdToSgd, usdToInr);
+    }, 0);
 
-  const positions: FinanceBrainPosition[] = merged.map(position => {
+  const positions: FinanceBrainPosition[] = analyticalPositions.map(position => {
     const currency = positionCurrency(position.currency);
     const institution = position.brokerage?.trim() || 'Manual';
     const accountName = position.accountName?.trim() || undefined;
@@ -77,9 +83,7 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
     const usesCost = shouldPriceAtCostBasis(position.symbol);
     const usesManual = finite(position.currentValue);
     const usesInstitution = position.preferInstitutionPrice && finite(position.fallbackPrice);
-    const nativePrice = position.accountType === 'cpf'
-      ? position.avgCost * Math.pow(1.045, position.holdingDays / 365)
-      : usesManual ? position.currentValue!
+    const nativePrice = usesManual ? position.currentValue!
       : usesCost ? position.avgCost
       : usesInstitution ? position.fallbackPrice!
       : livePrice ?? position.fallbackPrice ?? position.avgCost;
@@ -89,11 +93,11 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
     const averageCostUsd = toUsd(position.avgCost, currency, usdToSgd, usdToInr);
     const marketValueUsd = currentPriceUsd * position.shares;
     const hasCostBasis = position.hasCostBasis !== false || isCashEquivalent(position.symbol, position.assetClass);
-    if (priceSource === 'cost_basis' && !usesCost && position.accountType !== 'cpf') warnings.push(`No current price was available for ${position.symbol}; cost basis was used.`);
+    if (priceSource === 'cost_basis' && !usesCost) warnings.push(`No current price was available for ${position.symbol}; cost basis was used.`);
     if (!hasCostBasis) warnings.push(`Cost basis is unavailable for ${position.symbol}.`);
     return {
       accountRef, institution, accountType: position.accountType,
-      managementMode: managementMode(institution), symbol: position.symbol, name: position.name,
+      managementMode: managementMode(position), symbol: position.symbol, name: position.name,
       assetClass: position.assetClass, currency, shares: position.shares,
       averageCostUsd, currentPriceUsd, marketValueUsd,
       unrealizedGainLossUsd: hasCostBasis ? marketValueUsd - averageCostUsd * position.shares : undefined,
@@ -102,6 +106,12 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
       hasCostBasis, priceSource,
     };
   });
+  if (
+    analyticalPositions.some(position => position.brokerage?.toLowerCase().includes('robinhood'))
+    && !positions.some(position => position.managementMode === 'agentic_satellite')
+  ) {
+    warnings.push('No Robinhood account matched the configured agentic account; all Robinhood accounts are user-managed.');
+  }
 
   const accountMap = new Map<string, FinanceBrainSnapshot['accounts'][number]>();
   for (const position of positions) {
@@ -128,7 +138,7 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
 
   const properties = (settings.properties ?? []).flatMap((value, index) => {
     const property = value as PropertyRecord;
-    if (!finite(property.currentPrice)) return [];
+    if (!finite(property.currentPrice) || isSingaporeHdb(property)) return [];
     if (property.ownership === 'mortgage'
       && (!property.originalLoan || !property.annualInterestRate || !property.loanTermYears || !property.loanStartDate)) {
       warnings.push(`Mortgage terms are incomplete for ${stableRef('property', property.id ?? String(index))}.`);
@@ -143,9 +153,16 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
       loanStartDate: property.loanStartDate,
     }];
   });
+  const singaporeHdbEquityUsd = (settings.properties ?? []).reduce<number>((sum, value) => {
+    const property = value as PropertyRecord;
+    if (!finite(property.currentPrice) || !isSingaporeHdb(property)) return sum;
+    const currency = positionCurrency(property.currency);
+    const equity = property.currentPrice - estimatedMortgageBalance(property, now);
+    return sum + toUsd(equity, currency, usdToSgd, usdToInr);
+  }, 0);
   const otherAssets = (settings.otherAssets ?? []).flatMap((value, index) => {
     const asset = value as OtherAssetRecord;
-    if (!finite(asset.currentValue)) return [];
+    if (!finite(asset.currentValue) || isInsuranceCategory(asset.category)) return [];
     const currency = positionCurrency(asset.currency);
     return [{
       assetRef: stableRef('asset', asset.id ?? String(index)), category: asset.category?.trim() || 'Other',
@@ -155,9 +172,11 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
 
   const historicalValues = history.map(snapshot => ({
     capturedAt: snapshot.capturedAt,
-    institutionReportedValueUsd: snapshot.positions.reduce((sum, position) =>
+    institutionReportedValueUsd: snapshot.positions
+      .filter(position => position.accountType !== 'cpf')
+      .reduce((sum, position) =>
       sum + toUsd((position.fallbackPrice ?? position.avgCost) * position.shares, positionCurrency(position.currency), usdToSgd, usdToInr), 0),
-    positionCount: snapshot.positions.length,
+    positionCount: snapshot.positions.filter(position => position.accountType !== 'cpf').length,
   }));
   const holdingChanges: FinanceBrainSnapshot['history']['holdingChanges'] = [];
   for (let index = 1; index < history.length; index += 1) {
@@ -166,6 +185,7 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
     for (const key of new Set([...previous.keys(), ...current.keys()])) {
       const before = previous.get(key);
       const after = current.get(key);
+      if ((after ?? before)?.accountType === 'cpf') continue;
       const previousShares = before?.shares ?? 0;
       const currentShares = after?.shares ?? 0;
       if (Math.abs(previousShares - currentShares) < 0.000001) continue;
@@ -204,7 +224,11 @@ export async function buildFinanceBrainSnapshot(now = new Date()): Promise<Finan
   const result: FinanceBrainSnapshot = {
     schemaVersion: 1, generatedAt: now.toISOString(), baseCurrency: 'USD',
     freshness: { plaidSnapshotAt: plaid?.capturedAt ?? null, pricedAt: now.toISOString(), ageHours: snapshotAgeHours, status },
-    household: { investmentValue, propertyEquity, otherAssetsValue, liabilities, estimatedNetWorth: investmentValue + propertyEquity + otherAssetsValue },
+    household: {
+      investmentValue, propertyEquity, otherAssetsValue, liabilities,
+      estimatedNetWorth: investmentValue + cpfValueUsd + propertyEquity + singaporeHdbEquityUsd + otherAssetsValue,
+      netWorthOnly: { cpfValueUsd, singaporeHdbEquityUsd },
+    },
     profile: settings.profile ? {
       currentAge: settings.profile.currentAge, retirementAge: settings.profile.retirementAge,
       monthlyContribution: settings.profile.monthlyContribution, riskTolerance: settings.profile.riskTolerance,

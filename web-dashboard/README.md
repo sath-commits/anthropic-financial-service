@@ -259,7 +259,10 @@ This route reads the stored encrypted settings and latest Plaid snapshot; it
 does not refresh Plaid. It adds current pricing, compact one-year history,
 property equity, estimated mortgage balances, other assets, allocation, and
 upcoming earnings. It removes Plaid identifiers, account masks, credentials,
-property names, and addresses. It has no write or trading capability.
+property names, and addresses. Insurance assets are omitted entirely. CPF and
+the Singapore HDB contribute only to the net-worth total and are excluded from
+positions, allocation, history, retirement analysis, and recommendations. It
+has no write or trading capability.
 
 Generate and seal a token in Railway:
 
@@ -273,6 +276,18 @@ Configure the Claude Code cloud environment with:
 FINANCE_BRAIN_SNAPSHOT_URL=https://<dashboard-domain>/api/finance-brain/v1/snapshot
 FINANCE_BRAIN_READ_TOKEN=<same sealed read-only token>
 ```
+
+In the Railway dashboard service, identify the one Robinhood account controlled
+by the separate trading routine using its exact Plaid account mask:
+
+```text
+FINANCE_BRAIN_AGENTIC_ACCOUNT_MASK=<agentic Robinhood account mask>
+```
+
+Seal this value. A Robinhood account is labeled `agentic_satellite` only when
+its mask exactly matches this variable. All other Robinhood accounts remain
+`user_managed`. If the variable is absent or does not match, every Robinhood
+account safely remains user-managed.
 
 Never add either real value to this public repository or to the scheduled-task
 prompt. Test the handoff from a cloud session:

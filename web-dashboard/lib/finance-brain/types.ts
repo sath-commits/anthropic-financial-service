@@ -36,6 +36,10 @@ export interface FinanceBrainSnapshot {
     otherAssetsValue: number;
     liabilities: number;
     estimatedNetWorth: number;
+    netWorthOnly: {
+      cpfValueUsd: number;
+      singaporeHdbEquityUsd: number;
+    };
   };
   profile: Pick<InvestorProfile, 'currentAge' | 'retirementAge' | 'monthlyContribution' | 'riskTolerance' | 'primaryGoal' | 'targetAllocation'> | null;
   accounts: Array<{
