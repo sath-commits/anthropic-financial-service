@@ -2,6 +2,7 @@ import 'server-only';
 
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { isAllowedRequestOrigin } from './origin';
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -44,9 +45,7 @@ export function rateLimit(
 
 export function requireSameOrigin(request: Request): NextResponse | null {
   const origin = request.headers.get('origin');
-  if (!origin) return null;
-  const requestOrigin = new URL(request.url).origin;
-  if (origin === requestOrigin) return null;
+  if (isAllowedRequestOrigin(origin, request.url, process.env.PASSKEY_ORIGIN)) return null;
   return NextResponse.json({ error: 'Cross-site request rejected.' }, { status: 403 });
 }
 
