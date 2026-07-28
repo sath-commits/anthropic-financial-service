@@ -1,0 +1,3 @@
+# False positive: Gitleaks' plaid-client-id rule matches the
+# readPlaidSnapshotHistory function name in this historical commit.
+541ab186b710487bc3bd9bb9370bddfa5029e2ee:web-dashboard/lib/finance-brain/snapshot.ts:plaid-client-id:13
