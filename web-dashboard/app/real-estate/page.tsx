@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  TrendingUp, Brain, PiggyBank, Home, Layers, Wallet, Plus, Edit2, Trash2,
+  TrendingUp, PiggyBank, Home, Layers, Wallet, Plus, Edit2, Trash2,
   X, Check, MapPin, TrendingUp as TrendUp, TrendingDown,
 } from 'lucide-react';
 import { loadPortfolioCache, hydrateSettings, saveRealEstate } from '@/lib/storage';
@@ -469,7 +469,7 @@ export default function RealEstatePage() {
             </button>
             {[
               { label: 'Dashboard', path: '/dashboard', icon: null },
-              { label: 'Advisor', path: '/advisor', icon: <Brain className="h-3.5 w-3.5" /> },
+              // Advisor nav link hidden — feature disabled
               { label: 'Retirement', path: '/retirement', icon: <PiggyBank className="h-3.5 w-3.5" /> },
             ].map(({ label, path, icon }) => (
               <button

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  TrendingUp, Brain, PiggyBank, Home, Layers, LayoutDashboard,
+  TrendingUp, PiggyBank, Home, Layers, LayoutDashboard,
   Wallet, ChevronRight,
 } from 'lucide-react';
 import { loadPortfolioCache, hydrateSettings } from '@/lib/storage';
@@ -121,7 +121,7 @@ function Section({ title, icon, onClick, children }: {
 
 const NAV = [
   { label: 'Dashboard',   path: '/dashboard',    icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
-  { label: 'Advisor',     path: '/advisor',       icon: <Brain className="h-3.5 w-3.5" /> },
+  // Advisor nav link hidden — feature disabled
   { label: 'Retirement',  path: '/retirement',    icon: <PiggyBank className="h-3.5 w-3.5" /> },
   { label: 'Real Estate', path: '/real-estate',   icon: <Home className="h-3.5 w-3.5" /> },
   { label: 'Other',       path: '/other-assets',  icon: <Layers className="h-3.5 w-3.5" /> },
