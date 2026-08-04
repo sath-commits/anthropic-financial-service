@@ -150,8 +150,10 @@ async function handler(
     return { name, target, current, drift: current - target };
   });
 
-  const earningsRaw: Array<{ symbol: string; earnings_date: string; eps_estimate: number | null }> =
-    (await callDataService('get_earnings_calendar', { symbols }) as Array<{ symbol: string; earnings_date: string; eps_estimate: number | null }>) ?? [];
+  // Earnings calendar fetch disabled — the "Upcoming Earnings" strip that consumed this was
+  // removed from the dashboard, and this call was blocking every portfolio load on a slow/down
+  // data service (up to its 30s timeout). Re-enable by restoring the callDataService call below.
+  const earningsRaw: Array<{ symbol: string; earnings_date: string; eps_estimate: number | null }> = [];
 
   const today = new Date();
   let earnings: EarningsEvent[] = earningsRaw
