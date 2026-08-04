@@ -1,4 +1,4 @@
-const COST_BASIS_PRICED_SYMBOLS = new Set(['FDRXX', '59515R401']);
+const COST_BASIS_PRICED_SYMBOLS = new Set(['FDRXX']);
 const CASH_EQUIVALENT_SYMBOLS = new Set(['FDRXX', 'SPAXX', 'SWVXX', 'VMFXX']);
 
 export function shouldPriceAtCostBasis(symbol: string): boolean {

@@ -6,6 +6,7 @@ export interface Position {
   currentPrice: number;
   hasLivePrice: boolean;
   hasCostBasis: boolean;
+  costBasisEstimated?: boolean;
   equity: number;
   unrealizedPnl: number;
   unrealizedPnlPct: number;
@@ -84,6 +85,7 @@ export interface UserPosition {
   fallbackPrice?: number; // last institution-reported price when live market data is unavailable
   preferInstitutionPrice?: boolean; // private/cash security without a reliable public quote symbol
   hasCostBasis?: boolean;
+  costBasisEstimated?: boolean; // avgCost is reconstructed (e.g. from contribution history), not Plaid-reported
   source?: 'manual' | 'plaid';
   externalId?: string;
   plaidItemId?: string;

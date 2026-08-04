@@ -146,7 +146,11 @@ export default function PositionsTable({
                           <div className="text-xs text-[#1c1612]0 truncate max-w-[140px]">{p.name}</div>
                         </td>
                         <td className="py-2.5 pr-4 text-[#4a3d33]">{fmt(p.shares)}</td>
-                        <td className="py-2.5 pr-4 text-[#4a3d33]">{p.accountType === 'cpf' || !p.hasCostBasis ? <span className="text-[#b8ad9e]">—</span> : money(p.avgCost)}</td>
+                        <td className="py-2.5 pr-4 text-[#4a3d33]">
+                          {p.accountType === 'cpf' || !p.hasCostBasis
+                            ? <span className="text-[#b8ad9e]">—</span>
+                            : <>{money(p.avgCost)}{p.costBasisEstimated && <span className="ml-1 text-[10px] text-amber-500" title="Reconstructed from contribution history, not reported by the brokerage">(est.)</span>}</>}
+                        </td>
                         <td className="py-2.5 pr-4 text-[#1c1612] font-medium">
                           {p.hasLivePrice ? money(p.currentPrice) : <span className="text-amber-300">Unavailable</span>}
                         </td>
