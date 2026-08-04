@@ -801,9 +801,9 @@ export default function Dashboard() {
               />
               <MetricCard
                 label="Total P&L"
-                value={hasCompleteLivePrices && hasCompleteCostBasis ? `${totalPnlPositive ? '+' : '-'}${formatCurrency(Math.abs(summary.totalUnrealizedPnl), displayCurrency, summary.usdToSgdRate)}` : '—'}
-                subValue={hasCompleteLivePrices && hasCompleteCostBasis ? `${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%` : 'Waiting for complete price and cost data'}
-                positive={hasCompleteLivePrices && hasCompleteCostBasis ? totalPnlPositive : null}
+                value={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : '-'}${formatCurrency(Math.abs(summary.totalUnrealizedPnl), displayCurrency, summary.usdToSgdRate)}` : '—'}
+                subValue={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%${hasCompleteCostBasis ? '' : ' (partial)'}` : 'Waiting for complete price and cost data'}
+                positive={hasCompleteLivePrices ? totalPnlPositive : null}
                 sparkData={metricHistory.map(s => s.totalPnl)}
               />
               <MetricCard
