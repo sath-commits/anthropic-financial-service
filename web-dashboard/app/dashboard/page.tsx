@@ -3,13 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Plus, X, Edit2, PiggyBank, Home, Layers, Wallet, LogOut } from 'lucide-react';
+import { Download, Upload, RefreshCw, TrendingUp, Bot, Plus, X, Edit2, PiggyBank, Home, Layers, Wallet, LogOut } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
 import PnLChart from '@/components/PnLChart';
-import EarningsStrip from '@/components/EarningsStrip';
-import ChatPanel from '@/components/ChatPanel';
 import PortfolioEditor from '@/components/PortfolioEditor';
 import PlaidConnection from '@/components/PlaidConnection';
 import { downloadSettingsBackup, hydrateSettings, savePositions, saveProfile, savePortfolioCache, loadPortfolioCache, saveMetricSnapshot, loadMetricHistory, type MetricSnapshot } from '@/lib/storage';
@@ -394,23 +392,8 @@ export default function Dashboard() {
     router.push('/');
   }
 
-  const portfolioContext = summary
-    ? `Total equity: $${fmt(summary.totalEquity)}\n${hasCompleteCostBasis ? `Total P&L: ${totalPnlPositive ? '+' : '-'}$${fmt(Math.abs(summary.totalUnrealizedPnl))} (${fmt(summary.totalUnrealizedPnlPct)}%)` : 'Total P&L: incomplete because cost basis is unavailable for one or more positions'}\nBuying power: $${fmt(summary.buyingPower)}\n\nPositions:\n${summary.positions.map(p => {
-      const costAndPnl = p.hasCostBasis === false
-        ? 'cost basis and P&L unavailable'
-        : `cost $${fmt(p.avgCost)}, P&L ${p.unrealizedPnl >= 0 ? '+' : ''}$${fmt(p.unrealizedPnl)} (${fmt(p.unrealizedPnlPct)}%)`;
-      const holdingPeriod = p.holdingPeriodKnown === false
-        ? 'holding period unavailable'
-        : p.isShortTerm ? 'short-term' : 'long-term';
-      return `${p.symbol} (${p.accountType}): ${p.shares} shares @ $${fmt(p.currentPrice)}, ${costAndPnl}, equity $${fmt(p.equity)}, weight ${fmt(p.portfolioWeightPct)}%, ${holdingPeriod}`;
-    }).join('\n')}`
-    : undefined;
-
-  const profileContext = profile
-    ? `Age: ${profile.currentAge}, retirement age: ${profile.retirementAge}\nMonthly contribution: $${profile.monthlyContribution}\nRisk tolerance: ${profile.riskTolerance}, primary goal: ${profile.primaryGoal}\nTarget allocation: ${Object.entries(profile.targetAllocation).map(([k, v]) => `${k} ${(v * 100).toFixed(0)}%`).join(', ')}${profile.strategy ? `\nStrategy: ${profile.strategy}` : ''}`
-    : undefined;
-
-  const isOwnPortfolio = userPositions !== null;
+  // Chat panel disabled — portfolioContext/profileContext were only consumed by ChatPanel
+  // Earnings strip disabled — isOwnPortfolio was only consumed by EarningsStrip
 
   const uniqueBrokerages = summary?.positions
     ? [...new Set(summary.positions.map(p => p.brokerage).filter(Boolean))].sort() as string[]
@@ -945,25 +928,11 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* AI chat */}
-            <ChatPanel portfolioContext={portfolioContext} profileContext={profileContext} />
+            {/* AI chat — disabled */}
           </div>
         </div>
 
-        {/* Earnings strip */}
-        <div className="rounded-xl border border-[#e5ddd3] bg-white px-5 py-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-[#9e9087]" />
-            <h2 className="text-sm font-semibold text-[#2d2218]">Upcoming Earnings</h2>
-          </div>
-          {loading ? (
-            <div className="flex gap-2">
-              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-7 w-24 rounded-full" />)}
-            </div>
-          ) : (
-            <EarningsStrip earnings={earnings} hasPositions={isOwnPortfolio} />
-          )}
-        </div>
+        {/* Earnings strip — disabled */}
       </main>
 
       {/* Footer */}
