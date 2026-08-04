@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, PiggyBank, Brain, Edit2, Check, X, LayoutDashboard, Home, Layers, Wallet } from 'lucide-react';
+import { TrendingUp, PiggyBank, Edit2, Check, X, LayoutDashboard, Home, Layers, Wallet } from 'lucide-react';
 import { loadProfile, saveProfile, loadPortfolioCache } from '@/lib/storage';
 import type { PortfolioSummary, AllocationItem, EarningsEvent } from '@/lib/types';
 import {
@@ -256,9 +256,7 @@ export default function RetirementPage() {
             <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <LayoutDashboard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Dashboard</span>
             </button>
-            <button onClick={() => router.push('/advisor')} className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
-              <Brain className="h-3.5 w-3.5" /><span className="hidden sm:inline">Advisor</span>
-            </button>
+            {/* Advisor nav link hidden — feature disabled */}
             <span className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#4a3d33] bg-[#ede8df] flex-shrink-0">
               <PiggyBank className="h-3.5 w-3.5 text-[#da7756]" /><span className="hidden sm:inline">Retirement</span>
             </span>

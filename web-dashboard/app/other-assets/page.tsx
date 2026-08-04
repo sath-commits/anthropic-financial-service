@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  TrendingUp, Brain, PiggyBank, Home, Layers, Wallet, LayoutDashboard, Plus, Edit2, Trash2,
+  TrendingUp, PiggyBank, Home, Layers, Wallet, LayoutDashboard, Plus, Edit2, Trash2,
   X, Check, TrendingUp as TrendUp, TrendingDown,
 } from 'lucide-react';
 import { loadPortfolioCache, hydrateSettings, saveOtherAssets as saveOtherAssetsToServer } from '@/lib/storage';
@@ -380,7 +380,7 @@ export default function OtherAssetsPage() {
   const NAV = [
     { label: 'Net Worth',   path: '/summary',      icon: <Wallet className="h-3.5 w-3.5" /> },
     { label: 'Dashboard',   path: '/dashboard',    icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
-    { label: 'Advisor',     path: '/advisor',       icon: <Brain className="h-3.5 w-3.5" /> },
+    // Advisor nav link hidden — feature disabled
     { label: 'Retirement',  path: '/retirement',    icon: <PiggyBank className="h-3.5 w-3.5" /> },
     { label: 'Real Estate', path: '/real-estate',   icon: <Home className="h-3.5 w-3.5" /> },
   ];

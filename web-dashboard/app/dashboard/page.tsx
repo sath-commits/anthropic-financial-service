@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Brain, Plus, X, Edit2, PiggyBank, Home, Layers, Wallet, LogOut } from 'lucide-react';
+import { Download, Upload, RefreshCw, TrendingUp, Calendar, Bot, Plus, X, Edit2, PiggyBank, Home, Layers, Wallet, LogOut } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import PositionsTable from '@/components/PositionsTable';
 import AllocationChart from '@/components/AllocationChart';
@@ -497,10 +497,7 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden text-[10px]">Dash</span>
             </span>
-            <Link href="/advisor" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
-              <Brain className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Advisor</span>
-            </Link>
+            {/* Advisor nav link hidden — feature disabled */}
             <Link href="/retirement" className="flex items-center gap-1 rounded-lg px-2 py-1.5 sm:px-3 sm:gap-1.5 text-xs font-medium text-[#9e9087] hover:text-[#2d2218] hover:bg-[#ede8df] transition-colors flex-shrink-0">
               <PiggyBank className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Retirement</span>
