@@ -244,10 +244,13 @@ export default function RetirementPage() {
 
   // FIRE tracker — is the current portfolio + contribution trajectory (base case, 7%/yr)
   // enough to hit the same full-retirement number by FIRE_TARGET_AGE? CPF excluded — illiquid until 55+.
+  // Target is pinned to NORMAL_RETIREMENT_AGE (not inputs.retirementAge) so it can't move with
+  // the editable "Retire at Age" assumption — otherwise setting that to 43 makes fireGap always 0.
   const FIRE_TARGET_AGE = 43;
+  const NORMAL_RETIREMENT_AGE = 65;
   const yearsToFireTarget = Math.max(0, FIRE_TARGET_AGE - inputs.currentAge);
   const fireProjectedValue = computePlan(currentValue, { ...inputs, retirementAge: FIRE_TARGET_AGE }, cpfInputs, usdToSgd).ret.base;
-  const fireTargetCorpus = plan.ret.base;
+  const fireTargetCorpus = computePlan(currentValue, { ...inputs, retirementAge: NORMAL_RETIREMENT_AGE }, cpfInputs, usdToSgd).ret.base;
   const fireGap = fireProjectedValue - fireTargetCorpus;
   const isOnTrackForFire = fireGap >= 0;
   const firePct = fireTargetCorpus > 0 ? (fireProjectedValue / fireTargetCorpus) * 100 : 0;
@@ -319,7 +322,7 @@ export default function RetirementPage() {
               <p className="mt-1 text-xs text-[#6e5f52]">
                 Projected portfolio at {FIRE_TARGET_AGE}: <span className="font-semibold text-[#2d2218]">{fmtM(fireProjectedValue)}</span>
                 {' vs. target '}<span className="font-semibold text-[#2d2218]">{fmtM(fireTargetCorpus)}</span>
-                {' ('}your base-case retirement number at age {inputs.retirementAge}{')'}
+                {' ('}your base-case retirement number at age {NORMAL_RETIREMENT_AGE}{')'}
               </p>
             </div>
             <div className="text-right">
@@ -330,7 +333,7 @@ export default function RetirementPage() {
             </div>
           </div>
           <p className="mt-2 text-[10px] text-[#b8ad9e]">
-            Base case (7%/yr) + {fmtM(totalAnnualContrib)}/yr contributions from current portfolio ({fmtM(currentValue)}), {yearsToFireTarget > 0 ? `${yearsToFireTarget} years from now` : 'evaluated at your current age'}. CPF excluded (illiquid until 55+). Target = your "At Retirement" base-case number for age {inputs.retirementAge} above, i.e. can you hit the same number {inputs.retirementAge - FIRE_TARGET_AGE > 0 ? `${inputs.retirementAge - FIRE_TARGET_AGE} years early` : 'by then'}?
+            Base case (7%/yr) + {fmtM(totalAnnualContrib)}/yr contributions from current portfolio ({fmtM(currentValue)}), {yearsToFireTarget > 0 ? `${yearsToFireTarget} years from now` : 'evaluated at your current age'}. CPF excluded (illiquid until 55+). Target is fixed at your base-case corpus for a normal retirement at age {NORMAL_RETIREMENT_AGE} — independent of whatever "Retire at Age" is currently set to above — i.e. can you hit that same number {NORMAL_RETIREMENT_AGE - FIRE_TARGET_AGE} years early?
           </p>
         </div>
 
