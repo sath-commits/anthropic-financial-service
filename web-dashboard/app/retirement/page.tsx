@@ -242,6 +242,16 @@ export default function RetirementPage() {
   const totalAnnualContrib = inputs.annualTaxable + inputs.annualStockGrants + inputs.annual401k;
   const hasCpf = cpfInputs.cpfBalanceSgd > 0;
 
+  // FIRE tracker — is the current portfolio + contribution trajectory (base case, 7%/yr)
+  // enough to hit the same full-retirement number by FIRE_TARGET_AGE? CPF excluded — illiquid until 55+.
+  const FIRE_TARGET_AGE = 43;
+  const yearsToFireTarget = Math.max(0, FIRE_TARGET_AGE - inputs.currentAge);
+  const fireProjectedValue = computePlan(currentValue, { ...inputs, retirementAge: FIRE_TARGET_AGE }, cpfInputs, usdToSgd).ret.base;
+  const fireTargetCorpus = plan.ret.base;
+  const fireGap = fireProjectedValue - fireTargetCorpus;
+  const isOnTrackForFire = fireGap >= 0;
+  const firePct = fireTargetCorpus > 0 ? (fireProjectedValue / fireTargetCorpus) * 100 : 0;
+
   return (
     <div className="flex min-h-screen flex-col bg-[#f7f2eb]">
       {/* Header */}
@@ -297,6 +307,31 @@ export default function RetirementPage() {
               <Edit2 className="h-3 w-3" /> CPF settings
             </button>
           </div>
+        </div>
+
+        {/* FIRE tracker — on track / off track to retire by 43 */}
+        <div className={`rounded-xl border px-5 py-4 ${isOnTrackForFire ? 'border-emerald-300 bg-emerald-50' : 'border-red-300 bg-red-50'}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className={`text-xs font-semibold uppercase tracking-wide ${isOnTrackForFire ? 'text-emerald-500' : 'text-red-500'}`}>
+                {isOnTrackForFire ? '✓ On track' : '✗ Off track'} to retire by {FIRE_TARGET_AGE}
+              </div>
+              <p className="mt-1 text-xs text-[#6e5f52]">
+                Projected portfolio at {FIRE_TARGET_AGE}: <span className="font-semibold text-[#2d2218]">{fmtM(fireProjectedValue)}</span>
+                {' vs. target '}<span className="font-semibold text-[#2d2218]">{fmtM(fireTargetCorpus)}</span>
+                {' ('}your base-case retirement number at age {inputs.retirementAge}{')'}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className={`text-2xl font-bold ${isOnTrackForFire ? 'text-emerald-500' : 'text-red-500'}`}>
+                {isOnTrackForFire ? '+' : '-'}{fmtM(Math.abs(fireGap))}
+              </div>
+              <div className="text-xs text-[#9e9087]">{isOnTrackForFire ? 'surplus' : 'shortfall'} · {firePct.toFixed(0)}% of target</div>
+            </div>
+          </div>
+          <p className="mt-2 text-[10px] text-[#b8ad9e]">
+            Base case (7%/yr) + {fmtM(totalAnnualContrib)}/yr contributions from current portfolio ({fmtM(currentValue)}), {yearsToFireTarget > 0 ? `${yearsToFireTarget} years from now` : 'evaluated at your current age'}. CPF excluded (illiquid until 55+). Target = your "At Retirement" base-case number for age {inputs.retirementAge} above, i.e. can you hit the same number {inputs.retirementAge - FIRE_TARGET_AGE > 0 ? `${inputs.retirementAge - FIRE_TARGET_AGE} years early` : 'by then'}?
+          </p>
         </div>
 
         {/* Investment assumptions edit panel */}
