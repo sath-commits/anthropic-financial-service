@@ -91,6 +91,36 @@ function supportedCurrency(code: string | null): UserPosition['currency'] {
   return 'USD';
 }
 
+// Vanguard Institutional 500 Index Trust (CUSIP 59515R401), held via a Microsoft 401k on
+// Fidelity. It's a collective trust with no public ticker, so Plaid never reports cost_basis
+// for it. Reconstructed here from confirmed contribution history instead of leaving P&L
+// permanently unavailable for this position. Plaid's `cusip` field requires a separately
+// licensed/verified CUSIP feed and is null for most integrations (including this one), so
+// matching is primarily by the name string Plaid actually returns as ticker_symbol, with CUSIP
+// as a secondary check in case that ever changes.
+const VANG_500_INDEX_TRUST_CUSIP = '59515R401';
+const VANG_500_INDEX_TRUST_NAME_HINT = 'VANG.500.INDEX.TRUST';
+
+// Employee contributions assumed at the IRS annual 401k max (confirmed maxed out every year by
+// the account holder); Microsoft matches 50% of employee contributions up to that same limit.
+const IRS_401K_EMPLOYEE_LIMIT: Record<number, number> = { 2023: 22_500, 2024: 23_000, 2025: 23_500 };
+const MICROSOFT_MATCH_RATE = 0.5;
+
+// 2026 uses actual YTD figures reported directly by Fidelity, not the IRS-max assumption above —
+// this is a manual snapshot and will go stale; update it periodically through year-end.
+const FIDELITY_2026_YTD = { asOf: '2026-08-04', employee: 18_206.35, employerMatch: 9_103.18 };
+
+function estimatedVang500CostBasis(): number {
+  const priorYearsTotal = Object.values(IRS_401K_EMPLOYEE_LIMIT)
+    .reduce((sum, limit) => sum + limit * (1 + MICROSOFT_MATCH_RATE), 0);
+  return priorYearsTotal + FIDELITY_2026_YTD.employee + FIDELITY_2026_YTD.employerMatch;
+}
+
+function isVang500IndexTrust(security: Security, symbol: string): boolean {
+  return security.cusip === VANG_500_INDEX_TRUST_CUSIP
+    || symbol.includes(VANG_500_INDEX_TRUST_NAME_HINT);
+}
+
 function normalizeHolding(
   item: StoredPlaidItem,
   holding: Holding,
@@ -113,10 +143,13 @@ function normalizeHolding(
   const hasReportedCostBasis = holding.cost_basis !== null
     && Number.isFinite(holding.cost_basis)
     && holding.quantity !== 0;
-  const hasCostBasis = hasReportedCostBasis || isCashLike;
+  const useEstimatedCostBasis = !hasReportedCostBasis && isVang500IndexTrust(security, symbol);
+  const hasCostBasis = hasReportedCostBasis || isCashLike || useEstimatedCostBasis;
   const avgCost = hasReportedCostBasis
     ? Math.abs(holding.cost_basis! / holding.quantity)
-    : Math.abs(holding.institution_price);
+    : useEstimatedCostBasis
+      ? estimatedVang500CostBasis() / holding.quantity
+      : Math.abs(holding.institution_price);
   const period = holdingPeriod(holding);
 
   return {
@@ -134,6 +167,7 @@ function normalizeHolding(
     fallbackPrice: Math.abs(holding.institution_price),
     preferInstitutionPrice,
     hasCostBasis,
+    costBasisEstimated: useEstimatedCostBasis || undefined,
     source: 'plaid',
     externalId: `${item.itemId}:${holding.account_id}:${holding.security_id}`,
     plaidItemId: item.itemId,
