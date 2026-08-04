@@ -18,6 +18,7 @@ interface Inputs {
   annualTaxable: number;
   annualStockGrants: number;
   annual401k: number;
+  fireMonthlyIncomeGoal: number;  // desired sustainable monthly income from investable cash (4% rule)
 }
 
 interface CpfInputs {
@@ -178,6 +179,7 @@ export default function RetirementPage() {
   const [inputs, setInputs] = useState<Inputs>({
     currentAge: 30, retirementAge: 65,
     annualTaxable: 40_000, annualStockGrants: 50_000, annual401k: 40_000,
+    fireMonthlyIncomeGoal: 8_000,
   });
   const [cpfInputs, setCpfInputs] = useState<CpfInputs>({
     cpfBalanceSgd: 0,
@@ -243,14 +245,14 @@ export default function RetirementPage() {
   const hasCpf = cpfInputs.cpfBalanceSgd > 0;
 
   // FIRE tracker — is the current portfolio + contribution trajectory (base case, 7%/yr)
-  // enough to hit the same full-retirement number by FIRE_TARGET_AGE? CPF excluded — illiquid until 55+.
-  // Target is pinned to NORMAL_RETIREMENT_AGE (not inputs.retirementAge) so it can't move with
-  // the editable "Retire at Age" assumption — otherwise setting that to 43 makes fireGap always 0.
+  // enough to reach financial independence by FIRE_TARGET_AGE? CPF excluded — illiquid until 55+.
+  // Target corpus is derived from the user's own FIRE monthly income goal via the 4% rule,
+  // not from any age-based retirement plan — it's a fixed dollar number, so it can't move
+  // when "Retire at Age" is edited.
   const FIRE_TARGET_AGE = 43;
-  const NORMAL_RETIREMENT_AGE = 65;
   const yearsToFireTarget = Math.max(0, FIRE_TARGET_AGE - inputs.currentAge);
   const fireProjectedValue = computePlan(currentValue, { ...inputs, retirementAge: FIRE_TARGET_AGE }, cpfInputs, usdToSgd).ret.base;
-  const fireTargetCorpus = computePlan(currentValue, { ...inputs, retirementAge: NORMAL_RETIREMENT_AGE }, cpfInputs, usdToSgd).ret.base;
+  const fireTargetCorpus = (inputs.fireMonthlyIncomeGoal * 12) / 0.04;
   const fireGap = fireProjectedValue - fireTargetCorpus;
   const isOnTrackForFire = fireGap >= 0;
   const firePct = fireTargetCorpus > 0 ? (fireProjectedValue / fireTargetCorpus) * 100 : 0;
@@ -322,7 +324,7 @@ export default function RetirementPage() {
               <p className="mt-1 text-xs text-[#6e5f52]">
                 Projected portfolio at {FIRE_TARGET_AGE}: <span className="font-semibold text-[#2d2218]">{fmtM(fireProjectedValue)}</span>
                 {' vs. target '}<span className="font-semibold text-[#2d2218]">{fmtM(fireTargetCorpus)}</span>
-                {' ('}your base-case retirement number at age {NORMAL_RETIREMENT_AGE}{')'}
+                {' (corpus for '}{fmtM(inputs.fireMonthlyIncomeGoal)}/mo at a 4% withdrawal rate{')'}
               </p>
             </div>
             <div className="text-right">
@@ -333,7 +335,7 @@ export default function RetirementPage() {
             </div>
           </div>
           <p className="mt-2 text-[10px] text-[#b8ad9e]">
-            Base case (7%/yr) + {fmtM(totalAnnualContrib)}/yr contributions from current portfolio ({fmtM(currentValue)}), {yearsToFireTarget > 0 ? `${yearsToFireTarget} years from now` : 'evaluated at your current age'}. CPF excluded (illiquid until 55+). Target is fixed at your base-case corpus for a normal retirement at age {NORMAL_RETIREMENT_AGE} — independent of whatever "Retire at Age" is currently set to above — i.e. can you hit that same number {NORMAL_RETIREMENT_AGE - FIRE_TARGET_AGE} years early?
+            Base case (7%/yr) + {fmtM(totalAnnualContrib)}/yr contributions from current portfolio ({fmtM(currentValue)}), {yearsToFireTarget > 0 ? `${yearsToFireTarget} years from now` : 'evaluated at your current age'}. CPF excluded (illiquid until 55+). Target = ({fmtM(inputs.fireMonthlyIncomeGoal)}/mo × 12) ÷ 4% = {fmtM(fireTargetCorpus)}, independent of the "Retire at Age" assumption above. Edit your FIRE monthly income goal under "Edit assumptions".
           </p>
         </div>
 
@@ -347,6 +349,7 @@ export default function RetirementPage() {
                 { label: 'Annual Taxable ($)', key: 'annualTaxable' },
                 { label: 'Annual Stock Grants ($)', key: 'annualStockGrants' },
                 { label: 'Annual 401k ($)', key: 'annual401k' },
+                { label: 'FIRE Monthly Income Goal ($)', key: 'fireMonthlyIncomeGoal' },
               ] as { label: string; key: keyof Inputs }[]).map(({ label, key }) => (
                 <div key={key}>
                   <label className="block text-[10px] text-[#9e9087] uppercase tracking-wide mb-1">{label}</label>
