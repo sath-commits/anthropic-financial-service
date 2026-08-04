@@ -424,7 +424,7 @@ export default function Dashboard() {
   });
   const isSingaporeBasedUsPlatform = (position: Position) => {
     const brokerage = position.brokerage.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return brokerage.includes('moomoo') || brokerage.includes('stashaway');
+    return brokerage.includes('moomoo') || brokerage.includes('stashaway') || brokerage.includes('computershare');
   };
   const singaporeUsPositions = filteredPositions.filter(isSingaporeBasedUsPlatform);
   const usPositions = filteredPositions.filter(position =>
@@ -863,7 +863,7 @@ export default function Dashboard() {
                         <section>
                           <div className="mb-3">
                             <h3 className="text-xs font-semibold uppercase tracking-wide text-[#2d2218]">Singapore-based U.S. investments</h3>
-                            <p className="mt-1 text-xs text-[#9e9087]">Moomoo and StashAway holdings: U.S. investments maintained through Singapore-based platforms.</p>
+                            <p className="mt-1 text-xs text-[#9e9087]">Moomoo, StashAway, and Computershare holdings: U.S. investments maintained through Singapore-based platforms.</p>
                           </div>
                           <PositionsTable
                             positions={singaporeUsPositions}
