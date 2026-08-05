@@ -55,7 +55,7 @@ export default function PnLChart({ symbol = 'VOO', holdingCurrency = 'USD', disp
     const cached = readHistoryCache(symbol, period);
     if (cached) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setData(cached.slice(-120));
+      setData(cached);
       setLoading(false);
     } else {
       setLoading(true);
@@ -66,7 +66,7 @@ export default function PnLChart({ symbol = 'VOO', holdingCurrency = 'USD', disp
       .then(r => r.json())
       .then((rows: HistoryPoint[]) => {
         writeHistoryCache(symbol, period, rows);
-        setData(rows.slice(-120));
+        setData(rows);
         setLoading(false);
       })
       .catch(err => {
