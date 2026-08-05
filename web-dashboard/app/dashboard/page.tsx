@@ -63,6 +63,7 @@ function recomputePositionFast(
   hasLivePrice: boolean,
   usdToSgdRate: number,
   usdToInrRate: number,
+  existing?: Position,
 ): Position {
   const currency = positionCurrency(userPos.currency);
   const isCpf = userPos.accountType === 'cpf';
@@ -90,6 +91,11 @@ function recomputePositionFast(
     unrealizedPnlPct: isCpf
       ? Math.max(0, (cpfGrowthFactor - 1) * 100)
       : ((priceUsd / userPos.avgCost) - 1) * 100,
+    // No fresh previous-close data on this fast path — carry over the last known day-change
+    // figures rather than fabricate new ones; they'll refresh on the next full load().
+    hasDayChange: existing?.hasDayChange ?? false,
+    dayPnl: existing?.dayPnl ?? 0,
+    dayPnlPct: existing?.dayPnlPct ?? 0,
     portfolioWeightPct: 0,
     accountType: userPos.accountType, currency,
     brokerage: userPos.brokerage ?? 'Fidelity',
@@ -133,6 +139,11 @@ function applyLocalPositionUpdate(
     const current = totalEquity > 0 ? (actualByClass[name] ?? 0) / totalEquity : 0;
     return { name, target, current, drift: current - target };
   });
+  // Cash has no target allocation but still needs to show up so percentages sum to 100%.
+  if (!('Cash' in targets) && actualByClass.Cash) {
+    const current = totalEquity > 0 ? actualByClass.Cash / totalEquity : 0;
+    allocation.push({ name: 'Cash', target: 0, current, drift: current });
+  }
   return { summary, allocation };
 }
 
@@ -334,7 +345,7 @@ export default function Dashboard() {
       const inrRate = summary.usdToInrRate ?? DEFAULT_USD_TO_INR_RATE;
       const cachedPrice = existingPos?.currentPrice ?? 0;
       const hasLive = existingPos?.hasLivePrice ?? false;
-      const newPos = recomputePositionFast(updated, cachedPrice, hasLive, summary.usdToSgdRate, inrRate);
+      const newPos = recomputePositionFast(updated, cachedPrice, hasLive, summary.usdToSgdRate, inrRate, existingPos);
       const rawPositions = existingPos
         ? summary.positions.map(p => p === existingPos ? newPos : p)
         : [...summary.positions, newPos];
@@ -779,21 +790,21 @@ export default function Dashboard() {
                 label="Portfolio Value"
                 value={formatCurrency(summary.totalEquity, displayCurrency, summary.usdToSgdRate)}
                 positive={null}
-                sparkData={metricHistory.map(s => s.portfolioValue)}
+                sparkData={metricHistory.map(s => ({ date: s.date, value: s.portfolioValue }))}
               />
               <MetricCard
                 label="Total P&L"
                 value={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : '-'}${formatCurrency(Math.abs(summary.totalUnrealizedPnl), displayCurrency, summary.usdToSgdRate)}` : '—'}
                 subValue={hasCompleteLivePrices ? `${totalPnlPositive ? '+' : ''}${fmt(summary.totalUnrealizedPnlPct)}%${hasCompleteCostBasis ? '' : ' (partial)'}` : 'Waiting for complete price and cost data'}
                 positive={hasCompleteLivePrices ? totalPnlPositive : null}
-                sparkData={metricHistory.map(s => s.totalPnl)}
+                sparkData={metricHistory.map(s => ({ date: s.date, value: s.totalPnl }))}
               />
               <MetricCard
                 label="Day Change"
                 value={summary.dayChange === 0 ? '—' : `${summary.dayChange >= 0 ? '+' : '-'}$${fmt(Math.abs(summary.dayChange))}`}
                 subValue={summary.dayChange === 0 ? 'Live prices not connected' : `${fmt(summary.dayChangePct)}%`}
                 positive={summary.dayChange === 0 ? null : summary.dayChange >= 0}
-                sparkData={metricHistory.map(s => s.dayChange)}
+                sparkData={metricHistory.map(s => ({ date: s.date, value: s.dayChange }))}
               />
               <MetricCard
                 label="Cash Equivalents"
@@ -802,7 +813,7 @@ export default function Dashboard() {
                   ? `Includes ${formatCurrency(hsaCashEquivalents, displayCurrency, summary.usdToSgdRate)} in HSA`
                   : 'Available across accounts'}
                 positive={null}
-                sparkData={metricHistory.map(s => s.cashEquivalents)}
+                sparkData={metricHistory.map(s => ({ date: s.date, value: s.cashEquivalents }))}
               />
             </>
           ) : null}

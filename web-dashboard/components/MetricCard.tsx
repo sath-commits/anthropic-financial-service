@@ -2,21 +2,27 @@
 
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 
+interface SparkPoint {
+  date: string;
+  value: number;
+}
+
 interface MetricCardProps {
   label: string;
   value: string;
   subValue?: string;
   positive?: boolean | null;
-  sparkData?: number[];
+  sparkData?: SparkPoint[];
 }
 
-function SparkTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) {
+function SparkTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: SparkPoint }> }) {
   if (!active || !payload?.length) return null;
-  const v = payload[0].value;
-  const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Math.abs(v));
+  const { date, value } = payload[0].payload;
+  const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Math.abs(value));
   return (
     <div className="rounded-md border border-[#e5ddd3] bg-white px-2 py-1 text-xs text-[#4a3d33] shadow-sm">
-      {v < 0 ? '-' : ''}{formatted}
+      <div className="text-[#9e9087]">{date}</div>
+      <div>{value < 0 ? '-' : ''}{formatted}</div>
     </div>
   );
 }
@@ -36,8 +42,7 @@ export default function MetricCard({ label, value, subValue, positive, sparkData
         ? '#10b981'
         : '#f87171';
 
-  const chartData = sparkData?.map(v => ({ v }));
-  const hasChart = chartData && chartData.length > 1;
+  const hasChart = sparkData && sparkData.length > 1;
 
   return (
     <div className="rounded-xl border border-[#e5ddd3] bg-white px-5 py-4">
@@ -47,11 +52,11 @@ export default function MetricCard({ label, value, subValue, positive, sparkData
       {hasChart && (
         <div className="mt-3 h-10">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+            <LineChart data={sparkData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
               <Tooltip content={<SparkTooltip />} />
               <Line
                 type="monotone"
-                dataKey="v"
+                dataKey="value"
                 stroke={lineColor}
                 strokeWidth={1.5}
                 dot={false}

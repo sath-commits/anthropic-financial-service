@@ -28,7 +28,7 @@ function fmt(n: number, decimals = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-type SortKey = 'symbol' | 'shares' | 'avgCost' | 'currentPrice' | 'equity' | 'unrealizedPnl' | 'unrealizedPnlPct' | 'portfolioWeightPct' | 'brokerage';
+type SortKey = 'symbol' | 'shares' | 'avgCost' | 'currentPrice' | 'equity' | 'unrealizedPnl' | 'unrealizedPnlPct' | 'dayPnl' | 'dayPnlPct' | 'portfolioWeightPct' | 'brokerage';
 type SortDirection = 'asc' | 'desc';
 
 const COLUMNS: Array<{ label: string; key: SortKey }> = [
@@ -39,6 +39,8 @@ const COLUMNS: Array<{ label: string; key: SortKey }> = [
   { label: 'Value', key: 'equity' },
   { label: 'P&L', key: 'unrealizedPnl' },
   { label: 'P&L %', key: 'unrealizedPnlPct' },
+  { label: 'Daily P&L', key: 'dayPnl' },
+  { label: 'Daily P&L %', key: 'dayPnlPct' },
   { label: 'Weight', key: 'portfolioWeightPct' },
   { label: 'Brokerage', key: 'brokerage' },
 ];
@@ -68,6 +70,9 @@ export default function PositionsTable({
     return [...accountPositions].sort((a, b) => {
       if ((sortKey === 'currentPrice' || sortKey === 'unrealizedPnl' || sortKey === 'unrealizedPnlPct') && a.hasLivePrice !== b.hasLivePrice) {
         return a.hasLivePrice ? -1 : 1;
+      }
+      if ((sortKey === 'dayPnl' || sortKey === 'dayPnlPct') && a.hasDayChange !== b.hasDayChange) {
+        return a.hasDayChange ? -1 : 1;
       }
       const aValue = a[sortKey];
       const bValue = b[sortKey];
@@ -160,6 +165,12 @@ export default function PositionsTable({
                         </td>
                         <td className={`py-2.5 pr-4 font-medium ${gain ? 'text-emerald-400' : 'text-red-400'}`}>
                           {p.hasLivePrice && p.hasCostBasis ? `${gain ? '+' : ''}${fmt(p.unrealizedPnlPct)}%` : <span className="text-[#1c1612]0">—</span>}
+                        </td>
+                        <td className={`py-2.5 pr-4 font-medium ${p.dayPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {p.hasDayChange ? `${p.dayPnl >= 0 ? '+' : '-'}${money(p.dayPnl)}` : <span className="text-[#1c1612]0">—</span>}
+                        </td>
+                        <td className={`py-2.5 pr-4 font-medium ${p.dayPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {p.hasDayChange ? `${p.dayPnl >= 0 ? '+' : ''}${fmt(p.dayPnlPct)}%` : <span className="text-[#1c1612]0">—</span>}
                         </td>
                         <td className="py-2.5 pr-4 text-[#6e5f52]">{fmt(p.portfolioWeightPct, 1)}%</td>
                         <td className="py-2.5 pr-4 text-xs">

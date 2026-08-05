@@ -10,6 +10,9 @@ export interface Position {
   equity: number;
   unrealizedPnl: number;
   unrealizedPnlPct: number;
+  hasDayChange: boolean;
+  dayPnl: number;
+  dayPnlPct: number;
   portfolioWeightPct: number;
   accountType: 'taxable' | 'ira' | 'roth_ira' | '401k' | 'hsa' | 'cpf';
   currency: 'USD' | 'SGD' | 'INR';
