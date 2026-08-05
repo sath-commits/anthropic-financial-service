@@ -225,8 +225,10 @@ export default function Dashboard() {
         cashEquivalents: data.summary.buyingPower,
       });
       setMetricHistory(loadMetricHistory());
-      if (!chartSymbol && data.summary?.positions?.length) {
-        setChartSymbol(data.summary.positions[0].symbol);
+      if (!chartSymbol) {
+        const topInvestment = data.summary?.positions
+          ?.find((p: Position) => p.accountType !== 'cpf' && !isCashEquivalent(p.symbol, p.assetClass));
+        if (topInvestment) setChartSymbol(topInvestment.symbol);
       }
     } catch (e) {
       console.error(e);
@@ -882,7 +884,9 @@ export default function Dashboard() {
             {/* Price chart */}
             <div className="rounded-xl border border-[#e5ddd3] bg-white p-5">
               <div className="mb-3 flex flex-wrap gap-2">
-                {(summary?.positions ?? []).slice(0, 8).map(p => (
+                {(summary?.positions ?? [])
+                  .filter(p => p.accountType !== 'cpf' && !isCashEquivalent(p.symbol, p.assetClass))
+                  .slice(0, 8).map(p => (
                   <button
                     key={p.symbol}
                     onClick={() => setChartSymbol(p.symbol)}
