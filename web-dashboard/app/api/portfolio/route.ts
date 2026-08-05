@@ -94,17 +94,22 @@ async function handler(
     const equity = price * p.shares;
     const costTotal = avgCost * p.shares;
     const cpfGrowthFactor = Math.pow(1.045, p.holdingDays / 365);
+    const hasLivePrice = isCpf
+      || manualValue !== undefined
+      || usesCostBasisPrice
+      || livePrice !== undefined
+      || hasInstitutionPrice;
+    const prevClose = prevCloseMap[p.symbol];
+    const hasDayChange = Boolean(prevClose) && hasLivePrice && !isCashLike;
+    const prevEquity = hasDayChange ? toUsd(prevClose, currency, usdToSgdRate, usdToInrRate) * p.shares : 0;
+    const dayPnl = hasDayChange ? equity - prevEquity : 0;
     return {
       ...p,
       brokerage: (p as { brokerage?: string }).brokerage ?? (userPositions ? 'Fidelity' : 'Demo'),
       avgCost,
       currency,
       currentPrice: price,
-      hasLivePrice: isCpf
-        || manualValue !== undefined
-        || usesCostBasisPrice
-        || livePrice !== undefined
-        || hasInstitutionPrice,
+      hasLivePrice,
       hasCostBasis,
       equity,
       // CPF: P&L is always the 4.5% growth amount (never negative); percentage uses
@@ -113,6 +118,9 @@ async function handler(
       unrealizedPnlPct: isCpf
         ? Math.max(0, (cpfGrowthFactor - 1) * 100)
         : ((price / p.avgCost) - 1) * 100,
+      hasDayChange,
+      dayPnl,
+      dayPnlPct: hasDayChange && prevEquity > 0 ? (dayPnl / prevEquity) * 100 : 0,
       portfolioWeightPct: 0,
       isShortTerm: p.holdingDays < 366,
     };
@@ -149,6 +157,11 @@ async function handler(
     const current = totalEquity > 0 ? (actualByClass[name] ?? 0) / totalEquity : 0;
     return { name, target, current, drift: current - target };
   });
+  // Cash has no target allocation but still needs to show up so percentages sum to 100%.
+  if (!('Cash' in targets) && actualByClass.Cash) {
+    const current = totalEquity > 0 ? actualByClass.Cash / totalEquity : 0;
+    allocation.push({ name: 'Cash', target: 0, current, drift: current });
+  }
 
   // Earnings calendar fetch disabled — the "Upcoming Earnings" strip that consumed this was
   // removed from the dashboard, and this call was blocking every portfolio load on a slow/down
@@ -183,11 +196,9 @@ async function handler(
   let dayChange = 0;
   let prevTotalEquity = 0;
   for (const p of positions) {
-    const prevClose = prevCloseMap[p.symbol];
-    if (prevClose && p.hasLivePrice && !isCashEquivalent(p.symbol, p.assetClass)) {
-      const prevEquityUsd = toUsd(prevClose, p.currency, usdToSgdRate, usdToInrRate) * p.shares;
-      dayChange += p.equity - prevEquityUsd;
-      prevTotalEquity += prevEquityUsd;
+    if (p.hasDayChange) {
+      dayChange += p.dayPnl;
+      prevTotalEquity += p.equity - p.dayPnl;
     }
   }
   const dayChangePct = prevTotalEquity > 0 ? (dayChange / prevTotalEquity) * 100 : 0;
