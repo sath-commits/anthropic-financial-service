@@ -13,6 +13,26 @@ import path from 'path';
 
 const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
 
+// The Railway data service sleeps when idle (Serverless) and takes ~6s to boot.
+// Calls made over the private network while it wakes fail at the connection
+// level (ECONNREFUSED / ETIMEDOUT) instead of being queued, so retry those.
+// Only network errors (fetch throws TypeError) are retried — HTTP error
+// responses and the per-attempt timeout are returned/thrown immediately.
+export async function fetchWithWakeRetry(
+  url: string,
+  init: Omit<RequestInit, 'signal'>,
+  { attempts = 4, delayMs = 2_000, timeoutMs = 30_000 } = {},
+): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (error) {
+      if (!(error instanceof TypeError) || attempt >= attempts) throw error;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 export async function callDataService(
   method: string,
   params: Record<string, unknown>,
@@ -27,14 +47,13 @@ export async function callDataService(
         console.error('Data service call skipped: DATA_SERVICE_TOKEN is not configured.');
         return null;
       }
-      const res = await fetch(`${baseUrl.replace(/\/$/, '')}/call`, {
+      const res = await fetchWithWakeRetry(`${baseUrl.replace(/\/$/, '')}/call`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ method, params }),
-        signal: AbortSignal.timeout(30_000),
       });
       if (!res.ok) {
         console.error(`Data service call failed: ${method} returned HTTP ${res.status}.`);
